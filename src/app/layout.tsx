@@ -25,12 +25,10 @@ export default function RootLayout({
         {/* AdSense Verification Meta Tag */}
         <meta name="google-adsense-account" content="ca-pub-1116327136347209"></meta>
 
-        {/* AdSense Script using next/script */}
-        <Script
-          async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1116327136347209"
-          crossOrigin="anonymous"
-          strategy="beforeInteractive"
-         />
+        {/* AdSense Script */}
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1116327136347209"
+              crossOrigin="anonymous"></script>
+
         {/* Google Analytics Scripts */}
         <Script async src="https://www.googletagmanager.com/gtag/js?id=G-XYGL070WW8"></Script>
         <Script
@@ -47,9 +45,9 @@ export default function RootLayout({
         />
       </head>
       <body className={inter.className}>
-        <NavBar /> { /* Ensure NavBar is included */ }
+        <NavBar />
         {children}
-        <Footer /> { /* Ensure Footer is included */ }
+        <Footer />
       </body>
     </html>
   );
