@@ -189,7 +189,7 @@ export default function Search({ placeholder }: { placeholder: string }) {
                             onMouseDown={(e) => e.preventDefault()}
                             onClick={() => { setOpen(false); push(`/search?query=${encodeURIComponent(query)}`); }}
                         >
-                            View all results for "{query}"
+                            View all results for &quot;{query}&quot;
                         </button>
                     </div>
                 </div>
