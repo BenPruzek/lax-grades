@@ -44,7 +44,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={inter.className}>
+      <body className={`${inter.className} bg-white text-black dark:bg-black dark:text-white`}>
         <NavBar />
         {children}
         <Footer />

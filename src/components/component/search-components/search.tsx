@@ -39,7 +39,7 @@ export default function Search({ placeholder }: { placeholder: string }) {
             </label>
             <input
                 ref={inputRef}
-                className="peer block w-full h-16 rounded-lg bg-[#f6f6ef] px-6 outline-none ring-red-900 transition focus:ring-2 focus:bg-[#f6f6ef] py-[9px] pl-10"
+                className="peer block w-full h-16 rounded-lg bg-[#f6f6ef] dark:bg-zinc-900 px-6 outline-none ring-red-900 dark:ring-red-400 transition focus:ring-2 focus:bg-[#f6f6ef] dark:focus:bg-zinc-900 text-black dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 py-[9px] pl-10 border border-black/10 dark:border-white/10"
                 placeholder={placeholder}
                 onChange={(e) => {
                     handleSearch(e.target.value);
@@ -47,7 +47,7 @@ export default function Search({ placeholder }: { placeholder: string }) {
                 onKeyPress={handleKeyPress}
                 defaultValue={searchParams.get('query')?.toString()}
             />
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500 peer-focus:text-gray-900" />
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500 dark:text-gray-400 peer-focus:text-gray-900 dark:peer-focus:text-gray-100" />
         </div>
     );
 }

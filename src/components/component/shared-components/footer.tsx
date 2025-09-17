@@ -13,7 +13,7 @@ const routes = [
 
 export default function Footer() {
     return (
-        <footer className="mt-auto flex items-center justify-between h-16 border-t border-black/10 px-3 sm:px-9 text-xs text-gray-700 bg-[#f6f6ef]">
+        <footer className="mt-auto flex items-center justify-between h-16 border-t border-black/10 dark:border-white/10 px-3 sm:px-9 text-xs text-gray-700 dark:text-gray-300 bg-white dark:bg-black">
             <small className="text-xs">
                 Not affiliated with UW La Crosse.
             </small>
