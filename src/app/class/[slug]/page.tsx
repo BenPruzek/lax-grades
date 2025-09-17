@@ -15,7 +15,7 @@ export default async function ClassPage({ params, searchParams }: {
   const classData: ClassData | null = await getClassByCode(slug);
 
   if (!classData) {
-    return <div className="bg-white h-screen flex flex-center justify-center text-h1">NO DATA</div>;
+    return <div className="bg-white dark:bg-transparent h-screen flex flex-center justify-center text-h1">NO DATA</div>;
   }
 
   const distributions = await fetchGPADistributions(
@@ -25,7 +25,7 @@ export default async function ClassPage({ params, searchParams }: {
 
   return (
     <>
-      <div className="bg-white p-8">
+      <div className="bg-white dark:bg-transparent p-8">
         <Search placeholder="Search for classes, instructors, or departments" />
         <div className="border-b border-red-800 pb-4 pt-6">
           <h1 className="text-4xl font-bold text-gray-900">{classData.name}</h1>

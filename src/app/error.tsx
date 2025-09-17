@@ -15,7 +15,7 @@ export default function Error({
     }, [error]);
 
     return (
-        <main className="text-center py-24 h-screen bg-white">
+        <main className="text-center py-24 h-screen bg-white dark:bg-transparent">
             {/* <H1 className="mb-5">Something went wrong!</H1> */}
             <h1>{error.message}</h1>
             <button

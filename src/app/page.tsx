@@ -5,7 +5,7 @@ import { Suspense } from "react"
 
 export default function Home() {
   return (
-    <div className="bg-white dark:bg-black">
+    <div className="bg-white dark:bg-transparent">
       <BackgroundGradientAnimation>
         <div className="absolute z-50 inset-0 flex items-center justify-center">
           <main className="flex flex-col items-center px-3">

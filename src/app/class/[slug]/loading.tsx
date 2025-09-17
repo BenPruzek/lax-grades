@@ -2,7 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Loading() {
     return (
-        <div className="bg-white p-8">
+        <div className="bg-white dark:bg-transparent p-8">
             <Skeleton className="bg-gray-200 h-12 w-full mb-4" />
             <div className="border-b border-red-800 pb-4 pt-6">
                 <Skeleton className="bg-gray-200 h-12 w-1/2 mb-2" />

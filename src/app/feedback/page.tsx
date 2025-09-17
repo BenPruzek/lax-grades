@@ -46,7 +46,7 @@ export default function FeedbackForm() {
     }
 
     return (
-        <div className="flex flex-col items-center justify-start p-8 gap-8 bg-white min-h-[85vh]">
+        <div className="flex flex-col items-center justify-start p-8 gap-8 bg-white dark:bg-transparent min-h-[85vh]">
             <Card className="justify-center items-center bg-[#f6f6ef]">
                 <CardHeader>
                     <CardTitle>Send us your feedback</CardTitle>

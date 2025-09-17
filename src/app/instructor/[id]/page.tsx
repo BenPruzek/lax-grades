@@ -26,7 +26,7 @@ export default async function InstructorPage({ params }: { params: { id: string 
     const percentageA = gradePercentages["A"];
 
     return (
-        <div className="bg-white">
+        <div className="bg-white dark:bg-transparent">
             <div className="p-8">
                 <Search placeholder="Search for classes, instructors, or departments" />
                 <div className="border-b border-red-800 pb-4 pt-6">

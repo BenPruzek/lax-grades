@@ -32,7 +32,7 @@ export default async function Page({
     };
 
     return (
-        <div className="flex flex-col items-center justify-start p-8 gap-8 bg-white min-h-[85vh]">
+        <div className="flex flex-col items-center justify-start p-8 gap-8 bg-white dark:bg-transparent min-h-[85vh]">
             <div className="flex flex-col items-center w-full">
                 <Search placeholder="Search for classes, instructors, or departments" />
             </div>

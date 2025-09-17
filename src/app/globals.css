@@ -21,6 +21,12 @@ body {
   background: rgb(var(--background-end-rgb));
 }
 
+@media (prefers-color-scheme: dark) {
+  body {
+    background: linear-gradient(40deg, rgb(40, 40, 40), rgb(60, 60, 60));
+  }
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;
