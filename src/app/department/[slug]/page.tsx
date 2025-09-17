@@ -33,12 +33,12 @@ export default async function DepartmentPage({ params }: { params: { slug: strin
             <div className="p-8">
                 <Search placeholder="Search for classes, instructors, or departments" />
                 <div className="border-b border-red-800 pb-4 pt-6">
-                    <h1 className="text-4xl font-bold text-gray-900">{department!.name}</h1>
-                    <p className="text-xl text-gray-600">{department!.code}</p>
+                    <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100">{department!.name}</h1>
+                    <p className="text-xl text-gray-600 dark:text-gray-300">{department!.code}</p>
                 </div>
                 <div className="mt-6 flex flex-col gap-4">
                     <div className="col-span-2">
-                        <h2 className="text-lg font-semibold text-gray-900 mb-4">Overall Grades in Department</h2>
+                        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Overall Grades in Department</h2>
                         <div className="w-full h-[300px]">
                             <DepartmentBarChart data={chartData} />
                         </div>

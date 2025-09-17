@@ -66,17 +66,17 @@ export default function ClassFilterSelect({ classData, distributions }: { classD
         <>
             <div className="lg:col-span-1">
                 <div className="mb-8">
-                    <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="instructors">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="instructors">
                         Instructors
                     </label>
                     <Select
                         value={selectedInstructor !== null ? selectedInstructor.toString() : undefined}
                         onValueChange={(value) => setSelectedInstructor(value ? Number(value) : null)}
                     >
-                        <SelectTrigger id="instructors" className="w-full bg-[#f6f6ef] border-[#f6f6ef] text-black">
+                        <SelectTrigger id="instructors" className="w-full bg-[#f6f6ef] border-[#f6f6ef] text-black dark:bg-zinc-900 dark:border-zinc-900 dark:text-white">
                             <SelectValue placeholder="All Instructors" />
                         </SelectTrigger>
-                        <SelectContent position="popper" className='bg-[#f6f6ef] border-[#f6f6ef]'>
+                        <SelectContent position="popper" className='bg-[#f6f6ef] border-[#f6f6ef] dark:bg-zinc-900 dark:border-zinc-900'>
                             {/** @ts-ignore */}
                             <SelectItem value={null}>All Instructors</SelectItem>
                             {instructors.map((instructor) => (
@@ -88,17 +88,17 @@ export default function ClassFilterSelect({ classData, distributions }: { classD
                     </Select>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="semesters">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="semesters">
                         Semesters
                     </label>
                     <Select
                         value={selectedSemester !== null ? selectedSemester : undefined}
                         onValueChange={(value) => setSelectedSemester(value)}
                     >
-                        <SelectTrigger id="semesters" className="w-full bg-[#f6f6ef] border-[#f6f6ef] text-black">
+                        <SelectTrigger id="semesters" className="w-full bg-[#f6f6ef] border-[#f6f6ef] text-black dark:bg-zinc-900 dark:border-zinc-900 dark:text-white">
                             <SelectValue placeholder="All Semesters" />
                         </SelectTrigger>
-                        <SelectContent position="popper" className='bg-[#f6f6ef] border-[#f6f6ef]'>
+                        <SelectContent position="popper" className='bg-[#f6f6ef] border-[#f6f6ef] dark:bg-zinc-900 dark:border-zinc-900'>
                             {/** @ts-ignore */}
                             <SelectItem value={null}>All Semesters</SelectItem>
                             {semesters.map(semester => (
@@ -113,14 +113,14 @@ export default function ClassFilterSelect({ classData, distributions }: { classD
             <div className="mt-6 lg:mt-0 lg:col-span-3">
                 <div className="col-span-2">
                     <div className="flex items-center mb-4">
-                        <div className="text-lg font-semibold text-gray-900">
+                        <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                             {classData.name}: {selectedInstructor === null && selectedSemester === null && "Cumulative"} {selectedInstructor !== null && (
-                                <Link href={`/instructor/${selectedInstructor}`} className="text-red-800 hover:underline">
+                                <Link href={`/instructor/${selectedInstructor}`} className="text-red-800 dark:text-red-400 hover:underline">
                                     {instructors.find((instructor) => instructor.id === selectedInstructor)?.name}
                                 </Link>
                             )}
                         </div>
-                        {selectedSemester !== null && <span className="ml-2 text-gray-600">({selectedSemester})</span>}
+                        {selectedSemester !== null && <span className="ml-2 text-gray-600 dark:text-gray-300">({selectedSemester})</span>}
                     </div>
                     <ClassBarChart className="w-full h-[500px]"
                         data={chartData}

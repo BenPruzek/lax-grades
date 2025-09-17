@@ -28,10 +28,10 @@ export default async function ClassPage({ params, searchParams }: {
       <div className="bg-white dark:bg-transparent p-8">
         <Search placeholder="Search for classes, instructors, or departments" />
         <div className="border-b border-red-800 pb-4 pt-6">
-          <h1 className="text-4xl font-bold text-gray-900">{classData.name}</h1>
-          <p className="text-xl text-gray-600">
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100">{classData.name}</h1>
+          <p className="text-xl text-gray-600 dark:text-gray-300">
             <Link href={`/department/${classData.code.slice(0, classData.code.search(/\d/))}`}>
-              <span className="text-red-800 hover:underline">{classData.code.slice(0, classData.code.search(/\d/))}</span>
+              <span className="text-red-800 dark:text-red-400 hover:underline">{classData.code.slice(0, classData.code.search(/\d/))}</span>
             </Link>
             {classData.code.slice(classData.code.search(/\d/))}
           </p>
