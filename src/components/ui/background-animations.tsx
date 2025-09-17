@@ -43,9 +43,9 @@ export const BackgroundGradientAnimation = ({
         const mql = window.matchMedia("(prefers-color-scheme: dark)");
         const apply = () => {
             const isDark = mql.matches;
-            // In dark mode, make white backgrounds beige
-            const start = isDark ? "rgb(246, 246, 239)" : gradientBackgroundStart;
-            const end = isDark ? "rgb(246, 246, 239)" : gradientBackgroundEnd;
+            // In dark mode, make backgrounds lighter
+            const start = isDark ? "rgb(40, 40, 40)" : gradientBackgroundStart;
+            const end = isDark ? "rgb(60, 60, 60)" : gradientBackgroundEnd;
             document.body.style.setProperty("--gradient-background-start", start);
             document.body.style.setProperty("--gradient-background-end", end);
             document.body.style.setProperty("--first-color", firstColor);
