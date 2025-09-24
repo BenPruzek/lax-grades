@@ -168,7 +168,7 @@ export default function Search({ placeholder }: { placeholder: string }) {
                                             key={`${item.type}-${item.id}`}
                                             role="option"
                                             aria-selected={isActive}
-                                            className={`px-3 py-2 rounded-md cursor-pointer transition ${isActive ? 'bg-red-800/15 dark:bg-red-400/20' : 'hover:bg-black/5 dark:hover:bg-white/10'}`}
+                                            className={`px-3 py-2 rounded-md cursor-pointer transition ${isActive ? 'bg-red-800/15 dark:bg-red-400/20' : 'hover:bg-black/5 dark:hover:bg-zinc-700'}`}
                                             onMouseEnter={() => setActiveIndex(flatIndex)}
                                             onMouseDown={(e) => { e.preventDefault(); }}
                                             onClick={() => { setOpen(false); push(item.href); }}
