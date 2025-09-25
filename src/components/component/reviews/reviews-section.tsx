@@ -10,24 +10,30 @@ interface ReviewsSectionProps {
     classId: number;
     instructorId: number;
     departmentId: number;
+    classCode: string;
     initialReviews?: Review[];
 }
 
-export default function ReviewsSection({ 
-    classId, 
-    instructorId, 
-    departmentId, 
-    initialReviews = [] 
+export default function ReviewsSection({
+    classId,
+    instructorId,
+    departmentId,
+    classCode,
+    initialReviews = [],
 }: ReviewsSectionProps) {
     const { data: session } = useSession();
     const [reviews, setReviews] = useState<Review[]>(initialReviews);
     const [showForm, setShowForm] = useState(false);
     const [loading, setLoading] = useState(false);
 
+    useEffect(() => {
+        setReviews(initialReviews);
+    }, [initialReviews]);
+
     const fetchReviews = async () => {
         setLoading(true);
         try {
-            const response = await fetch(`/api/reviews?classId=${classId}`);
+            const response = await fetch(`/api/reviews/${classId}`);
             if (response.ok) {
                 const data = await response.json();
                 setReviews(data);
@@ -65,6 +71,7 @@ export default function ReviewsSection({
                     classId={classId}
                     instructorId={instructorId}
                     departmentId={departmentId}
+                    classCode={classCode}
                     onSuccess={handleReviewSubmitted}
                 />
             )}

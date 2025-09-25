@@ -27,6 +27,8 @@ export default async function ClassPage({ params, searchParams }: {
   // Fetch reviews for this class
   const reviews = await fetchClassReviews(classData.id);
 
+  const instructorId = distributions.find((distribution) => distribution.instructor)?.instructor?.id ?? 0;
+
   return (
     <>
       <div className="bg-white dark:bg-transparent p-8">
@@ -48,8 +50,9 @@ export default async function ClassPage({ params, searchParams }: {
         <div className="mt-12">
           <ReviewsSection
             classId={classData.id}
-            instructorId={distributions[0]?.instructor?.id || 0}
+            instructorId={instructorId}
             departmentId={classData.department.id}
+            classCode={classData.code}
             initialReviews={reviews}
           />
         </div>
