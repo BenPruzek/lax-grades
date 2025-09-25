@@ -1,4 +1,6 @@
 import { Prisma } from "@prisma/client";
+import type { ReviewTagOption } from "@/lib/review-constants";
+import { z } from "zod";
 
 export interface ClassData {
     id: number;
@@ -7,6 +9,7 @@ export interface ClassData {
     department: {
         id: number;
         name: string;
+        code: string;
     };
 }
 
@@ -45,4 +48,41 @@ export interface Department {
 
 export interface GradePercentages {
     [key: string]: number;
+}
+
+export interface UserSummary {
+    id: number;
+    name?: string | null;
+    email: string;
+}
+
+export interface Review {
+    id: number;
+    title?: string | null;
+    rating: number;
+    content: string;
+    courseCode: string;
+    isOnlineCourse: boolean;
+    difficulty?: number | null;
+    wouldTakeAgain?: boolean | null;
+    attendanceMandatory?: boolean | null;
+    grade?: string | null;
+    tags: ReviewTagOption[];
+    createdAt: string;
+    updatedAt: string;
+    user: UserSummary;
+    class: {
+        id: number;
+        code: string;
+        name: string;
+    };
+    instructor: {
+        id: number;
+        name: string;
+    };
+    department: {
+        id: number;
+        code: string;
+        name: string;
+    };
 }

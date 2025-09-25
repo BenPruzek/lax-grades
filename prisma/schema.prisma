@@ -21,6 +21,7 @@ model Class {
   department    Department     @relation(fields: [departmentId], references: [id])
   departmentId  Int
   distributions Distribution[]
+  reviews        Review[]
 }
 
 model Instructor {
@@ -28,6 +29,7 @@ model Instructor {
   name          String
   department    String
   distributions Distribution[]
+  reviews        Review[]
 }
 
 model Department {
@@ -35,6 +37,7 @@ model Department {
   code    String  @unique
   name    String
   classes Class[]
+  reviews Review[]
 }
 
 model Distribution {
@@ -47,4 +50,43 @@ model Distribution {
   studentHeadcount Int
   avgCourseGrade   Float
   grades           Json
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  email     String    @unique
+  password  String
+  name      String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  reviews   Review[]
+}
+
+model Review {
+  id            Int         @id @default(autoincrement())
+  title         String?
+  rating        Int
+  content       String
+  courseCode    String
+  isOnlineCourse Boolean   @default(false)
+  difficulty    Int?
+  wouldTakeAgain Boolean?
+  attendanceMandatory Boolean?
+  grade         String?
+  tags          String[]   @default([])
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  class         Class       @relation(fields: [classId], references: [id])
+  classId       Int
+  instructor    Instructor  @relation(fields: [instructorId], references: [id])
+  instructorId  Int
+  department    Department  @relation(fields: [departmentId], references: [id])
+  departmentId  Int
+  user          User        @relation(fields: [userId], references: [id])
+  userId        Int
+
+  @@index([classId])
+  @@index([instructorId])
+  @@index([departmentId])
+  @@index([userId])
 }

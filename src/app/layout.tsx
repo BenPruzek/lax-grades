@@ -3,6 +3,8 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import Footer from "@/components/component/shared-components/footer";
 import NavBar from "@/components/component/shared-components/navbar";
+import AuthSessionProvider from "@/components/providers/session-provider";
+import { getServerAuthSession } from "@/lib/auth";
 import Script from "next/script";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -14,11 +16,13 @@ export const metadata: Metadata = {
 };
 
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await getServerAuthSession();
+
   return (
     <html lang="en">
       <head>
@@ -45,9 +49,11 @@ export default function RootLayout({
         />
       </head>
       <body className={`${inter.className}`}>
-        <NavBar />
-        {children}
-        <Footer />
+        <AuthSessionProvider session={session}>
+          <NavBar />
+          {children}
+          <Footer />
+        </AuthSessionProvider>
       </body>
     </html>
   );

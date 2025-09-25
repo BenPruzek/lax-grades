@@ -1,6 +1,175 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
+import type { Prisma } from '@prisma/client';
+import type { Review as ReviewType } from './types';
 
-const prisma = new PrismaClient();
+const reviewInclude = {
+    user: {
+        select: {
+            id: true,
+            name: true,
+            email: true,
+        },
+    },
+    class: {
+        select: {
+            id: true,
+            code: true,
+            name: true,
+        },
+    },
+    instructor: {
+        select: {
+            id: true,
+            name: true,
+        },
+    },
+    department: {
+        select: {
+            id: true,
+            code: true,
+            name: true,
+        },
+    },
+} satisfies Prisma.ReviewInclude;
+
+type ReviewWithRelations = Prisma.ReviewGetPayload<{ include: typeof reviewInclude }>;
+
+function serializeReview(review: ReviewWithRelations): ReviewType {
+    return {
+        id: review.id,
+        title: review.title,
+        rating: review.rating,
+        content: review.content,
+        courseCode: review.courseCode,
+        isOnlineCourse: review.isOnlineCourse,
+        difficulty: review.difficulty ?? null,
+        wouldTakeAgain: review.wouldTakeAgain ?? null,
+        attendanceMandatory: review.attendanceMandatory ?? null,
+        grade: review.grade ?? null,
+        tags: review.tags,
+        createdAt: review.createdAt.toISOString(),
+        updatedAt: review.updatedAt.toISOString(),
+        user: {
+            id: review.user.id,
+            name: review.user.name,
+            email: review.user.email,
+        },
+        class: {
+            id: review.class.id,
+            code: review.class.code,
+            name: review.class.name,
+        },
+        instructor: {
+            id: review.instructor.id,
+            name: review.instructor.name,
+        },
+        department: {
+            id: review.department.id,
+            code: review.department.code,
+            name: review.department.name,
+        },
+    };
+}
+
+export async function fetchClassReviews(classId: number) {
+    try {
+        const reviews = await prisma.review.findMany({
+            where: { classId },
+            include: reviewInclude,
+            orderBy: { createdAt: 'desc' },
+        });
+        return reviews.map(serializeReview);
+    } catch (error) {
+        console.error('Failed to fetch class reviews:', error);
+        throw new Error('Failed to fetch class reviews');
+    }
+}
+
+export async function fetchInstructorReviews(instructorId: number) {
+    try {
+        const reviews = await prisma.review.findMany({
+            where: { instructorId },
+            include: reviewInclude,
+            orderBy: { createdAt: 'desc' },
+        });
+        return reviews.map(serializeReview);
+    } catch (error) {
+        console.error('Failed to fetch instructor reviews:', error);
+        throw new Error('Failed to fetch instructor reviews');
+    }
+}
+
+export async function fetchDepartmentReviews(departmentId: number) {
+    try {
+        const reviews = await prisma.review.findMany({
+            where: { departmentId },
+            include: reviewInclude,
+            orderBy: { createdAt: 'desc' },
+        });
+        return reviews.map(serializeReview);
+    } catch (error) {
+        console.error('Failed to fetch department reviews:', error);
+        throw new Error('Failed to fetch department reviews');
+    }
+}
+
+export async function createReview({
+    classId,
+    instructorId,
+    departmentId,
+    userId,
+    rating,
+    content,
+    title,
+    courseCode,
+    isOnlineCourse,
+    difficulty,
+    wouldTakeAgain,
+    attendanceMandatory,
+    grade,
+    tags,
+}: {
+    classId: number;
+    instructorId: number;
+    departmentId: number;
+    userId: number;
+    rating: number;
+    content: string;
+    title?: string | null;
+    courseCode: string;
+    isOnlineCourse: boolean;
+    difficulty?: number | null;
+    wouldTakeAgain?: boolean | null;
+    attendanceMandatory?: boolean | null;
+    grade?: string | null;
+    tags?: string[];
+}): Promise<ReviewType> {
+    try {
+        const review = await prisma.review.create({
+            data: {
+                classId,
+                instructorId,
+                departmentId,
+                userId,
+                rating,
+                content,
+                title: title ?? null,
+                courseCode,
+                isOnlineCourse,
+                difficulty: difficulty ?? null,
+                wouldTakeAgain: wouldTakeAgain ?? null,
+                attendanceMandatory: attendanceMandatory ?? null,
+                grade: grade ?? null,
+                tags: tags ?? [],
+            },
+            include: reviewInclude,
+        });
+        return serializeReview(review);
+    } catch (error) {
+        console.error('Failed to create review:', error);
+        throw new Error('Failed to create review');
+    }
+}
 
 export async function fetchGPADistributions(
     classId: number,
@@ -39,7 +208,7 @@ export async function fetchGPADistributions(
         });
 
         // Parse the grades data as { [key: string]: number }
-        const parsedData = data.map((item) => ({
+        const parsedData = data.map((item: (typeof data)[number]) => ({
             ...item,
             grades: item.grades as { [key: string]: number },
         }));
@@ -252,7 +421,7 @@ export async function fetchInstructorClasses(instructorId: number) {
             },
         });
 
-        const parsedData = instructorClasses.map((item) => ({
+        const parsedData = instructorClasses.map((item: (typeof instructorClasses)[number]) => ({
             ...item,
             gradePercentages: item.grades as { [key: string]: number },
         }));
@@ -334,7 +503,7 @@ export async function fetchDepartmentGrades(departmentId: number) {
             },
         });
 
-        const parsedData = departmentGrades.map((item) => ({
+        const parsedData = departmentGrades.map((item: (typeof departmentGrades)[number]) => ({
             ...item,
             gradePercentages: item.grades as { [key: string]: number },
         }));

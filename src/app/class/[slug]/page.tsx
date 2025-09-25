@@ -1,6 +1,7 @@
 import ClassFilterSelect from "@/components/component/class-components/class-filter-select";
 import Search from "@/components/component/search-components/search";
-import { fetchGPADistributions, getClassByCode } from "@/lib/data";
+import ReviewsSection from "@/components/component/reviews/reviews-section";
+import { fetchGPADistributions, getClassByCode, fetchClassReviews } from "@/lib/data";
 import { ClassData } from "@/lib/types";
 import Link from "next/link";
 
@@ -23,6 +24,9 @@ export default async function ClassPage({ params, searchParams }: {
     classData.department.id,
   );
 
+  // Fetch reviews for this class
+  const reviews = await fetchClassReviews(classData.id);
+
   return (
     <>
       <div className="bg-white dark:bg-transparent p-8">
@@ -38,6 +42,16 @@ export default async function ClassPage({ params, searchParams }: {
         </div>
         <div className="lg:grid lg:grid-cols-4 gap-16 mt-4">
           <ClassFilterSelect classData={classData} distributions={distributions} />
+        </div>
+        
+        {/* Reviews Section */}
+        <div className="mt-12">
+          <ReviewsSection
+            classId={classData.id}
+            instructorId={distributions[0]?.instructor?.id || 0}
+            departmentId={classData.department.id}
+            initialReviews={reviews}
+          />
         </div>
       </div>
     </>
