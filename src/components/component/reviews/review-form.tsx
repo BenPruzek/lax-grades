@@ -209,7 +209,7 @@ export default function ReviewForm({ classId, instructorId, departmentId, classC
 
             <div>
                 <label htmlFor="rating" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Rate your professor *
+                    Overall rating *
                 </label>
                 <select
                     id="rating"
@@ -229,7 +229,7 @@ export default function ReviewForm({ classId, instructorId, departmentId, classC
 
             <div>
                 <label htmlFor="difficulty" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    How difficult was this professor? *
+                    How challenging was the course? *
                 </label>
                 <select
                     id="difficulty"
@@ -250,7 +250,7 @@ export default function ReviewForm({ classId, instructorId, departmentId, classC
             </div>
 
             <fieldset className="space-y-2">
-                <legend className="text-sm font-medium text-gray-700 dark:text-gray-300">Would you take this professor again? *</legend>
+                <legend className="text-sm font-medium text-gray-700 dark:text-gray-300">Would you choose this instructor again? *</legend>
                 <div className="flex gap-4">
                     <label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                         <input
@@ -280,7 +280,7 @@ export default function ReviewForm({ classId, instructorId, departmentId, classC
             </fieldset>
 
             <fieldset className="space-y-2">
-                <legend className="text-sm font-medium text-gray-700 dark:text-gray-300">Was attendance mandatory?</legend>
+                <legend className="text-sm font-medium text-gray-700 dark:text-gray-300">Was attendance required?</legend>
                 <div className="flex gap-4">
                     <label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                         <input
@@ -311,7 +311,7 @@ export default function ReviewForm({ classId, instructorId, departmentId, classC
 
             <div>
                 <label htmlFor="grade" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Select grade received
+                    Grade received (optional)
                 </label>
                 <select
                     id="grade"
@@ -331,7 +331,7 @@ export default function ReviewForm({ classId, instructorId, departmentId, classC
             </div>
 
             <div>
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Select up to 3 tags</p>
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Select up to 3 highlights that describe your experience</p>
                 <div className="flex flex-wrap gap-2">
                     {REVIEW_TAG_OPTIONS.map((tag) => {
                         const isSelected = selectedTags.includes(tag);
@@ -371,7 +371,7 @@ export default function ReviewForm({ classId, instructorId, departmentId, classC
 
             <div>
                 <label htmlFor="content" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Write a Review *
+                    Share your experience *
                 </label>
                 <textarea
                     id="content"
@@ -381,23 +381,17 @@ export default function ReviewForm({ classId, instructorId, departmentId, classC
                     maxLength={MAX_CONTENT_LENGTH}
                     onChange={handleContentChange}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 dark:bg-gray-800 dark:text-gray-100"
-                    placeholder="Discuss the professor's professional abilities including teaching style and ability to convey the material clearly"
+                    placeholder="Focus on the instructor's teaching style, clarity, and the pace of the course"
                     disabled={isSubmitting}
                 />
                 <div className="mt-1 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
                     <span>{contentLength}/{MAX_CONTENT_LENGTH}</span>
-                    <button
-                        type="button"
-                        className="text-red-600 dark:text-red-400 hover:underline"
-                        onClick={() => window.open('https://www.ratemyprofessors.com/guidelines', '_blank')}
-                    >
-                        View all guidelines
-                    </button>
+                    <span className="text-right">Keep it constructive, specific, and respectful.</span>
                 </div>
                 <ul className="mt-2 text-xs text-gray-500 dark:text-gray-400 space-y-1 list-disc list-inside">
-                    <li>Your rating could be removed if you use profanity or derogatory terms.</li>
-                    <li>Don't claim that the professor shows bias or favoritism for or against students.</li>
-                    <li>Don’t forget to proofread!</li>
+                    <li>Point to concrete examples that future students will find useful.</li>
+                    <li>Avoid personal attacks or language you wouldn't share in person.</li>
+                    <li>Give your review a quick proofread before submitting.</li>
                 </ul>
             </div>
 
@@ -408,7 +402,7 @@ export default function ReviewForm({ classId, instructorId, departmentId, classC
             )}
 
             <p className="text-xs text-gray-500 dark:text-gray-400">
-                By clicking the "Submit" button, I acknowledge that I have read and agreed to the Rate My Professors Site Guidelines, Terms of Use and Privacy Policy. Submitted data becomes the property of Rate My Professors.
+                By submitting, you confirm that your feedback aligns with the LAX Grades community guidelines and terms of use.
             </p>
 
             <button
