@@ -33,6 +33,13 @@ export default async function RootLayout({
         <Script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1116327136347209"
               crossOrigin="anonymous"></Script>
 
+        {/* PromoteKit Tracking Script */}
+        <Script
+          async
+          src="https://cdn.promotekit.com/promotekit.js"
+          data-promotekit="a563f349-14a1-478c-a2d0-812e2e5d8f6d"
+        />
+
         {/* Google Analytics Scripts */}
         <Script async src="https://www.googletagmanager.com/gtag/js?id=G-XYGL070WW8"></Script>
         <Script

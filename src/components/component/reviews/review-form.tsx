@@ -390,7 +390,7 @@ export default function ReviewForm({ classId, instructorId, departmentId, classC
                 </div>
                 <ul className="mt-2 text-xs text-gray-500 dark:text-gray-400 space-y-1 list-disc list-inside">
                     <li>Point to concrete examples that future students will find useful.</li>
-                    <li>Avoid personal attacks or language you wouldn't share in person.</li>
+                    <li>Avoid personal attacks or language you wouldn&apos;t share in person.</li>
                     <li>Give your review a quick proofread before submitting.</li>
                 </ul>
             </div>
