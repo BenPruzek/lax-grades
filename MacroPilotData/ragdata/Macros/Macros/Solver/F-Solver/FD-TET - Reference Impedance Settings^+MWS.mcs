@@ -1,0 +1,24 @@
+' FD-Impedance
+
+' ================================================================================================
+' Copyright 2011-2023 Dassault Systemes Deutschland GmbH
+' ================================================================================================
+' History of Changes
+' ------------------------------------------------------------------------------------------------
+' 26-Sep-2011 ube: Initial version
+' ================================================================================================
+
+Sub Main ()
+
+	Dim bTET_FD_Impedance As Boolean
+	BeginHide
+		If (MsgBox "The TET FD Solver can use the impedances from voltage impedance (=calibration) lines as a reference impedance for postprocessing. You can activate/deactivate it here."+vbCrLf+vbCrLf+"Please choose settings for this model:"+vbCrLf+vbCrLf+"   Yes : Enable it."+vbCrLf+"   No  : Disable it.",vbInformation+vbYesNo,"Reference impdance Settings FD-TET Solver")=vbYes Then
+			bTET_FD_Impedance = True
+		Else
+			bTET_FD_Impedance = False
+		End If
+		assign "bTET_FD_Impedance"
+	EndHide
+
+	FDSolver.SetUseImpLineImpedanceAsReference bTET_FD_Impedance
+End Sub

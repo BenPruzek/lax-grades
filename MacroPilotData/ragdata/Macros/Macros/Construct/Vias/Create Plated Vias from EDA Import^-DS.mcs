@@ -1,0 +1,310 @@
+' Construct\Vias\Create Plated Vias from EDA Import
+
+' Inserts cylinders into all cylinders that are found in a certain material
+' User can specify the component, the wall thickness as well as the operation that is performed with the new cylinder
+' Vias are inserted into Pads and substrates for a Thermal or IR drop simulation
+
+' ================================================================================================
+' Copyright 2009-2023 Dassault Systemes Deutschland GmbH
+' ================================================================================================
+' History of Changes
+' ------------------------------------------------------------------------------------------------
+' 14-Jun-2013 rsj: Add Resulttree.EnableTreeUpdate(False) to avoid display flicker in the navigation tree.
+' 08-Nov-2012 kkr: Added Support for Material Folders
+' 23-Jun-2010 kkr: Added Insertion into planes and substrates, with code from RSJ
+' 04-Oct-2010 kkr:	- Added automatic substrate detection, which works for multiple boards.
+'						- Added warning for vias that are smaller than the specified wall thickness
+'						- Fixed Bug with nets that consist of one vias only
+' 02-Jun-2009 kkr: Initial Version
+' ================================================================================================
+
+Option Explicit
+
+Sub Main ()
+
+	Dim Nshapes As Integer
+	Dim Sname As String
+	Dim Splanename As String
+	Dim Streename As String
+	Dim newname As String
+	Dim ii As Integer
+	Dim ViaMaterial As String
+	Dim Cind As Integer
+	Dim Scompname As String
+	Dim radius As Double
+	Dim wall As Double
+	Dim height As Double
+	Dim volume As Double
+	Dim ref_x1 As Double
+	Dim ref_x2 As Double
+	Dim ref_y1 As Double
+	Dim ref_y2 As Double
+	Dim ref_z1 As Double
+	Dim ref_z2 As Double
+	Dim index_bot As Integer
+	Dim index_mid As Integer
+	Dim index_top As Integer
+	Dim Operation As String
+	Dim Material As String
+	Dim Substrate As String
+	Dim RemoveSubstrate As Boolean
+	Dim PCBnum As String
+	Dim SolidVias As Integer
+	Dim ind As Integer
+
+	SolidVias=0
+
+	BeginHide
+
+	If GetSelectedTreeItem="" Or Left(GetSelectedTreeItem,10)<>"Materials\" Then
+		MsgBox "Please select the vias' Material"
+		Exit All
+	End If
+	ViaMaterial=Right(GetSelectedTreeItem, Len(GetSelectedTreeItem)-10)
+	Assign "ViaMaterial"
+
+	Begin Dialog UserDialog 380,182,"Create Plated Vias" ' %GRID:10,7,1,1
+		TextBox 130,10,100,21,.Thickness
+		Text 20,14,110,14,"Wall Thickness",.Text2
+		GroupBox 20,77,340,70,"Operation",.GroupBox1
+		TextBox 160,117,180,21,.Material
+		OptionGroup .Operation
+			OptionButton 40,119,120,14,"Insert Material",.Insert
+			OptionButton 40,98,90,14,"Drill Hole",.Subtract
+		OKButton 20,154,90,21
+		CancelButton 270,154,90,21
+		CheckBox 20,42,270,14,"Insert into Substrate",.RemoveSubstrate
+	End Dialog
+	Dim dlg As UserDialog
+
+	' Initialize Dialog
+	dlg.Thickness="0.1"
+	dlg.operation=1
+	dlg.RemoveSubstrate=1
+
+	' Run dialog
+	If Dialog(dlg) = 0 Then Exit All
+
+	' Read Dialog Results
+	wall=Cdbl(dlg.Thickness)
+	Assign "wall"
+	RemoveSubstrate=(dlg.RemoveSubstrate=1)
+	Assign "RemoveSubstrate"
+
+	Material = "PEC"
+	Select Case dlg.Operation
+	Case 0
+		Operation = "Insert"
+		Material = dlg.Material
+	Case 1
+		Operation = "Subtract"
+	End Select
+	Assign "Operation"
+	Assign "Material"
+
+	EndHide
+
+	Resulttree.EnableTreeUpdate(False)
+	' update tree
+	Resulttree.UpdateTree
+
+	' get substrate component
+	If RemoveSubstrate Then
+
+		PCBnum=Mid(ViaMaterial, InStr(ViaMaterial, "\")-2, 1)
+
+		Streename=Resulttree.GetFirstChildname("Components")
+		While InStr(Streename, "(PCB" + PCBnum + ")") = 0
+			Streename=Resulttree.GetNextItemName(Streename)
+		Wend
+
+		Substrate=Right(Streename, Len(Streename)-Len("Components/")) + "/Substrates"
+	End If
+
+	' Insert Vias into Planes and Substrates -------------------------------------------
+	InsertPlanes:
+	Nshapes = Solid.GetNumberOfShapes
+	For ii = 0 To Nshapes - 1
+
+		' Get shape name
+		Sname = Solid.GetNameOfShapeFromIndex(ii)
+		If Solid.GetMaterialNameForShape(Sname) = Replace(ViaMaterial, "\", "/") Then
+
+			' Get Component Name
+			Cind=InStr(Sname, ":")
+			Scompname=Left(Sname, Cind-1)
+			Streename=Resulttree.GetFirstChildName("Components\"&Replace(Scompname, "/", "\"))
+
+			While Streename <> ""
+				' replace slashes
+				Splanename=Replace(Streename, "\", "/")
+				Splanename=Right(Splanename, Len(Splanename)-Len("Components/"))
+
+				' replace last slash with :
+				Cind=InStr(Splanename, "/")
+				While InStr(Right(Splanename, Len(Splanename)-Cind), "/") <> 0
+					Cind=Cind+InStr(Right(Splanename, Len(Splanename)-Cind), "/")
+				Wend
+				Splanename=Left(Splanename, Cind-1) & ":" & Right(Splanename, Len(Splanename)-Cind)
+
+				' insert via
+				If Splanename <> Sname Then
+
+					Solid.Insert(Splanename, Sname)
+					' update tree
+					Resulttree.UpdateTree
+
+					' check if number of shapes has changed, can happen, if net only consists of vias.
+					' Need to restart, since tree and shape information is inconsistant
+					If Nshapes <> Solid.GetNumberOfShapes Then
+						GoTo InsertPlanes
+					End If
+
+				End If
+
+			' Get next item
+			Streename=Resulttree.GetNextItemName(Streename)
+
+			Wend
+
+			If RemoveSubstrate Then
+
+				Scompname=Substrate
+
+				Streename=Resulttree.GetFirstChildName("Components\"&Replace(Scompname, "/", "\"))
+
+				While Streename <> ""
+					' replace slashes
+					Splanename=Replace(Streename, "\", "/")
+					Splanename=Right(Splanename, Len(Splanename)-Len("Components/"))
+
+					' replace last slash with :
+					Cind=InStr(Splanename, "/")
+					While InStr(Right(Splanename, Len(Splanename)-Cind), "/") <> 0
+						Cind=Cind+InStr(Right(Splanename, Len(Splanename)-Cind), "/")
+					Wend
+					Splanename=Left(Splanename, Cind-1) & ":" & Right(Splanename, Len(Splanename)-Cind)
+
+					' insert via
+					Solid.Insert(Splanename, Sname)
+
+
+				' Get next item
+				Streename=Resulttree.GetNextItemName(Streename)
+
+				Wend
+
+			End If
+
+		End If
+
+	Next ii
+
+	' Seperate all shapes ----------------------------------------------------------------
+	Nshapes = Solid.GetNumberOfShapes
+	For ii = 0 To Nshapes - 1
+
+		' Get shape name
+		Sname = Solid.GetNameOfShapeFromIndex(ii)
+		If Solid.GetMaterialNameForShape(Sname) = Replace(ViaMaterial, "\", "/") Then
+
+			' Get Component Name
+			Cind=InStr(Sname, ":")
+			Scompname = Left(Sname, Cind-1)
+
+			' Separate
+			Solid.SplitShape(Right(Sname, Len(Sname)-Cind), Left(Sname, Cind-1))
+		End If
+	Next ii
+
+	' Drill Holes into vias ---------------------------------------------------------------
+	Nshapes = Solid.GetNumberOfShapes
+	For ii = 0 To Nshapes - 1
+
+		' Get shape name
+		Sname = Solid.GetNameOfShapeFromIndex(ii)
+		If Solid.GetMaterialNameForShape(Sname) = Replace(ViaMaterial, "\", "/") Then
+
+			index_bot=Solid.GetAnyFaceIdFromSolid(Sname)  'the first index is always the bottom
+			index_top=index_bot+1 'top cylinder has index+1
+			index_mid=index_bot+2 'cylinder body has index+2
+			'Compute the height of the via
+			Pick.ClearAllPicks
+			Pick.PickCenterpointFromId(Sname, index_bot)
+			Pick.GetPickpointCoordinates(1, ref_x1, ref_y1, ref_z1 )
+			Pick.PickCenterpointFromId(Sname, index_top)
+			Pick.GetPickpointCoordinates(2, ref_x2, ref_y2, ref_z2 )
+			Pick.ClearAllPicks
+
+			height=Sqr((ref_x1-ref_x2)^2+(ref_y1-ref_y2)^2+(ref_z1-ref_z2)^2)
+			If height=0.0 Then
+				Exit All
+			End If
+
+			'Compute the radius of the via
+			volume=Solid.GetVolume(Sname)
+			radius=Sqr(volume/(height*pi))
+
+			' Create hollow vias
+			Pick.PickFaceFromId Sname, index_bot
+			WCS.AlignWCSWithSelected "Face"
+
+			' Get Component Name
+			Cind=InStr(Sname, ":")
+			Scompname=Left(Sname, Cind-1)
+			newname=Solid.GetNextFreeName
+
+			' catch vias whose radius is smaller than the specified wall thickness. Those vias will be left solid.
+			If wall>radius Then
+
+				SolidVias=SolidVias+1
+
+			Else
+
+				With Cylinder
+				 .Reset
+				 .Name (newname)
+				 .Component (Scompname)
+			     .Material (Material)
+				 .Axis ("z")
+				 .Outerradius (radius-wall)
+				 .Innerradius (0.0)
+				 .Xcenter (0)
+				 .Ycenter (0)
+				 .Zcenter (0)
+				 .Zrange (-height, 0)
+				 .Segments (0)
+			     .Create
+				End With
+
+				Select Case Operation
+				Case "Insert"
+
+					Solid.Insert(Sname, Scompname+":"+newname)
+
+				Case "Subtract"
+
+					Solid.Subtract(Sname, Scompname+":"+newname)
+
+				End Select
+
+			End If
+
+		End If
+
+	Next ii
+
+	Resulttree.EnableTreeUpdate(True)
+
+	' Display Warning if Vias are left solid
+	BeginHide
+	If SolidVias>0 Then
+
+		ReportWarning(CStr(SolidVias)+" vias have a radius, which is smaller than the specified wall thickness. Those vias are left solid.")
+
+	End If
+	EndHide
+
+
+End Sub
+

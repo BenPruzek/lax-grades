@@ -1,0 +1,418 @@
+' Electron Gun
+
+' ================================================================================================
+' Copyright 2014-2023 Dassault Systemes Deutschland GmbH
+' ================================================================================================
+' History of Changes
+' ------------------------------------------------------------------------------------------------
+' 01-Jan-2014 ube: Initial version
+' ================================================================================================
+Sub Main ()
+
+
+'@ switch working plane
+Plot.DrawWorkplane "false"
+
+BeginHide
+	StoreDoubleParameter "voltage", -5e3
+EndHide
+
+
+BeginHide
+
+	Dim sCommand As String
+
+	'@ change problem type
+	sCommand = ""	
+	sCommand = sCommand + "ChangeProblemType ""Tracking Solver"""
+	AddToHistory "change problem type", sCommand
+
+
+	'@ define units
+	sCommand = ""
+	sCommand = sCommand + "With Units " + vbLf
+	sCommand = sCommand + ".Geometry ""mm"" " + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define units", sCommand
+
+ 
+	'@ define background
+	sCommand = ""
+	sCommand = sCommand + "With Background " + vbLf
+	sCommand = sCommand + ".Type ""Normal"" " + vbLf
+	sCommand = sCommand + ".Epsilon ""1.0"" " + vbLf
+	sCommand = sCommand + ".Mu ""1.0"" " + vbLf
+	sCommand = sCommand + ".XminSpace ""5"" " + vbLf
+	sCommand = sCommand + ".XmaxSpace ""5"" " + vbLf
+	sCommand = sCommand + ".YminSpace ""5"" " + vbLf
+	sCommand = sCommand + ".YmaxSpace ""5"" " + vbLf
+	sCommand = sCommand + ".ZminSpace ""5"" " + vbLf
+	sCommand = sCommand + ".ZmaxSpace ""20"" " + vbLf
+	sCommand = sCommand + ".ApplyInAllDirections ""False""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define background", sCommand
+	
+	
+	'@ define boundaries
+	sCommand = ""
+	sCommand = sCommand + "With Boundary" + vbLf
+	sCommand = sCommand + ".Xmin ""expanded lf open""" + vbLf
+	sCommand = sCommand + ".Xmax ""expanded lf open""" + vbLf
+	sCommand = sCommand + ".Ymin ""expanded lf open""" + vbLf
+	sCommand = sCommand + ".Ymax ""expanded lf open""" + vbLf
+	sCommand = sCommand + ".Zmin ""expanded lf open""" + vbLf
+	sCommand = sCommand + ".Zmax ""expanded lf open""" + vbLf
+	sCommand = sCommand + ".OpenAddSpaceFactor ""0.1""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define boundaries", sCommand
+
+	
+	'@ new component: component1
+	sCommand = ""
+	sCommand = sCommand + "" + vbLf
+	sCommand = sCommand + "Component.New ""component1"""
+	AddToHistory "new component: component1", sCommand
+
+
+	'@ define cylinder: component1:Emission
+	sCommand = ""
+	sCommand = sCommand + "" + vbLf
+	sCommand = sCommand + "With Cylinder " + vbLf
+	sCommand = sCommand + ".Reset " + vbLf
+	sCommand = sCommand + ".Name ""Emission"" " + vbLf
+	sCommand = sCommand + ".Component ""component1"" " + vbLf
+	sCommand = sCommand + ".Material ""PEC"" " + vbLf
+	sCommand = sCommand + ".OuterRadius ""1"" " + vbLf
+	sCommand = sCommand + ".InnerRadius ""0.0"" " + vbLf
+	sCommand = sCommand + ".Axis ""z"" " + vbLf
+	sCommand = sCommand + ".Zrange ""0"", ""0.1"" " + vbLf
+	sCommand = sCommand + ".Xcenter ""0"" " + vbLf
+	sCommand = sCommand + ".Ycenter ""0"" " + vbLf
+	sCommand = sCommand + ".Segments ""0"" " + vbLf
+	sCommand = sCommand + ".Create " + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define cylinder: component1:Emission", sCommand
+
+
+	'@ activate local coordinates
+	sCommand = ""
+	sCommand = sCommand + "" + vbLf
+	sCommand = sCommand + "WCS.ActivateWCS ""local"""
+	AddToHistory "activate local coordinates", sCommand
+
+
+	'@ move wcs
+	sCommand = ""
+	sCommand = sCommand + "" + vbLf
+	sCommand = sCommand + "WCS.MoveWCS ""local"", ""0.0"", ""0.0"", ""20"""
+	AddToHistory "move wcs", sCommand
+
+
+	'@ define cylinder: component1:Anode
+	sCommand = ""
+	sCommand = sCommand + "" + vbLf
+	sCommand = sCommand + "With Cylinder " + vbLf
+	sCommand = sCommand + ".Reset " + vbLf
+	sCommand = sCommand + ".Name ""Anode"" " + vbLf
+	sCommand = sCommand + ".Component ""component1"" " + vbLf
+	sCommand = sCommand + ".Material ""PEC"" " + vbLf
+	sCommand = sCommand + ".OuterRadius ""6"" " + vbLf
+	sCommand = sCommand + ".InnerRadius ""5"" " + vbLf
+	sCommand = sCommand + ".Axis ""z"" " + vbLf
+	sCommand = sCommand + ".Zrange ""0"", ""1"" " + vbLf
+	sCommand = sCommand + ".Xcenter ""0"" " + vbLf
+	sCommand = sCommand + ".Ycenter ""0"" " + vbLf
+	sCommand = sCommand + ".Segments ""0"" " + vbLf
+	sCommand = sCommand + ".Create " + vbLf
+	sCommand = sCommand + "End With	"
+	AddToHistory "define cylinder: component1:Anode", sCommand
+
+
+	'@ define potential: potential1
+	sCommand = ""
+	sCommand = sCommand + "" + vbLf
+	sCommand = sCommand + "With Potential" + vbLf
+	sCommand = sCommand + ".Reset " + vbLf
+	sCommand = sCommand + ".Name ""potential1"" " + vbLf
+	sCommand = sCommand + ".Value ""voltage""" + vbLf
+	sCommand = sCommand + ".Phase ""0"" " + vbLf
+	sCommand = sCommand + ".Face ""component1:Emission"", ""3"" " + vbLf
+	sCommand = sCommand + ".Type ""Fixed"" " + vbLf
+	sCommand = sCommand + ".Create" + vbLf
+	sCommand = sCommand + "End With	"
+	AddToHistory "define potential: potential1", sCommand
+
+
+	'@ define potential: potential2
+	sCommand = ""
+	sCommand = sCommand + "" + vbLf
+	sCommand = sCommand + "With Potential" + vbLf
+	sCommand = sCommand + ".Reset " + vbLf
+	sCommand = sCommand + ".Name ""potential2"" " + vbLf
+	sCommand = sCommand + ".Value ""0""" + vbLf
+	sCommand = sCommand + ".Phase ""0"" " + vbLf
+	sCommand = sCommand + ".Face ""component1:Anode"", ""3"" " + vbLf
+	sCommand = sCommand + ".Type ""Fixed"" " + vbLf
+	sCommand = sCommand + ".Create" + vbLf
+	sCommand = sCommand + "End With	"
+	AddToHistory "define potential: potential2", sCommand
+	
+
+	'@ move wcs
+	sCommand = ""
+	sCommand = sCommand + "" + vbLf
+	sCommand = sCommand + "WCS.MoveWCS ""local"", ""0.0"", ""0.0"", ""-3"""
+	AddToHistory "move wcs", sCommand
+
+
+	'@ define curve circle: curve1:circle1
+	sCommand = ""
+	sCommand = sCommand + "" + vbLf
+	sCommand = sCommand + "With Circle" + vbLf
+	sCommand = sCommand + ".Reset " + vbLf
+	sCommand = sCommand + ".Name ""circle1"" " + vbLf
+	sCommand = sCommand + ".Curve ""curve1"" " + vbLf
+	sCommand = sCommand + ".Radius ""3"" " + vbLf
+	sCommand = sCommand + ".Xcenter ""0.0"" " + vbLf
+	sCommand = sCommand + ".Ycenter ""0.0"" " + vbLf
+	sCommand = sCommand + ".Segments ""0"" " + vbLf
+	sCommand = sCommand + ".Create" + vbLf
+	sCommand = sCommand + "End With	"
+	AddToHistory "define curve circle: curve1:circle1", sCommand
+
+
+	'@ rotate wcs around v +90 degrees
+	sCommand = ""
+	sCommand = sCommand + "" + vbLf
+	sCommand = sCommand + "WCS.RotateWCS ""v"", ""90""	"
+	AddToHistory "rotate wcs around v +90 degrees", sCommand
+
+	
+	'@ define curve rectangle: curve1:rectangle1
+	sCommand = ""
+	sCommand = sCommand + "" + vbLf
+	sCommand = sCommand + "With Rectangle" + vbLf
+	sCommand = sCommand + ".Reset " + vbLf
+	sCommand = sCommand + ".Name ""rectangle1"" " + vbLf
+	sCommand = sCommand + ".Curve ""curve1"" " + vbLf
+	sCommand = sCommand + ".Xrange ""-1"", ""1"" " + vbLf
+	sCommand = sCommand + ".Yrange ""5"", ""6"" " + vbLf
+	sCommand = sCommand + ".Create" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define curve rectangle: curve1:rectangle1", sCommand
+
+
+	'@ define coil from curves: coil1
+	sCommand = ""
+	sCommand = sCommand + "" + vbLf
+	sCommand = sCommand + "With Coil" + vbLf
+	sCommand = sCommand + ".Reset " + vbLf
+	sCommand = sCommand + ".Name ""coil1"" " + vbLf
+	sCommand = sCommand + ".Material ""Vacuum"" " + vbLf
+	sCommand = sCommand + ".ProjectProfileToPathAdvanced ""True"" " + vbLf
+	sCommand = sCommand + ".ProfileName ""curve1:rectangle1"" " + vbLf
+	sCommand = sCommand + ".PathName ""curve1:circle1"" " + vbLf
+	sCommand = sCommand + ".Current ""0.4"" " + vbLf
+	sCommand = sCommand + ".Phase ""0.0"" " + vbLf
+	sCommand = sCommand + ".NTurns ""1000"" " + vbLf
+	sCommand = sCommand + ".Create " + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define coil from curves: coil1", sCommand
+
+
+	'@ transform coil: translate coil1
+	sCommand = ""
+	sCommand = sCommand + "" + vbLf
+	sCommand = sCommand + "With Transform " + vbLf
+	sCommand = sCommand + ".Reset " + vbLf
+	sCommand = sCommand + ".Name ""coil1"" " + vbLf
+	sCommand = sCommand + ".Vector ""-7"", ""0"", ""0"" " + vbLf
+	sCommand = sCommand + ".UsePickedPoints ""False"" " + vbLf
+	sCommand = sCommand + ".InvertPickedPoints ""False"" " + vbLf
+	sCommand = sCommand + ".MultipleObjects ""True"" " + vbLf
+	sCommand = sCommand + ".GroupObjects ""False"" " + vbLf
+	sCommand = sCommand + ".Repetitions ""1"" " + vbLf
+	sCommand = sCommand + ".MultipleSelection ""False"" " + vbLf
+	sCommand = sCommand + ".TranslateCoil " + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "transform coil: translate coil1", sCommand
+
+
+	'@ set mesh properties (Hexahedral)
+	sCommand = ""
+	sCommand = sCommand + "With Mesh " + vbLf
+	sCommand = sCommand + ".MeshType ""PBA"" " + vbLf
+	sCommand = sCommand + ".SetCreator ""Tracking""" + vbLf
+	sCommand = sCommand + "End With " + vbLf
+	sCommand = sCommand + "With MeshSettings " + vbLf
+	sCommand = sCommand + ".SetMeshType ""Hex"" " + vbLf
+	sCommand = sCommand + ".Set ""Version"", 1%" + vbLf
+	sCommand = sCommand + "'MAX CELL - WAVELENGTH REFINEMENT " + vbLf
+	sCommand = sCommand + ".Set ""StepsPerWaveNear"", ""10"" " + vbLf
+	sCommand = sCommand + ".Set ""StepsPerWaveFar"", ""10"" " + vbLf
+	sCommand = sCommand + ".Set ""WavelengthRefinementSameAsNear"", ""1"" " + vbLf
+	sCommand = sCommand + "'MAX CELL - GEOMETRY REFINEMENT " + vbLf
+	sCommand = sCommand + ".Set ""StepsPerBoxNear"", ""30"" " + vbLf
+	sCommand = sCommand + ".Set ""StepsPerBoxFar"", ""30"" " + vbLf
+	sCommand = sCommand + ".Set ""MaxStepNear"", ""0"" " + vbLf
+	sCommand = sCommand + ".Set ""MaxStepFar"", ""0"" " + vbLf
+	sCommand = sCommand + ".Set ""ModelBoxDescrNear"", ""maxedge"" " + vbLf
+	sCommand = sCommand + ".Set ""ModelBoxDescrFar"", ""maxedge"" " + vbLf
+	sCommand = sCommand + ".Set ""UseMaxStepAbsolute"", ""0"" " + vbLf
+	sCommand = sCommand + ".Set ""GeometryRefinementSameAsNear"", ""1"" " + vbLf
+	sCommand = sCommand + "'MIN CELL " + vbLf
+	sCommand = sCommand + ".Set ""UseRatioLimitGeometry"", ""1"" " + vbLf
+	sCommand = sCommand + ".Set ""RatioLimitGeometry"", ""50"" " + vbLf
+	sCommand = sCommand + ".Set ""MinStepGeometryX"", ""0"" " + vbLf
+	sCommand = sCommand + ".Set ""MinStepGeometryY"", ""0"" " + vbLf
+	sCommand = sCommand + ".Set ""MinStepGeometryZ"", ""0"" " + vbLf
+	sCommand = sCommand + ".Set ""UseSameMinStepGeometryXYZ"", ""1"" " + vbLf
+	sCommand = sCommand + "End With " + vbLf
+	sCommand = sCommand + "With MeshSettings " + vbLf
+	sCommand = sCommand + ".SetMeshType ""Hex"" " + vbLf
+	sCommand = sCommand + ".Set ""FaceRefinementOn"", ""0"" " + vbLf
+	sCommand = sCommand + ".Set ""FaceRefinementPolicy"", ""2"" " + vbLf
+	sCommand = sCommand + ".Set ""FaceRefinementRatio"", ""2"" " + vbLf
+	sCommand = sCommand + ".Set ""FaceRefinementStep"", ""0"" " + vbLf
+	sCommand = sCommand + ".Set ""FaceRefinementNSteps"", ""2"" " + vbLf
+	sCommand = sCommand + ".Set ""EllipseRefinementOn"", ""0"" " + vbLf
+	sCommand = sCommand + ".Set ""EllipseRefinementPolicy"", ""2"" " + vbLf
+	sCommand = sCommand + ".Set ""EllipseRefinementRatio"", ""2"" " + vbLf
+	sCommand = sCommand + ".Set ""EllipseRefinementStep"", ""0"" " + vbLf
+	sCommand = sCommand + ".Set ""EllipseRefinementNSteps"", ""2"" " + vbLf
+	sCommand = sCommand + ".Set ""FaceRefinementBufferLines"", ""3"" " + vbLf
+	sCommand = sCommand + ".Set ""EdgeRefinementOn"", ""1"" " + vbLf
+	sCommand = sCommand + ".Set ""EdgeRefinementPolicy"", ""1"" " + vbLf
+	sCommand = sCommand + ".Set ""EdgeRefinementRatio"", ""2"" " + vbLf
+	sCommand = sCommand + ".Set ""EdgeRefinementStep"", ""0"" " + vbLf
+	sCommand = sCommand + ".Set ""EdgeRefinementBufferLines"", ""3"" " + vbLf
+	sCommand = sCommand + ".Set ""RefineEdgeMaterialGlobal"", ""0"" " + vbLf
+	sCommand = sCommand + ".Set ""RefineAxialEdgeGlobal"", ""0"" " + vbLf
+	sCommand = sCommand + ".Set ""BufferLinesNear"", ""3"" " + vbLf
+	sCommand = sCommand + ".Set ""UseDielectrics"", ""1"" " + vbLf
+	sCommand = sCommand + ".Set ""EquilibrateOn"", ""0"" " + vbLf
+	sCommand = sCommand + ".Set ""Equilibrate"", ""1.5"" " + vbLf
+	sCommand = sCommand + ".Set ""IgnoreThinPanelMaterial"", ""0"" " + vbLf
+	sCommand = sCommand + "End With " + vbLf
+	sCommand = sCommand + "With MeshSettings " + vbLf
+	sCommand = sCommand + ".SetMeshType ""Hex"" " + vbLf
+	sCommand = sCommand + ".Set ""SnapToAxialEdges"", ""1""" + vbLf
+	sCommand = sCommand + ".Set ""SnapToPlanes"", ""1""" + vbLf
+	sCommand = sCommand + ".Set ""SnapToSpheres"", ""1""" + vbLf
+	sCommand = sCommand + ".Set ""SnapToEllipses"", ""1""" + vbLf
+	sCommand = sCommand + ".Set ""SnapToCylinders"", ""1""" + vbLf
+	sCommand = sCommand + ".Set ""SnapToCylinderCenters"", ""1""" + vbLf
+	sCommand = sCommand + ".Set ""SnapToEllipseCenters"", ""1""" + vbLf
+	sCommand = sCommand + "End With " + vbLf
+	sCommand = sCommand + "With Discretizer " + vbLf
+	sCommand = sCommand + ".MeshType ""PBA"" " + vbLf
+	sCommand = sCommand + ".PBAType ""Fast PBA"" " + vbLf
+	sCommand = sCommand + ".AutomaticPBAType ""True"" " + vbLf
+	sCommand = sCommand + ".FPBAAccuracyEnhancement ""enable""" + vbLf
+	sCommand = sCommand + ".ConnectivityCheck ""False""" + vbLf
+	sCommand = sCommand + ".ConvertGeometryDataAfterMeshing ""True"" " + vbLf
+	sCommand = sCommand + ".UsePecEdgeModel ""True"" " + vbLf
+	sCommand = sCommand + ".GapDetection ""False"" " + vbLf
+	sCommand = sCommand + ".FPBAGapTolerance ""1e-3"" " + vbLf
+	sCommand = sCommand + ".SetMaxParallelMesherThreads ""Hex"", ""12""" + vbLf
+	sCommand = sCommand + ".SetParallelMesherMode ""Hex"", ""Maximum""" + vbLf
+	sCommand = sCommand + ".PointAccEnhancement ""0"" " + vbLf
+	sCommand = sCommand + ".UseSplitComponents ""False"" " + vbLf
+	sCommand = sCommand + ".EnableSubgridding ""False"" " + vbLf
+	sCommand = sCommand + ".PBAFillLimit ""99"" " + vbLf
+	sCommand = sCommand + ".AlwaysExcludePec ""False"" " + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "set mesh properties (Hexahedral)", sCommand
+
+
+
+	'@ pick edge
+	sCommand = ""
+	sCommand = sCommand + "" + vbLf
+	sCommand = sCommand + "Pick.PickEdgeFromId ""component1:Emission"", ""2"", ""2"""
+	AddToHistory "pick edge", sCommand
+
+
+	'@ define particle source: particle1
+	sCommand = ""
+	sCommand = sCommand + "With ParticleSource" + vbLf
+	sCommand = sCommand + ".Reset" + vbLf
+	sCommand = sCommand + ".Name ""particle1""" + vbLf
+	sCommand = sCommand + ".ParticleType ""electron""" + vbLf
+	sCommand = sCommand + ".Charge ""-1.602177e-019""" + vbLf
+	sCommand = sCommand + ".Mass ""9.109390e-031""" + vbLf
+	sCommand = sCommand + ".SourceType ""Circle""" + vbLf
+	sCommand = sCommand + ".UsePickCircle ""True""" + vbLf
+	sCommand = sCommand + ".InvertPickedCircleNormal ""False""" + vbLf
+	sCommand = sCommand + ".CircleCenterPoint ""0"", ""0"", ""0.1""" + vbLf
+	sCommand = sCommand + ".CircleNormal ""0"", ""0"", ""1""" + vbLf
+	sCommand = sCommand + ".CircleRadius ""1""" + vbLf
+	sCommand = sCommand + ".CircleRadiusLines ""5""" + vbLf
+	sCommand = sCommand + ".PECSurface ""False""" + vbLf
+	sCommand = sCommand + ".RadialFunction ""Constant""" + vbLf
+	sCommand = sCommand + ".TrkEmissionModel ""Space charge""" + vbLf
+	sCommand = sCommand + ".TrkSCL ""False"", ""potential1"", """", ""potential2"", """", ""1.5""" + vbLf
+	sCommand = sCommand + ".PICEmissionModel ""Gauss""" + vbLf
+	sCommand = sCommand + ".PICEnergy ""0.0"", ""Energy""" + vbLf
+	sCommand = sCommand + ".PICBunchCharge ""0.0""" + vbLf
+	sCommand = sCommand + ".PICBunchDefinitionType ""Time""" + vbLf
+	sCommand = sCommand + ".PICBunchSigma ""0.0""" + vbLf
+	sCommand = sCommand + ".PICBunchCutoffLength ""0.0""" + vbLf
+	sCommand = sCommand + ".PICBunchOffset ""0.0""" + vbLf
+	sCommand = sCommand + ".PICNBunches ""1""" + vbLf
+	sCommand = sCommand + ".PICBunchDistances ""0.0""" + vbLf
+	sCommand = sCommand + ".PICAngleSpreadBunchEmission ""0.0""" + vbLf
+	sCommand = sCommand + ".PICKineticSpreadBunchEmission ""0.0""" + vbLf
+	sCommand = sCommand + ".Create" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define particle source: particle1", sCommand
+
+
+	'@ create particle2dmonitor: Particle 2D Monitor 1
+	sCommand = ""
+	sCommand = sCommand + "" + vbLf
+	sCommand = sCommand + "With Particle2DMonitor" + vbLf
+	sCommand = sCommand + ".Reset " + vbLf
+	sCommand = sCommand + ".Name ""Particle 2D Monitor 1"" " + vbLf
+	sCommand = sCommand + ".NumPlanes ""1"" " + vbLf	
+	sCommand = sCommand + ".NormalDirection ""2"" " + vbLf	
+	sCommand = sCommand + ".Limits ""X"", ""0"", ""0"" " + vbLf
+	sCommand = sCommand + ".Limits ""Y"", ""0"", ""0"" " + vbLf
+	sCommand = sCommand + ".Limits ""Z"", ""30"", ""0"" " + vbLf
+	sCommand = sCommand + ".Create" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "create particle2dmonitor: Particle 2D Monitor 1", sCommand
+	
+
+	'@ define tracking solver parameters
+	sCommand = ""
+	sCommand = sCommand + "Mesh.SetCreator ""Tracking"" " + vbLf
+	sCommand = sCommand + "Mesh.SetFlavor ""Low Frequency"" " + vbLf
+	sCommand = sCommand + "" + vbLf
+	sCommand = sCommand + "With TrackingSolver" + vbLf
+	sCommand = sCommand + ".Reset" + vbLf
+	sCommand = sCommand + ".SetReorganize ""False""" + vbLf
+	sCommand = sCommand + ".MaxTimeSteps ""10000""" + vbLf
+	sCommand = sCommand + ".SetSpatialSamplingRate ""5""" + vbLf
+	sCommand = sCommand + ".SetTemporalSamplingRate ""10""" + vbLf
+	sCommand = sCommand + ".SetParticleSamplingRate ""1""" + vbLf
+	sCommand = sCommand + ".TrackToFile ""True""" + vbLf
+	sCommand = sCommand + ".SetTemporalDynamic ""1.2""" + vbLf
+	sCommand = sCommand + ".ConsiderSpacecharge ""True""" + vbLf
+	sCommand = sCommand + ".SetGunIteration ""False""" + vbLf
+	sCommand = sCommand + ".SetGunIterationMaxN ""50""" + vbLf
+	sCommand = sCommand + ".SetGunIterationAccuracy ""-30 dB""" + vbLf
+	sCommand = sCommand + ".SetGunIterationRelaxation ""0.3""" + vbLf
+	sCommand = sCommand + ".StoreResultsInDataCache ""False""" + vbLf
+	sCommand = sCommand + ".AddTrackingSource ""Particle"", ""particle1""" + vbLf
+	sCommand = sCommand + ".AddStaticsField ""M-Static"", ""1.0"", ""False""" + vbLf
+	sCommand = sCommand + ".AddStaticsField ""E-Static"", ""1.0"", ""False""" + vbLf
+	sCommand = sCommand + ".DefaultBoundaryEstatic ""normal""" + vbLf
+	sCommand = sCommand + ".DefaultBoundaryMstatic ""tangential""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define tracking solver parameters", sCommand
+
+	ResetViewToStructure()
+EndHide
+
+End Sub

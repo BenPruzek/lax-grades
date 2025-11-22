@@ -1,0 +1,356 @@
+' Construct / Coils / Sectioned spiral
+' !!! Do not change the line above !!!
+' macro.507
+'-----------------------------------------------------------------------------------------------------------------------------
+' Constructs a spiral with just 4 sections, but with different lengths on the two oppos. sides
+' No check whether values are reasonable - can even lead to a crash!
+'-----------------------------------------------------------------------------------------------------------------------------
+' Copyright 2002-2023 Dassault Systemes Deutschland GmbH
+' ================================================================================================
+' History of Changes
+'-----------------------------------------------------------------------------------------------------------------------------
+' 24-Jul-2009 ube: GetMacroPath replaced by GetInstallPath + "\Library\Macros" (previously only first macropath was searched)
+' 13-Oct-2005 ube: Included into Online Help
+' 24-Feb-2004 jsw: History list updating problem With redundant macro (cancel/help Is clicked) Is fixed
+' 24-Dec-2003 jsw: bug fixed for v5 jsw/Usa
+' 31-Jul-2003 jsw: modefied for parameters setting- by jsw/Usa  change the parameters setting for parameter sweep and build more than one coils
+' 17-May-2002 imu: initial version, based on the "spiral" macro by jsw/USA and on macro.983
+'-----------------------------------------------------------------------------------------------------------------------------
+Option Explicit
+
+Public filename As String
+Dim cst_result  As Integer
+
+
+Sub Main
+
+Dim alfa As Double, theta As Double, theta1 As Double, theta2 As Double
+Dim r_s As Double, nn As Integer, mm As Integer
+Dim x0 As Double, y0 As Double
+Dim x1 As Double, y1 As Double, x01 As Double
+Dim y01 As Double, x02 As Double, y02 As Double
+Dim p_sw As Integer, n_sw As Integer
+Dim e_ss As Double
+Dim cst_e_s As Double, cst_h_i As Double, cst_n_s As Integer
+Dim cst_p_s As Double, cst_w_i As Double, cst_s_s As Double
+Dim se_s As String, sh_i As String, sn_s As String
+Dim sp_s As String, sw_i As String, ss_s As String
+Dim cst_start_x1 As Double
+Dim cst_start_y1 As Double
+Dim cst_start_x2 As Double
+Dim cst_start_y2 As Double
+Dim cst_end_x1 As Double
+Dim cst_end_y1 As Double
+Dim cst_end_x2 As Double
+Dim cst_end_y2 As Double
+Dim cst_result As Integer
+
+BeginHide
+
+filename = GetInstallPath + "\Library\Macros\Construct\Coils\Sectioned spiral_pict.bmp"
+
+	Begin Dialog UserDialog 760,490,"Spiral construction",.DialogFunc ' %GRID:10,7,1,1
+		Picture 90,14,560,273,filename,0,.Picture1
+		GroupBox 60,301,650,140,"Spiral Geometry Data",.GroupBox2
+		Text 110,336,30,21,"e_s",.TextParameter1
+		Text 460,336,50,21,"h_i",.TextParameter2
+		Text 110,371,30,21,"n_s",.TextParameter3
+		Text 440,371,70,21,"No of turns",.TextParameter4
+		Text 460,406,40,21,"w_i",.TextParameter4a
+
+		TextBox 180,336,130,21,.Parameter1
+		TextBox 530,336,90,21,.Parameter2
+		TextBox 180,371,130,21,.Parameter3
+		TextBox 530,371,90,21,.Parameter4
+		TextBox 530,406,90,21,.Parameter4a
+		Text 110,406,40,21,"s_s",.TextParameter5
+		TextBox 180,406,130,21,.Parameter5
+		Text 70,385,90,14,"(# of sections)",.Text1
+		OKButton 380,455,90,21
+		CancelButton 480,455,90,21
+		PushButton 590,455,90,21,"Help",.Help
+
+
+	End Dialog
+	Dim dlg As UserDialog
+	
+	'Default values
+
+dlg.Parameter1 = "100"		'the extent of spiral
+dlg.Parameter2 = "0.1"		' the thinkness of strip
+dlg.Parameter3 = "6"		' the number of sides
+dlg.Parameter4 = "4.75"		' the number of turns
+dlg.Parameter4a = "3"		' the width of strip line
+dlg.Parameter5 = "5"		' the distance between strips
+
+    cst_result = Dialog(dlg)
+    assign "cst_result"        '  writes e.g. "cst_result = -1/0/1"     into history list
+	If (cst_result = 0) Then Exit All
+
+'	Dialog dlg
+
+
+se_s=dlg.Parameter1
+sh_i=dlg.Parameter2
+sn_s= dlg.Parameter3
+sp_s= dlg.Parameter4
+sw_i= dlg.Parameter4a
+ss_s= dlg.Parameter5
+
+assign "se_s"
+assign "sh_i"
+assign "sn_s"
+assign "sp_s"
+assign "sw_i"
+assign "ss_s"
+
+EndHide
+
+If (cst_result =0) Then Exit All   ' if cancel/help is clicked, exit all
+cst_e_s   = Evaluate(se_s)
+cst_h_i   = Evaluate(sh_i)
+cst_n_s   = Evaluate(sn_s)
+cst_p_s   = Evaluate(sp_s)
+cst_w_i   = Evaluate(sw_i)
+cst_s_s   = Evaluate(ss_s)
+
+e_ss=cst_e_s-cst_w_i
+theta=pi/cst_n_s
+alfa=pi/2-theta
+r_s=e_ss/2/Sin(alfa)
+theta1=alfa+cst_p_s*2*pi
+
+Curve.NewCurve "CurveForSweepPath"
+
+With Polygon
+	.Reset
+	.Name  "SweepPathPolygon1"
+	.Curve "CurveForSweepPath"
+	         x01=r_s*Cos(alfa)
+             y01=r_s*Sin(alfa)
+             x02=r_s*Cos(alfa+2*theta)
+             y02=r_s*Sin(alfa+2*theta)
+             cst_start_x1=x01
+             cst_start_y1=y01
+              .Point x01,y01
+             
+              p_sw=Int(cst_p_s)
+              
+              For mm=1 To p_sw
+                   
+                 For nn =1 To cst_n_s-1
+                    x01=r_s*Cos(alfa+2*theta*nn)
+                    y01=r_s*Sin(alfa+2*theta*nn)
+                    x02=r_s*Cos(alfa+2*theta*(nn+1))
+                    y02=r_s*Sin(alfa+2*theta*(nn+1))
+                    .LineTo  x01, y01
+                 Next nn
+               
+                     y0=r_s*Sin(alfa)
+                     y1=y0-cst_s_s
+                     x1=x01+(x02-x01)/(y02-y01)*(y1-y01)
+                
+                .LineTo x1, y1 
+                 r_s=(e_ss/2-cst_s_s*mm)/Sin(alfa)
+                 x01=r_s*Cos(alfa+2*theta*nn)
+                 y01=r_s*Sin(alfa+2*theta*nn)
+                 x02=r_s*Cos(alfa+2*theta*(nn+1))
+                 y02=r_s*Sin(alfa+2*theta*(nn+1))
+                 
+                 x1=x01
+                .LineTo x1, y1 
+                    
+             Next mm
+             
+             n_sw=Int((cst_p_s-p_sw)*cst_n_s)
+             
+             If n_sw >0 Then 
+                  For nn =1 To n_sw
+                    x01=r_s*Cos(alfa+2*theta*nn)
+                    y01=r_s*Sin(alfa+2*theta*nn)
+                    x02=r_s*Cos(alfa+2*theta*(nn+1))
+                    y02=r_s*Sin(alfa+2*theta*(nn+1))
+                    x1=x01
+                    y1=y01
+                   .LineTo  x1, y1
+                Next nn
+             End If
+             
+             If (cst_p_s-p_sw)*cst_n_s-n_sw > 1e-10 Then
+                 
+                If Abs(y02-y01)<1e-10 Then
+                     y1=y01
+                    x1=y1/Tan(theta1)
+                                    
+                   Else 
+                     r_s=(e_ss/2-cst_s_s*(p_sw+1))/Sin(alfa)
+                     y1=e_ss/2-cst_s_s*(p_sw+1)
+                     x1=x01+(x02-x01)/(y02-y01)*(y1-y01)
+                     theta2=theta1-2*pi*Int(theta1/2/pi)
+                     
+              
+                    If alfa>theta2 And theta2>Atn(y1/x1)Then
+                        x01=x1
+                        y01=y1
+                        x02=r_s*Cos(alfa+2*theta*(p_sw+1))
+                        y02=r_s*Sin(alfa+2*theta*(p_sw+1))
+                       .LineTo x1, y1 
+                        y1=y01
+                        x1=y1/Tan(theta1)
+                      Else
+                         x1=(x01-(x02-x01)/(y02-y01)*y01)/(1-(x02-x01)/(y02-y01)*Tan(theta1))
+                         y1=Tan(theta1)*x1
+                      End If
+                 End If 
+                     .LineTo x1, y1 
+                End If
+         .Create
+End With
+cst_end_x1=x1
+cst_end_y1=y1
+
+e_ss=cst_e_s+cst_w_i
+theta=pi/cst_n_s
+alfa=pi/2-theta
+r_s=e_ss/2/Sin(alfa)
+theta1=alfa+cst_p_s*2*pi
+
+With Polygon
+	.Reset
+	.Name  "SweepPathPolygon2"
+	.Curve "CurveForSweepPath"
+	         x01=r_s*Cos(alfa)
+             y01=r_s*Sin(alfa)
+             x02=r_s*Cos(alfa+2*theta)
+             y02=r_s*Sin(alfa+2*theta)
+            cst_start_x2=x01
+            cst_start_y2=y01
+              .Point x01,y01
+
+              p_sw=Int(cst_p_s)
+
+              For mm=1 To p_sw
+
+                 For nn =1 To cst_n_s-1
+                    x01=r_s*Cos(alfa+2*theta*nn)
+                    y01=r_s*Sin(alfa+2*theta*nn)
+                    x02=r_s*Cos(alfa+2*theta*(nn+1))
+                    y02=r_s*Sin(alfa+2*theta*(nn+1))
+                    .LineTo  x01, y01
+                 Next nn
+
+                     y0=r_s*Sin(alfa)
+                     y1=y0-cst_s_s
+                     x1=x01+(x02-x01)/(y02-y01)*(y1-y01)
+
+                .LineTo x1, y1
+                 r_s=(e_ss/2-cst_s_s*mm)/Sin(alfa)
+                 x01=r_s*Cos(alfa+2*theta*nn)
+                 y01=r_s*Sin(alfa+2*theta*nn)
+                 x02=r_s*Cos(alfa+2*theta*(nn+1))
+                 y02=r_s*Sin(alfa+2*theta*(nn+1))
+
+                 x1=x01
+                 y1=y01
+                .LineTo x1, y1
+
+             Next mm
+
+             n_sw=Int((cst_p_s-p_sw)*cst_n_s)
+
+             If n_sw >0 Then
+                  For nn =1 To n_sw
+                    x01=r_s*Cos(alfa+2*theta*nn)
+                    y01=r_s*Sin(alfa+2*theta*nn)
+                    x02=r_s*Cos(alfa+2*theta*(nn+1))
+                    y02=r_s*Sin(alfa+2*theta*(nn+1))
+                 x1=x01
+                 y1=y01
+                .LineTo x1, y1
+                Next nn
+             End If
+
+             If (cst_p_s-p_sw)*cst_n_s-n_sw > 1e-10 Then
+
+                If Abs(y02-y01)<1e-10 Then
+                     y1=y01
+                    x1=y1/Tan(theta1)
+
+                   Else
+                     r_s=(e_ss/2-cst_s_s*(p_sw+1))/Sin(alfa)
+                     y1=e_ss/2-cst_s_s*(p_sw+1)
+                     x1=x01+(x02-x01)/(y02-y01)*(y1-y01)
+                     theta2=theta1-2*pi*Int(theta1/2/pi)
+
+
+                    If alfa>theta2 And theta2>Atn(y1/x1)Then
+                        x01=x1
+                        y01=y1
+                        x02=r_s*Cos(alfa+2*theta*(p_sw+1))
+                        y02=r_s*Sin(alfa+2*theta*(p_sw+1))
+                       .LineTo x1, y1
+                        y1=y01
+                        x1=y1/Tan(theta1)
+                      Else
+                         x1=(x01-(x02-x01)/(y02-y01)*y01)/(1-(x02-x01)/(y02-y01)*Tan(theta1))
+                         y1=Tan(theta1)*x1
+                      End If
+                 End If
+                     .LineTo x1, y1
+                End If
+         .Create
+End With
+cst_end_x2=x1
+cst_end_y2=y1
+
+With Line
+     .Reset
+     .Name "line_Start"
+     .Curve "CurveForSweepPath"
+     .X1 cst_start_x1
+     .Y1 cst_start_y1
+     .X2 cst_start_x2
+     .Y2 cst_start_y2
+     .Create
+End With
+With Line
+     .Reset
+     .Name "line_End"
+     .Curve "CurveForSweepPath"
+     .X1 cst_end_x1
+     .Y1 cst_end_y1
+     .X2 cst_end_x2
+     .Y2 cst_end_y2
+     .Create
+End With
+
+With ExtrudeCurve
+     .Reset
+     .Name  Solid.GetNextFreeName
+     .Component "SectionedSpiral"
+     .Material "PEC"
+     .Thickness cst_h_i
+     .Twistangle "0.0"
+     .Taperangle "0.0"
+     .Curve "CurveForSweepPath:SweepPathPolygon2"
+     .Create
+End With
+
+Curve.DeleteCurve "CurveForSweepPath"
+
+End Sub
+
+Function DialogFunc%(Item As String, Action As Integer, Value As Integer)
+	Select Case Action
+	Case 1 ' Dialog box initialization
+	Case 2 ' Value changing or button pressed
+		Select Case Item
+		Case "Help"
+			StartHelp "common_preloadedmacro_Construct_Coils"
+			DialogFunc = True
+		End Select
+	Case 3 ' ComboBox or TextBox Value changed
+	Case 4 ' Focus changed
+	Case 5 ' Idle
+	End Select
+End Function

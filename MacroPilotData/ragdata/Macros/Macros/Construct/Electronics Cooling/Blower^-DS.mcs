@@ -1,0 +1,514 @@
+' Construct / Parts / blower with rectangular exit duct
+' !!! Do not change the line above !!!
+'--------------------------------------------------------------------------------------------
+' Type: blower scroll: Logarithmic Spiral  r = r1*exp(k*phi), phi = ?? to n*2*pi (?? is calculated)
+'
+'-----------------------------------------------------------------------------------------------------------------------------
+' Copyright 2021-2023 Dassault Systemes Deutschland GmbH
+' ================================================================================================
+' History of Changes
+'-----------------------------------------------------------------------------------------------------------------------------
+' 21-Dec-2021 wxu: slightly updated positions of input fields, pictures shrinked to avoid artifacts
+' 05-Aug-2021 ywu: Initial version
+'-------------------------------------------------
+
+Option Explicit
+
+Sub Main
+
+	Dim cst_result As Integer
+	
+' Set default values for blower geometry...
+	' blower name
+	Dim cname As String
+
+	' coordinates of blower inlet center
+	Dim x0, y0 As Double
+	x0 = 0
+	y0 = 0
+
+	' blower hub & inlet radius
+	Dim hub_option As Integer
+	Dim inletLocation As Integer
+	Dim r_hub, r_inlet As Double
+	inletLocation = 0
+	r_hub   = 16
+	r_inlet = 25
+
+	' parameters for logarithim sprial for scroll
+	Dim r180, r270, r1, k As Double
+	'r1 = 3
+	'k = 0.05
+	'r180 = r1 * Exp(k* pi)
+	'r270 = r1 * Exp(k* pi*1.5)
+	r180 = 35
+	r270 = 38
+
+	' dimensions of blower exit duct
+	Dim L, h, w, th As Double
+	L = 46
+	h = 40
+	w = 30
+	th = w*0.1
+	
+' --------------------------------------------
+BeginHide
+' Define dialog...
+	Begin Dialog UserDialog 740,470,"Create Blower with Rectangular Exit...",.DialogFunc ' %GRID:5,5,1,1
+		Text 20,20,40,15,"Name",.Text1
+		TextBox 70,18,275,21,.blower_name
+
+		GroupBox 365,5,360,43,"Center of Blower",.GroupBox1
+		Text 395,22,35,15,"X (U)",.Text2
+		TextBox 445,20,90,21,.x0
+		Text 570,22,35,15,"Y (V)",.Text3
+		TextBox 615,20,90,21,.y0
+
+		GroupBox 15,55,340,190,"Blower Inlet",.GroupBox2
+		Text 45,75,130,15,"Inlet face location",.Text5
+		OptionGroup .InletLocation
+			OptionButton 170,72,60,20,"+W",.OptionButton1
+			OptionButton 255,72,60,20,"-W",.OptionButton2
+		CheckBox 45,102,140,15,"Radius of hub, rh",.CheckHub
+		TextBox 255,100,90,21,.r_hub
+		Text 45,132,135,15,"Radius of inlet, r0",.Text6
+		TextBox 255,130,90,21,.r_inlet
+		Text 45,162,200,15,"Radius of spiral at 180 deg, r1",.Text7
+		TextBox 255,160,90,21,.r180
+		Text 45,192,195,15,"Radius of spiral at 270 deg, r2",.Text8
+		TextBox 255,190,90,21,.r270
+		GroupBox 15,255,340,175,"Blower Outlet",.GroupBox3
+		Text 45,292,155,15,"Length of exit duct, L",.Text9
+		TextBox 245,290,90,21,.L
+		Text 45,322,145,15,"Height of exit duct, h",.Text10
+		TextBox 245,320,90,20,.h
+		Text 45,352,145,15,"Width of exit duct, w",.Text11
+		TextBox 245,350,90,21,.w
+		Text 45,382,170,15,"Thickness of exit duct, th",.Text12
+		TextBox 245,380,90,21,.th
+
+		Picture 365,50,360,200,GetInstallPath + "\Library\Macros\Construct\Electronics Cooling\blower1.bmp",0,.Picture1
+		Picture 365,255,360,200,GetInstallPath + "\Library\Macros\Construct\Electronics Cooling\blower2.bmp",0,.Picture2
+
+		'buttons
+		OKButton 20,440,90,20
+		CancelButton 120,440,90,20
+		'PushButton  420,370,90,20,"Help",.Help
+	End Dialog
+
+	Dim dlg As UserDialog
+	
+' Find proper default-name for blower component...
+	Dim i As Long
+	i = 0
+	Do
+		i=i+1
+	Loop Until Not Resulttree.DoesTreeItemExist("Components\Blower_"+Cstr(i))
+	dlg.blower_name = "Blower_" + Cstr(i)
+	
+' Initialize dialog items...
+	dlg.x0 = Cstr(x0)
+	dlg.y0 = Cstr(y0)
+
+	dlg.CheckHub = 1
+	dlg.InletLocation = inletLocation
+	dlg.r_hub   = Cstr(r_hub)
+	dlg.r_inlet = Cstr(r_inlet)
+	
+	dlg.r180 = Cstr(r180)
+	dlg.r270 = Cstr(r270)
+
+	dlg.L  = Cstr(L )
+	dlg.h  = Cstr(h )
+	dlg.w  = Cstr(w )
+	dlg.th = Cstr(th)
+
+' Get user input from dialog...
+	cst_result = Dialog(dlg)
+    assign "cst_result"        '  writes cst_result (= -1, 0, or 1) into history list
+    If (cst_result = 0) Then Exit All
+
+' Set blower parameters with dialog input...
+    cname = dlg.blower_name
+
+	x0 = cdbl(dlg.x0)
+	y0 = cdbl(dlg.y0)
+	StoreDoubleParameter (cname+"_x0", x0)
+	SetParameterDescription (cname+"_x0", "coordinate of blower center")
+	StoreDoubleParameter (cname+"_y0", y0)
+	SetParameterDescription (cname+"_y0", "coordinate of blower center")
+
+	hub_option = dlg.CheckHub
+	If hub_option = 1 Then
+		r_hub = cdbl(dlg.r_hub)
+		StoreDoubleParameter (cname+"_r_hub", r_hub)
+		SetParameterDescription (cname+"_r_hub", "radius of blower hub")
+	End If
+
+	inletLocation = dlg.InletLocation
+	StoreDoubleParameter (cname+"_inletLocation", inletLocation)
+	SetParameterDescription (cname+"_inletLocation", "location of blower inlet")
+
+	r_inlet	= cdbl(dlg.r_inlet)
+	StoreDoubleParameter (cname+"_r_inlet", r_inlet)
+	SetParameterDescription (cname+"_r_inlet", "radius of blower inlet")
+
+	r180 = cdbl(dlg.r180)
+	r270 = cdbl(dlg.r270 )
+	StoreDoubleParameter (cname+"_r180", r180)
+	SetParameterDescription (cname+"_r180", "radius of blower scroll at 180 degree")
+	StoreDoubleParameter (cname+"_r270", r270)
+	SetParameterDescription (cname+"_r270", "radius of blower scroll at 270 degree")
+
+	L  = cdbl(dlg.L )
+	h  = cdbl(dlg.h )
+	w  = cdbl(dlg.w )
+	th = cdbl(dlg.th)
+	StoreDoubleParameter (cname+"_L", L)
+	SetParameterDescription (cname+"_L", "length of exit duct")
+	StoreDoubleParameter (cname+"_h", h)
+	SetParameterDescription (cname+"_h", "height of exit duct")
+	StoreDoubleParameter (cname+"_w", w)
+	SetParameterDescription (cname+"_w", "width of exit duct")
+	StoreDoubleParameter (cname+"_th", th)
+	SetParameterDescription (cname+"_th", "thickness of exit duct")
+
+	Assign "cname"
+	Assign "hub_option"
+EndHide
+' --------------------------------------------
+
+	If (cst_result =0) Then Exit All   ' if cancel/help is clicked, exit all
+	If (cst_result =1) Then Exit All
+
+' Restore blower parameters...
+	x0 = restoredoubleparameter (cname+ "_x0")
+	y0 = restoredoubleparameter (cname+ "_y0")
+
+	r_inlet = restoredoubleparameter (cname+ "_r_inlet")
+	If hub_option = 1 Then
+		r_hub = restoredoubleparameter (cname+ "_r_hub")
+	Else
+		r_hub = r_inlet
+	End If
+
+	inletLocation = restoreDoubleParameter(cname+"_inletLocation")
+
+	r180 = restoredoubleparameter(cname+ "_r180")
+	r270 = restoredoubleparameter(cname+ "_r270")
+
+	L  = restoredoubleparameter(cname+ "_L")
+	h  = restoredoubleparameter(cname+ "_h")
+	w  = restoredoubleparameter(cname+ "_w")
+	th = restoredoubleparameter(cname+ "_th")
+
+' Calculate scroll spiral parameters from r180 & r270...
+	k  = Log(r270/r180) / (pi/2)
+	r1 = r180 / Exp(k* pi)
+
+' Calculate coordinates of end points of curves...
+	' coordinates of end point of scroll
+	Dim r2, dPhi, phi2 As Double
+	dPhi = pi /18
+	phi2 = 2*pi - dPhi
+	r2 = r1 * Exp(k* phi2)
+
+	' coordinates of end point of arc
+	Dim xs1, ys1 As Double
+	xs1 = x0
+	ys1 = y0 + r2
+
+	' coordinates of end points of top & bottom lines of exit duct
+	Dim xtop1, ytop1, xbot1, ybot1 As Double
+	xtop1 = xs1 - L
+	ytop1 = ys1
+
+	xbot1 = xtop1
+	ybot1 = ytop1 - h
+
+' find coordinates of point where bottom line of exit duct intersects scroll using bi-section method
+	Dim y, phi, ye, ys, phi_s, phi_e As Double
+	phi_s = 0
+	phi_e = pi
+	ye = y0 + r1 * Exp(k* phi_e) * Cos(phi_e)
+	ys = y0 + r1 * Exp(k* phi_s) * Cos(phi_s)
+
+	Dim iter As Integer
+	iter = 0
+
+	While Abs(ye - ys) > 1e-6
+		iter += 1
+		phi = (phi_s + phi_e)/2
+		y = y0 + r1 * Exp(k* phi) * Cos(phi)
+		If ybot1 > y Then
+			phi_e = phi
+			ye = y0 + r1 * Exp(k* phi_e) * Cos(phi_e)
+		Else
+			phi_s = phi
+			ys = y0 + r1 * Exp(k* phi_s) * Cos(phi_s)
+		End If
+	Wend
+
+	Dim r0, phi0, xs0, ys0 As Double
+	phi0 = phi
+	r0  = r1 * Exp(k* phi0)
+	xs0 = x0 - r0 * Sin(phi0)
+	ys0 = y0 + r0 * Cos(phi0)
+
+' --------------------------------------------
+' Draw scroll
+
+	With AnalyticalCurve
+     .Reset
+     .Name ("spiral")
+     .Curve (cname)
+     .LawX  cname+ "_x0" + "-" + Cstr(r1) + "* Exp(" + Cstr(k) + "*t)*Sin(t)"
+     .LawY  cname+ "_y0" + "+" + Cstr(r1) + "* Exp(" + Cstr(k) + "*t)*Cos(t)"
+     .LawZ "0"
+     .ParameterRange phi0, phi2
+     .Create
+	End With
+
+' Draw arc continuing from the end of scroll
+	With Arc
+     .Reset
+     .Name "arc"
+     .Curve cname
+     .Orientation "Clockwise"
+     .XCenter cname+"_x0"
+     .YCenter cname+"_y0"
+     .X1 x0-r2*Sin(2*pi)
+     .Y1 y0+r2*Cos(2*pi)
+     .Angle dPhi*180/pi
+     .UseAngle "True"
+     .Create
+	End With
+
+' Draw top line of exit duct
+	With Line
+     .Reset
+     .Name ("top line")
+     .Curve (cname)
+     .X1 xs1
+     .Y1 ys1
+     .X2 xtop1
+     .Y2 ytop1
+     .Create
+	End With
+
+' Draw exit line of exit duct
+	With Line
+     .Reset
+     .Name ("exit line")
+     .Curve (cname)
+     .X1 xtop1
+     .Y1 ytop1
+     .X2 xbot1
+     .Y2 ybot1
+     .Create
+	End With
+
+' Draw bottom line of exit duct
+	With Line
+     .Reset
+     .Name ("bottom line")
+     .Curve (cname)
+     .X1 xbot1
+     .Y1 ybot1
+     .X2 xs0
+     .Y2 ys0
+     .Create
+	End With
+
+' Create blower structure by extruding closed curve
+	With ExtrudeCurve
+     .Reset
+     .Name ("blower-structure")
+     .Component (cname)
+     .Material ("PEC")
+     .Thickness cname+"_w"
+     .Twistangle 0.0
+     .Taperangle 0.0
+     .DeleteProfile ("True")
+     .Curve (cname+":spiral")
+     .Create
+	End With
+
+' --------------------------------------------
+' Create blower inlet cylinder
+	With Cylinder
+     .Reset
+     .Name "inlet cylinder"
+     .Component (cname)
+     .Material "PEC"
+     .OuterRadius cname+"_r_inlet"
+     .InnerRadius cname+"_r_hub"
+	 If hub_option = 1 Then
+     	.InnerRadius cname+"_r_hub"
+	 Else
+     	.InnerRadius cname+"_r_inlet"
+	 End If
+     .Axis "z"
+	 If inletLocation = 1 Then
+		.Zrange 0, cname+"_w" + "-" + cname+"_th"
+	 Else
+		.Zrange cname+"_th", cname+"_w"
+	 End If
+     .Xcenter cname+"_x0"
+     .Ycenter cname+"_y0"
+     .Segments "0"
+     .Create
+	End With
+
+' Create exit block
+	With Brick
+     .Reset
+     .Name "exit block"
+     .Component (cname)
+     .Material "PEC"
+     .Xrange xbot1, xbot1+5*th
+     .Yrange ybot1+th, ytop1-th
+	 .Zrange th, w-th
+     .Create
+	End With
+
+' Create inlet and exit faces for blower
+	Solid.Imprint cname+":blower-structure", cname+":inlet cylinder"
+	Solid.Imprint cname+":blower-structure", cname+":exit block"
+
+' Delete temporary solids
+	Solid.Delete cname+":inlet cylinder"
+	Solid.Delete cname+":exit block"
+
+End Sub
+
+'====================================================================
+
+Function DialogFunc%(Item As String, Action As Integer, Value As Integer)
+' Explanation of input parameters:
+' Item: name of the user dialog item's field.
+' Action: action the dialog function is being asked to do.
+'	1: Dialog box initialization. Item is a null string. Value is the dialog's window handle.
+'		Set dialogfunc = True to terminate the dialog.
+'	2: CheckBox, DropListBox, ListBox or OptionGroup: Item's value has changed. Value is the new value.
+'		CancelButton, OKButton or PushButton: Item's button was pushed. Value is meaningless.
+'		Set dialogfunc = True to prevent the dialog from closing.
+'	3: ComboBox or TextBox: Item's text changed and losing focus. Value is the number of characters.
+'	4: Item is gaining focus. Value is the item that is losing focus. (The first item is 0, second is 1, etc.)
+'		Note: When the first item receives the focus, there is no item that is losing focus. In that case Value is -1.
+'	5: Idle processing. Item is a null string. Value is zero. Set dialogfunc = True to continue receiving idle actions.
+'	6: Function key (F1-F24) was pressed. Item has the focus. Value is the function key number
+'		and the shift/control/alt key state. Regular function keys range from 1 to 24.
+'		Shift function keys have &H100 added. Control function keys have &H200 added.
+'		Alt function keys have &H400 added. (Alt-F4 closes the dialog and is never passed to the Dialog Function.)
+' Value: additional information for some actions.
+
+	Select Case Action
+	Case 1 ' Dialog box initialization
+	Case 2 ' Value changing or button pressed
+		Select Case Item
+		Case "Help"
+			StartHelp "common_preloadedmacro_Construct_blower"
+			DialogFunc = True
+		End Select
+
+		' Error checking
+		Select Case Item
+		Case "OK"
+			Dim r_hub, r_inlet As Double
+			r_inlet = Evaluate(DlgText("r_inlet"))
+			
+			If DlgValue("CheckHub") = 1 Then
+				r_hub = Evaluate(DlgText("r_hub"))
+				If r_hub <0 Then
+					MsgBox "Hub radius must be non-negative"
+					DialogFunc = True
+				End If
+				If r_inlet <= r_hub Then
+					MsgBox "Inlet radius must be greater than hub radius"
+					DialogFunc = True
+				End If
+			Else
+				If r_inlet <= 0 Then
+					MsgBox "Inlet radius must be greater than 0"
+					DialogFunc = True
+				End If
+			End If
+
+			Dim r180, r270, L, h, w, th As Double
+			r180 = Evaluate(DlgText("r180"))
+			r270 = Evaluate(DlgText("r270"))
+			L    = Evaluate(DlgText("L"))
+			h    = Evaluate(DlgText("h"))
+			w    = Evaluate(DlgText("w"))
+			th   = Evaluate(DlgText("th"))
+
+			If r180 <= r_inlet Then
+				MsgBox "Spiral radius at 180 degree must be greater than inlet radius"
+				DialogFunc = True
+			End If
+			If r270 < r180 Then
+				MsgBox "Spiral radius at 270 degree must be greater than or equal to radius at 180 degree"
+				DialogFunc = True
+			End If
+
+			' Calculate scroll spiral parameters from r180 & r270...
+			Dim r1, k As Double
+			k  = Log(r270/r180) / (pi/2)
+			r1 = r180 / Exp(k* pi)
+			
+			If r1 < r_inlet Then
+				MsgBox "Radius at 0 degree of spiral determined from radii at 180 & 270 degrees is smaller than inlet radius"
+				DialogFunc = True
+			End If
+			
+			If L <= r1 Then
+				MsgBox "Length of exit duct must be greater than starting radius of spiral"
+				DialogFunc = True
+			End If
+			
+			If h <=0 Then
+				MsgBox "Height of exit duct must be greater than zero"
+				DialogFunc = True
+			ElseIf h >= r1* (Exp(k*pi) + Exp(k*2*pi)) Then
+				MsgBox "Height of exit duct must be smaller than height of scroll"
+				DialogFunc = True
+			End If
+			
+			If w <=0 Then
+				MsgBox "Width of exit duct must be greater than zero"
+				DialogFunc = True
+			End If
+			
+			If th <=0 Then
+				MsgBox "Thickness of exit duct must be greater than zero"
+				DialogFunc = True
+			End If
+			If th >= min(Abs(w), h)/2 Then
+				MsgBox "Thickness of exit duct must be less than half size of min(h, w)"
+				DialogFunc = True
+			End If
+		Case "CheckHub"
+			If DlgValue("CheckHub") = 1 Then
+				DlgEnable "r_hub", True
+			Else
+				DlgEnable "r_hub", False
+			End If
+			DialogFunc = True	 'do not exit the dialog
+		End Select
+	Case 3 ' ComboBox or TextBox Value changed
+	Case 4 ' Focus changed
+	Case 5 ' Idle
+	End Select
+End Function
+
+
+Function ShortName (lib_path As String) As String
+
+        Dim lib_dircount As Integer
+
+        lib_dircount  = InStrRev(lib_path, "\")
+        ShortName = Mid$(lib_path, lib_dircount+1, 999)
+
+End Function
+

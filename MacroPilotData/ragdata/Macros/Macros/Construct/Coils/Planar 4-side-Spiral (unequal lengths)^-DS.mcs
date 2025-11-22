@@ -1,0 +1,280 @@
+' Construct / Coils / 4-side-Spiral (unequal lengths)
+' !!! Do not change the line above !!!
+' macro.506
+'-----------------------------------------------------------------------------------------------------------------------------
+' Constructs a spiral with just 4 sections, but with different lengths on the two oppos. sides
+' No check whether values are reasonable - can even lead to a crash!
+'-----------------------------------------------------------------------------------------------------------------------------
+' Copyright 2002-2023 Dassault Systemes Deutschland GmbH
+' ================================================================================================
+' History of Changes
+'-----------------------------------------------------------------------------------------------------------------------------
+' 06-Jul-2010 jsw: fix small bug to allow macro execution twice in the same project
+' 24-Jul-2009 ube: GetMacroPath replaced by GetInstallPath + "\Library\Macros" (previously only first macropath was searched)
+' 21-May-2006 ube: picture passes adjusted to 2006b
+' 13-Oct-2005 ube: Included into Online Help
+' 24-Feb-2004 jsw: Using "ExtrudeCurve" instead of "Curve sweeping" as other sprical macros.
+' 26-Dec-2003 jsw: History list updating problem With redundant macro (cancel/help Is clicked) Is fixed
+' 31-Jul-2003 jsw: change the parameters setting for parameter sweep and build more than one coils
+' 21-Jun-2002 imu: initial version, based on the "spiral" macro by jsw/USA and on macro.983
+'-----------------------------------------------------------------------------------------------------------------------------
+Option Explicit
+
+Public macropath As String
+Public filename As String
+Dim cst_result       As Integer
+
+Sub Main
+'Dim alfa As Double, theta As Double, theta1 As Double, theta2 As Double
+Dim r_sx As Double, r_sy As Double, nn As Integer, mm As Integer
+Dim x0 As Double, y0 As Double
+Dim x1 As Double, y1 As Double, x01 As Double
+Dim y01 As Double, x02 As Double, y02 As Double
+Dim p_sw As Integer, n_sw As Integer
+Dim e_ssx As Double, e_ssy As Double
+Dim cst_e_sx As Double, cst_e_sy As Double, cst_h_i As Double, cst_n_s As Integer
+Dim cst_p_s As Double, cst_w_i As Double, cst_s_s As Double
+Dim se_sx As String, se_sy As String, sh_i As String
+Dim sp_s As String, sw_i As String, ss_s As String
+'Dim r_ss As Double
+Dim rTurn As Double
+Dim cst_end_x1 As Double
+Dim cst_end_y1 As Double
+Dim cst_end_x2 As Double
+Dim cst_end_y2 As Double
+Dim cst_result As Integer
+
+
+BeginHide
+
+ macropath = GetInstallPath + "\Library\Macros"
+filename = macropath+"\Construct\Coils\4-side-Spiral (unequal lengths)_pict.bmp"
+
+
+	Begin Dialog UserDialog 780,490,"Spiral construction" ,.DialogFunc ' %GRID:10,7,1,1
+		Picture 90,14,560,273,filename,0,.Picture1
+		GroupBox 60,301,650,140,"Spiral Geometry Data",.GroupBox2
+		Text 110,336,30,21,"e_sx",.TextParameter1
+		Text 460,336,50,21,"h_i",.TextParameter2
+		Text 110,371,30,21,"e_sy",.TextParameter3
+		Text 440,371,70,21,"No of turns",.TextParameter4
+		Text 460,406,40,21,"w_i",.TextParameter4a
+
+		TextBox 180,336,130,21,.Parameter1
+		TextBox 530,336,90,21,.Parameter2
+		TextBox 180,371,130,21,.Parameter3
+		TextBox 530,371,90,21,.Parameter4
+		TextBox 530,406,90,21,.Parameter4a
+		Text 110,406,40,21,"s_s",.TextParameter5
+		TextBox 180,406,130,21,.Parameter5
+		OKButton 340,455,90,21
+		CancelButton 440,455,90,21
+		PushButton 540,455,90,21,"Help",.Help
+
+	End Dialog
+	Dim dlg As UserDialog
+
+	'Default values
+	dlg.Parameter1="120"
+	dlg.Parameter2="0.01"
+	dlg.Parameter3="60"
+	dlg.Parameter4="2.5"
+	dlg.Parameter4a="5"
+	dlg.Parameter5="10"
+    cst_result = Dialog(dlg)
+
+assign "cst_result"        '  writes e.g. "cst_result = -1/0/1"     into history list
+
+If (cst_result = 0) Then Exit All
+
+
+
+se_sx= dlg.Parameter1
+se_sy= dlg.Parameter3
+sh_i =dlg.Parameter2
+sp_s= dlg.Parameter4
+sw_i= dlg.Parameter4a
+ss_s= dlg.Parameter5
+
+assign "se_sx"
+assign "se_sy"
+assign "sh_i"
+assign "sp_s"
+assign "sw_i"
+assign "ss_s"
+
+EndHide
+
+If (cst_result =0) Then Exit All   ' if cancel/help is clicked, exit all
+cst_e_sx  = Evaluate(se_sx)
+cst_e_sy  = Evaluate(se_sy)
+cst_h_i   = Evaluate(sh_i)
+cst_p_s   = Evaluate(sp_s)
+cst_w_i   = Evaluate(sw_i)
+cst_s_s   = Evaluate(ss_s)
+
+e_ssx=cst_e_sx-cst_w_i
+e_ssy=cst_e_sy-cst_w_i
+p_sw=Int(cst_p_s)
+
+Curve.NewCurve "CurveForSweepPath"
+
+
+With Polygon
+	.Reset
+	.Name  "SweepPathPolygon1"
+	.Curve "CurveForSweepPath"
+	         x01=e_ssx/2
+             y01=e_ssy/2
+            .Point x01+cst_w_i,y01+cst_w_i
+            .LineTo x01+cst_w_i,y01
+              For mm=1 To p_sw
+
+                .LineTo  -x01, y01
+                .LineTo  -x01, -y01
+                .LineTo  x01, -y01
+                .Point x01,y01-cst_s_s
+                cst_end_x1=x01
+                cst_end_y1=y01-cst_s_s
+                x01=x01-cst_s_s
+                y01=y01-cst_s_s
+             Next mm
+
+             rTurn=cst_p_s-p_sw
+             If rTurn>10e-10 Then
+
+                If rTurn>0.25   Then
+                .LineTo  -x01, y01
+                Else
+                .LineTo  x01*(1-8*rTurn), y01
+                cst_end_x1=x01*(1-8*rTurn)
+                cst_end_y1=y01
+                End If
+
+                If rTurn>0.5    Then
+                .LineTo  -x01, -y01
+                ElseIf rTurn>0.25 Then
+                .LineTo  -x01, y01*(1-8*(rTurn-0.25))
+                cst_end_x1=-x01
+                cst_end_y1=y01*(1-8*(rTurn-0.25))
+                End If
+
+                If rTurn>0.75  Then
+                .LineTo  x01, -y01
+                .LineTo  x01, -(y01-cst_s_s)*(1-8*(rTurn-0.75))
+                cst_end_x1=x01
+                cst_end_y1=-(y01-cst_s_s)*(1-8*(rTurn-0.75))
+                  ElseIf rTurn>0.5 Then
+                .LineTo  -x01*(1-8*(rTurn-0.5)), -y01
+                cst_end_x1=-x01*(1-8*(rTurn-0.5))
+                cst_end_y1=-y01
+                End If
+             Else
+             End If
+
+
+         .Create
+End With
+
+e_ssx=cst_e_sx+cst_w_i
+e_ssy=cst_e_sy+cst_w_i
+With Polygon
+	.Reset
+	.Name  "SweepPathPolygon2"
+	.Curve "CurveForSweepPath"
+	         x01=e_ssx/2
+             y01=e_ssy/2
+            .Point x01,y01
+                For mm=1 To p_sw
+
+                .LineTo  -x01, y01
+                .LineTo  -x01, -y01
+                .LineTo  x01, -y01
+                .Point x01,y01-cst_s_s
+                cst_end_x2=x01
+                cst_end_y2=y01-cst_s_s
+                x01=x01-cst_s_s
+                y01=y01-cst_s_s
+             Next mm
+
+             rTurn=cst_p_s-p_sw
+             If rTurn>10e-10 Then
+
+                If rTurn>0.25   Then
+                .LineTo  -x01, y01
+                Else
+                .LineTo  x01*(1-8*rTurn), y01
+                cst_end_x2=x01*(1-8*rTurn)
+                cst_end_y2=y01
+                End If
+
+                If rTurn>0.5    Then
+                .LineTo  -x01, -y01
+                ElseIf rTurn>0.25 Then
+                .LineTo  -x01, y01*(1-8*(rTurn-0.25))
+                cst_end_x2=-x01
+                cst_end_y2=y01*(1-8*(rTurn-0.25))
+                End If
+
+                If rTurn>0.75  Then
+                .LineTo  x01, -y01
+                .LineTo  x01, -(y01-cst_s_s)*(1-8*(rTurn-0.75))
+                cst_end_x2=x01
+                cst_end_y2=-(y01-cst_s_s)*(1-8*(rTurn-0.75))
+                  ElseIf rTurn>0.5 Then
+                .LineTo  -x01*(1-8*(rTurn-0.5)), -y01
+                cst_end_x2=-x01*(1-8*(rTurn-0.5))
+                cst_end_y2=-y01
+                End If
+             Else
+             End If
+             .LineTo cst_end_x1,cst_end_y1
+         .Create
+End With
+
+With ExtrudeCurve
+     .Reset
+     '.Name  Solid.GetNextFreeName
+      .Name "Spiral_Orignal"
+     .Component "SectionedSpiral"
+     .Material "PEC"
+     .Thickness -cst_h_i
+     .Twistangle "0.0"
+     .Taperangle "0.0"
+     .Curve "CurveForSweepPath"
+     .Create
+End With
+
+If cst_end_x2<>cst_end_x1 And cst_end_y2<>cst_end_y1 Then
+
+   With Brick
+     .Reset
+     .Name "Spiral_cut"
+     .Component "SectionedSpiral"
+     .Material "PEC"
+     .Xrange IIf(cst_end_x2>cst_end_x1, cst_end_x1,cst_end_x2), IIf(cst_end_x2>cst_end_x1, cst_end_x2,cst_end_x1)
+     .Yrange IIf(cst_end_y2>cst_end_y1, cst_end_y1,cst_end_y2), IIf(cst_end_y2>cst_end_y1, cst_end_y2,cst_end_y1)
+     .Zrange "0",cst_h_i
+     .Create
+    End With
+    Solid.Subtract "SectionedSpiral:Spiral_Orignal", "SectionedSpiral:Spiral_cut"
+    Solid.Rename "SectionedSpiral:Spiral_Orignal", Solid.GetNextFreeName
+Else
+Solid.Rename "SectionedSpiral:Spiral_Orignal", Solid.GetNextFreeName
+End If
+Curve.DeleteCurve "CurveForSweepPath"
+End Sub
+Function DialogFunc%(Item As String, Action As Integer, Value As Integer)
+	Select Case Action
+	Case 1 ' Dialog box initialization
+	Case 2 ' Value changing or button pressed
+		Select Case Item
+		Case "Help"
+			StartHelp "common_preloadedmacro_Construct_Coils"
+			DialogFunc = True
+		End Select
+	Case 3 ' ComboBox or TextBox Value changed
+	Case 4 ' Focus changed
+	Case 5 ' Idle
+	End Select
+End Function

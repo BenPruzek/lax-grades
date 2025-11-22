@@ -1,0 +1,215 @@
+' Construct / Coils / Linear Spiral Coil
+' !!! Do not change the line above !!!
+' Execute from Macro-Pulldownmenue for a
+' proper entry of the history list required for a rebuild; parameters are available for a rebuild.
+'
+'-----------------------------------------------------------------------------------------------------------------------------
+' Copyright 2007-2023 Dassault Systemes Deutschland GmbH
+' ================================================================================================
+' History of Changes
+'-----------------------------------------------------------------------------------------------------------------------------
+' 29-Jun-2021 ube: replace all _torrus by _coil
+' 21-Jun-2021 fhi: added the option of coil segementation
+' 14-Feb-2018 fhi: .setinterpolation "Spline" (smooth curves)
+' 21-Jul-2016 ube: change cst_coil_N from Integer to Double
+' 20-Oct-2015 ube: resorted order of dialogue elements to make it consistent when stepping with TAB
+' 06-Oct-2015 ube: improved error handling, also F7 is now displayed when changing a parameter
+' 23-Sep-2015 fhi: add clock/anticlock wise orientation, add parametric to enable multiple generation of coils, naming of coils, elliptic shape
+' 20-Aug-2009 ube: one more code line added, so that in the "cancel" case also rebuild history does not show the coil
+' 06-Aug-2009 fwo: correction of behaviour when "cancel" is clicked.
+' 23-Apr-2007 fhi: correction of parameter visibilty
+' 18-Apr-2007 fhi: added parameters
+' 05-Feb-2007 fhi: Initial version
+'-------------------------------------------------
+Option Explicit
+Sub Main ()
+ Dim scst_coil_ri As Double, scst_coil_ra As Double,cst_xxx As Double, scst_coil_phi As Double, scst_coil_h As Double
+ Dim scst_coil_N As Integer, cst_result As Integer,  sCurveName As String, scst_clock As Integer, cst_clock As Integer
+ Dim cst_coil_N As Double, cst_coil_phi As Double, cst_coil_h As Double, cst_coil_ra As Double, cst_coil_ri As Double
+ Dim first As String,  seconditem As String,cName As String, clock_yes_no As Integer, cClock As Integer
+ Dim scst_segmented As Integer, cst_segmentation As Integer
+
+ BeginHide
+	Begin Dialog UserDialog 340,210,"Create Linear Spiral Coil ",.DialogFunc ' %GRID:10,7,1,1
+		Text 10,7,100,14,"Name",.Text2
+		TextBox 140,0,190,21,.name
+		Text 10,28,120,14,"Coil Radius (major)",.Text1
+		TextBox 140,21,80,21,.outer_rad
+		Text 10,49,120,14,"Coil Radius (minor)",.Text7
+		TextBox 140,42,80,21,.inner_rad
+		Text 10,70,90,14,"Coil Height",.Text3
+		TextBox 140,63,80,21,.coil_height
+		Text 10,91,110,14,"Number of Turns",.Text4
+		TextBox 140,84,50,21,.turns
+		Text 10,112,110,14,"Angle Increment",.Text6
+		TextBox 140,105,50,21,.angle
+		Text 200,110,30,14,"deg",.Text5
+		Picture 240,28,90,70,GetInstallPath + "\Library\Macros\Construct\Coils\Linear_coil.bmp",0,.Picture1
+		OptionGroup .Left_or_Right
+			OptionButton 10,133,100,14,"Clockwise",.left
+			OptionButton 10,154,120,14,"Anti-Clockwise",.right
+		OKButton 10,182,100,21
+		CancelButton 120,182,90,21
+		CheckBox 140,133,110,14,"segmented",.segmented_check
+	End Dialog
+ 	Dim dlg As UserDialog
+
+ 	' set defaults for dialog
+ 	dlg.coil_height = "10."
+ 	dlg.outer_rad ="5."
+ 	dlg.inner_rad ="5."
+ 	dlg.turns = "10"
+ 	dlg.angle ="15."
+ 	dlg.Left_or_Right = 0
+ 	dlg.segmented_check = 0
+
+ 	'find proper default-name for coils
+		first=  ShortName (Resulttree.GetFirstChildName ("Curves\3D-Linear-Spiral" ))
+		Do While first <> ""
+			seconditem  = ShortName (Resulttree.GetNextItemName (  "Curves\3D-Linear-Spiral\"+ first ))
+			If seconditem <> "" Then
+				first = seconditem
+			Else
+				Exit Do
+			End If
+		Loop
+		If first ="" Then
+			dlg.name = "Linear_Spiral"	'first coil's name
+		Else
+			dlg.name = first+"_1"			' default for next coils
+		End If
+
+ 	cst_result=Dialog(dlg)
+ 	assign "cst_result"        '  writes e.g. "cst_result = -1/0/1"     into history list
+	'Dialog Window
+ 	Do
+ 	Loop Until  (dlg.turns <> "")
+
+ 	If (cst_result =0) Then Exit All   ' if cancel/help is clicked, exit all
+
+ 	cName = dlg.name
+ 	cClock = dlg.Left_or_Right
+
+ 	scst_coil_h = evaluate(dlg.coil_height)
+ 	scst_coil_phi=evaluate(dlg.angle)
+ 	scst_coil_ra= evaluate(dlg.outer_rad)
+ 	scst_coil_ri= evaluate(dlg.inner_rad)
+ 	scst_coil_N = CInt(dlg.turns)
+ 	scst_clock = CInt(dlg.Left_or_Right)
+ 	scst_segmented = cint(dlg.segmented_check)
+
+
+ 	StoreDoubleParameter cName+"_cst_coil_h", scst_coil_h
+ 	SetParameterDescription (cName+"_cst_coil_h", "Coil's height" )
+
+ 	StoreDoubleParameter cName+"_cst_coil_ra", scst_coil_ra
+ 	SetParameterDescription (cName+"_cst_coil_ra", "Coil's major radius" )
+ 	StoreDoubleParameter cName+"_cst_coil_ri", scst_coil_ri
+ 	SetParameterDescription (cName+"_cst_coil_ri", "Coil's minor radius" )
+
+ 	StoreDoubleParameter cName+"_cst_coil_phi", scst_coil_phi
+ 	SetParameterDescription (cName+"_cst_coil_phi", "Coil's segmentation angle" )
+ 	StoreDoubleParameter cName+"_cst_coil_N", CDbl(scst_coil_N)
+ 	SetParameterDescription (cName+"_cst_coil_N", "Coil's Nr of turns" )
+ 	StoreDoubleParameter cName+"_cst_coil_orientation", CDbl(scst_clock)
+ 	SetParameterDescription (cName+"_cst_coil_orientation", "Coil's Orientation: 0 clockwise, 1 anti-clockwise" )
+
+ 	StoreDoubleParameter cName+"_cst_coil_segmentation", CDbl(scst_segmented)
+ 	SetParameterDescription (cName+"_cst_coil_segmentation", "Coil segmentation: 1 = segmented, 0 = spline" )
+
+
+ 	assign "cName"
+ 	'assign "cClock"
+
+EndHide
+
+If (cst_result =0) Then Exit All   ' if cancel/help is clicked, exit all
+
+MakeSureParameterExists(cName+"_cst_coil_h",10)
+MakeSureParameterExists(cName+"_cst_coil_ra",5)
+MakeSureParameterExists(cName+"_cst_coil_ri",5)
+MakeSureParameterExists(cName+"_cst_coil_phi",30)
+MakeSureParameterExists(cName+"_cst_coil_N",10)
+MakeSureParameterExists(cName+"_cst_coil_orientation",0)
+MakeSureParameterExists(cName+"_cst_coil_segmentation",0)
+
+If (RestoreDoubleParameter(cName+"_cst_coil_phi") <= 0) Then
+	ReportWarningToWindow "Angle phi is not positive. Coil not constructed."
+	Exit All
+End If
+
+ With Brick
+		.Reset
+		.Name "dummy_solid_trapez"
+		.Component "Dummy_spiral_coil"
+		.Material "PEC"
+		.Xrange "0", cName+"_cst_coil_h"
+		.Yrange "0", cName+"_cst_coil_ra"
+		.Zrange "0", cName+"_cst_coil_phi"
+		.Create
+	End With
+	Component.Delete "Dummy_spiral_coil"
+
+
+
+	cst_coil_N= Abs(restoredoubleparameter (cName+"_cst_coil_N"))
+	cst_coil_h= Abs(restoredoubleparameter (cName+"_cst_coil_h"))
+	cst_coil_ra= Abs(restoredoubleparameter (cName+"_cst_coil_ra"))
+	cst_coil_ri= Abs(restoredoubleparameter (cName+"_cst_coil_ri"))
+	cst_coil_phi= Abs(restoredoubleparameter (cName+"_cst_coil_phi"))
+	cst_clock = Abs(restoredoubleparameter (cName+"_cst_coil_orientation"))
+	cst_segmentation = Abs(restoredoubleparameter (cName+"_cst_coil_segmentation"))
+
+
+ ' Begin construction
+
+ clock_yes_no = CInt(cst_clock)
+
+	On Error GoTo Curve_Exists
+ 	Curve.NewCurve "3D-Linear-Spiral"
+ 	Curve_Exists:
+	On Error GoTo 0
+ 	sCurveName = cName '"3dpolygon_1"
+ 	With    Polygon3D
+  		.Reset
+  		.Name sCurveName
+  		.Curve "3D-Linear-Spiral"
+
+  		'Spline/segmented curve generation:
+  		'
+        If cst_segmentation = 0 Then	'spline shape = 0
+        	.setinterpolation "Spline"
+        End If
+		For cst_xxx = 0  To    cst_coil_N *2*Pi+(cst_coil_phi*pi/180)/2   STEP  cst_coil_phi*pi/180
+  			If clock_yes_no = 1 Then
+	 			.Point cst_coil_ra*Sin(cst_xxx), cst_coil_ri*Cos(cst_xxx) , cst_coil_h*cst_xxx/(2*pi* cst_coil_N)
+	 		Else
+	 			.Point -cst_coil_ra*Sin(cst_xxx), cst_coil_ri*Cos(cst_xxx) , cst_coil_h*cst_xxx/(2*pi* cst_coil_N)
+	 		End If
+  		Next cst_xxx
+
+  		.Create
+ 	End With
+End Sub
+
+Function ShortName (lib_path As String) As String
+	Dim lib_dircount As Integer
+	lib_dircount  = InStrRev(lib_path, "\")
+	ShortName = Mid$(lib_path, lib_dircount+1, 999)
+End Function
+
+
+Function DialogFunc%(Item As String, Action As Integer, Value As Integer)
+	Select Case Action
+	Case 1 ' Dialog box initialization
+	Case 2 ' Value changing or button pressed
+		Select Case Item
+		Case "Help"
+			StartHelp "common_preloadedmacro_Construct_Coils"
+			DialogFunc = True
+		End Select
+	Case 3 ' ComboBox or TextBox Value changed
+	Case 4 ' Focus changed
+	Case 5 ' Idle
+	End Select
+End Function

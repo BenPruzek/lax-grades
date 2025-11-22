@@ -1,0 +1,582 @@
+' Heatsink
+'-----------------------------------------------------------------------------------------------------------------------------
+' Copyright 2010-2023 Dassault Systemes Deutschland GmbH
+' ================================================================================================
+' History of Changes
+'-----------------------------------------------------------------------------------------------------------------------------
+' 04-Jan-2022 mha: rearranged gui elements
+' 03-Sep-2010 nst: Initial version
+'-----------------------------------------------------------------------------------------------------------------------------
+
+Option Explicit
+
+
+Sub Main ()
+
+' object origin
+Dim sobj_x As String
+Dim sobj_y As String
+Dim sobj_z As String
+Dim obj_x As Double
+Dim obj_y As Double
+Dim obj_z As Double
+
+'base size
+Dim sbase_x As String
+Dim sbase_y As String
+Dim sbase_z As String
+Dim base_x As Double
+Dim base_y As Double
+Dim base_z As Double
+
+' fin parameters
+Dim num_fins As Integer
+Dim fin_height As Double
+Dim fin_width As Double
+Dim snum_fins As String
+Dim sfin_height As String
+Dim sfin_width As String
+Dim center_gap As Double
+Dim scenter_gap As String
+
+Dim x_max_insert As Double
+Dim x_min_insert As Double
+Dim sx_max_insert As String
+Dim sx_min_insert As String
+
+Dim y_max_insert As Double
+Dim y_min_insert As Double
+Dim sy_max_insert As String
+Dim sy_min_insert As String
+
+Dim sy_min_height As String
+Dim sy_min_width As String
+Dim smin_foot_height As String
+Dim smin_foot_width As String
+Dim y_min_height As Double
+Dim y_min_width As Double
+Dim min_foot_height As Double
+Dim min_foot_width As Double
+
+Dim sy_max_height As String
+Dim sy_max_width As String
+Dim smax_foot_height As String
+Dim smax_foot_width As String
+Dim y_max_height As Double
+Dim y_max_width As Double
+Dim max_foot_height As Double
+Dim max_foot_width As Double
+
+' name parameters
+Dim first As String
+Dim seconditem As String
+Dim cname As String
+
+Dim nonstandard_y_min As Boolean
+Dim nonstandard_y_max As Boolean
+
+
+Dim cst_result       As Integer
+
+BeginHide
+
+' Clear previously defined globals
+    StoreGlobalDataValue ("Heatsink-macro-y-min-height", 0)
+	StoreGlobalDataValue ("Heatsink-macro-y-min-width", 0)
+	StoreGlobalDataValue ("Heatsink-macro-y-min-foot-height", 0)
+	StoreGlobalDataValue ("Heatsink-macro-y-min-foot-width", 0)
+
+	StoreGlobalDataValue ("Heatsink-macro-y-max-height", 0)
+	StoreGlobalDataValue ("Heatsink-macro-y-max-width", 0)
+	StoreGlobalDataValue ("Heatsink-macro-y-max-foot-height", 0)
+	StoreGlobalDataValue ("Heatsink-macro-y-max-foot-width", 0)
+
+' User interface
+	Dim bRedefine As Boolean
+	Begin Dialog UserDialog 431, 440, "Create new heatsink", .DialogFunc ' %GRID:10,7,1,1
+		GroupBox      10,   7, 411, 392, "Input parameters", .GroupBox5
+		Text          20,  28,  40,  14, "Name:",            .Text10
+		TextBox       75,  25, 200,  21,                     .heatsink_name
+
+		GroupBox      20,  56, 145, 109, "Corner point", .GroupBox1
+		Text          35,  77,  10,  14, "x:",            .Text1
+		TextBox       60,  74,  90,  21,                  .obj_x
+		Text          35, 107,  10,  14, "y:",            .Text2
+		TextBox       60, 104,  90,  21,                  .obj_y
+		Text          35, 137,  10,  14, "z:",            .Text3
+		TextBox       60, 134,  90,  21,                  .obj_z
+
+		GroupBox      20, 165, 145, 109, "Base size", .GroupBox2
+		Text          35, 186,  10,  14, "x:",        .Text11
+		TextBox       60, 183,  90,  21,              .base_x
+		Text          35, 216,  20,  14, "y:",        .Text12
+		TextBox       60, 213,  90,  21,              .base_y
+		Text          35, 246,  20,  14, "z:",         .Text13
+		TextBox       60, 243,  90,  21,              .base_z
+
+		GroupBox     180,  56, 231, 218, "Fin settings",    .GroupBox3
+		Text         195,  77,  96,  14, "Number of fins:", .Text5
+		TextBox      306,  74,  90,  21,                    .num_fins
+		Text         195, 111,  90,  14, "Height:",         .Text9
+		TextBox      306, 108,  90,  21,                    .fin_height
+		Text         195, 145,  90,  14, "Fin width:",      .Text6
+		TextBox      306, 142,  90,  21,                    .fin_width
+		Text         195, 179,  90,  14, "X min insert:",   .Text8
+		TextBox      306, 176,  90,  21,                    .x_min_insert
+		Text         195, 213,  90,  14, "X max insert:",   .Text7
+		TextBox      306, 210,  90,  21,                    .x_max_insert
+		Text         195, 246,  90,  14, "Center gap:",     .Text4
+		TextBox      306, 243,  90,  21,                    .center_gap
+
+		GroupBox      20, 281, 391, 108, "End fins",           .GroupBox4
+		Text          35, 302,  77,  14, "Y min insert:",      .Text14
+		TextBox      122, 299,  78,  21,                       .y_min_insert
+		Text         221, 302,  81,  14, "Y max insert:",      .Text15
+		TextBox      317, 299,  79,  21,                       .y_max_insert
+		CheckBox      35, 332, 145,  14, "Nonstandard Y min:", .nonstandard_min
+		PushButton   198, 329,  90,  21, "Define",             .Define_min
+		CheckBox      35, 361, 148,  14, "Nonstandard Y max:", .nonstandard_max
+		PushButton   198, 358,  90,  21, "Define",             .Define_max
+
+		OKButton      20, 409,  90,  21
+		CancelButton 120, 409,  90,  21
+	End Dialog
+	Dim dlg As UserDialog
+
+' dialogue defaults
+
+	dlg.obj_x  = "0"
+	dlg.obj_y = "0"
+	dlg.obj_z = "0"
+
+	dlg.base_x = "4"
+	dlg.base_y = "4"
+	dlg.base_z = "0.25"
+
+	dlg.num_fins  = "5"
+	dlg.fin_width = "0.25"
+	dlg.center_gap = "0"
+	dlg.x_max_insert = "0.25"
+	dlg.x_min_insert = "0.25"
+	dlg.fin_height = "2"
+
+	dlg.y_min_insert = "0"
+	dlg.y_max_insert = "0"
+
+	dlg.nonstandard_min = False	' Unticked by default
+	dlg.nonstandard_max = False
+
+	'find proper default-name for heatsink
+	first =  ShortName(Resulttree.GetFirstChildName ("Components\Heatsink"))
+	Do While first <> ""
+    	seconditem  = ShortName (Resulttree.GetNextItemName ("Components\Heatsink\"+ first))
+		If seconditem <> "" Then
+		 	first = seconditem
+		Else
+		 	Exit Do
+		End If
+	Loop
+	If first ="" Then
+		dlg.heatsink_name = "Heatsink"	'first name
+	Else
+		dlg.heatsink_name = first+"_1"	'default for next
+	End If
+
+	'If cancel is pressed
+		cst_result = Dialog(dlg)
+        assign "cst_result"        '  writes e.g. "cst_result = -1/0/1"     into history list
+        If (cst_result = 0) Then Exit All
+
+
+	'Assign the input values to string variables
+		sobj_x  = dlg.obj_x
+		sobj_y = dlg.obj_y
+		sobj_z = dlg.obj_z
+
+		sbase_x = dlg.base_x
+		sbase_y = dlg.base_y
+		sbase_z = dlg.base_z
+
+		snum_fins  = dlg.num_fins
+		sfin_width = dlg.fin_width
+		sx_max_insert = dlg.x_max_insert
+		sx_min_insert = dlg.x_min_insert
+		sfin_height = dlg.fin_height
+		scenter_gap = dlg.center_gap
+
+		sy_min_insert = dlg.y_min_insert
+		sy_max_insert = dlg.y_max_insert
+
+		cname = dlg.heatsink_name
+
+		sy_min_height = ReStoreGlobalDataValue ("Heatsink-macro-y-min-height")
+		sy_min_width = ReStoreGlobalDataValue ("Heatsink-macro-y-min-width")
+		smin_foot_height = ReStoreGlobalDataValue ("Heatsink-macro-y-min-foot-height")
+		smin_foot_width = ReStoreGlobalDataValue ("Heatsink-macro-y-min-foot-width")
+
+		sy_max_height = ReStoreGlobalDataValue ("Heatsink-macro-y-max-height")
+		sy_max_width = ReStoreGlobalDataValue ("Heatsink-macro-y-max-width")
+		smax_foot_height = ReStoreGlobalDataValue ("Heatsink-macro-y-max-foot-height")
+		smax_foot_width = ReStoreGlobalDataValue ("Heatsink-macro-y-max-foot-width")
+
+		nonstandard_y_min = dlg.nonstandard_min
+		nonstandard_y_max = dlg.nonstandard_max
+
+		'write to history
+		assign "sobj_x"
+		assign "sobj_y"
+		assign "sobj_z"
+
+		assign "sbase_x"
+		assign "sbase_y"
+		assign "sbase_z"
+
+		assign "snum_fins"
+		assign "sfin_width"
+		assign "sx_max_insert"
+		assign "sx_min_insert"
+		assign "sfin_height"
+		assign "scenter_gap"
+
+		assign "sy_min_insert"
+		assign "sy_max_insert"
+
+		assign "cname"
+
+		assign "sy_min_height"
+		assign "sy_min_width"
+		assign "smin_foot_height"
+		assign "smin_foot_width"
+
+		assign "sy_max_height"
+		assign "sy_max_width"
+		assign "smax_foot_height"
+		assign "smax_foot_width"
+
+		assign "nonstandard_y_min"
+		assign "nonstandard_y_max"
+
+EndHide
+
+	If (cst_result = 0) Then Exit All
+
+		obj_x = Evaluate(sobj_x)
+		obj_y = Evaluate(sobj_y)
+		obj_z = Evaluate(sobj_z)
+
+		base_x = Evaluate(sbase_x)
+		base_y = Evaluate(sbase_y)
+		base_z = Evaluate(sbase_z)
+
+		num_fins  = Evaluate(snum_fins)
+		fin_width = Evaluate(sfin_width)
+		x_max_insert = Evaluate(sx_max_insert)
+		x_min_insert = Evaluate(sx_min_insert)
+		fin_height = Evaluate(sfin_height)
+		center_gap = Evaluate(scenter_gap)
+
+		y_min_insert = Evaluate(sy_min_insert)
+		y_max_insert = Evaluate(sy_max_insert)
+
+		y_min_height = Evaluate(sy_min_height)
+		y_min_width = Evaluate(sy_min_width)
+		min_foot_height = Evaluate(smin_foot_height)
+		min_foot_width = Evaluate(smin_foot_width)
+
+		y_max_height = Evaluate(sy_max_height)
+		y_max_width = Evaluate(sy_max_width)
+		max_foot_height = Evaluate(smax_foot_height)
+		max_foot_width = Evaluate(smax_foot_width)
+
+
+'Construction part
+
+'construct base
+With Brick
+    .Reset
+    .Name cname
+    .Component ("Heatsink")
+    .Material ("PEC")
+    .Xrange (obj_x, obj_x+base_x)
+    .Yrange (obj_y, obj_y+base_y)
+    .Zrange (obj_z, obj_z+base_z)
+    .Create
+End With
+
+' calculate amount of metal
+Dim gap_size As Double
+Dim metal_l As Double
+Dim num_finsconstructed As Integer
+metal_l = ((num_fins-2)*fin_width)
+
+'For loop for constructing fins
+Dim currentfin As Integer
+Dim nextfin As String
+Dim start_loc As Double
+Dim end_loc As Double
+
+'construct nonstandard fins (brackets done later)
+If (nonstandard_y_min = True ) Then
+nextfin = Solid.GetNextFreeName
+
+		With Brick
+		    .Reset
+		    .Name nextfin
+		    .Component ("Heatsink")
+		    .Material ("PEC")
+		    .Xrange (obj_x+x_min_insert, obj_x+base_x-x_max_insert)
+		    .Yrange (y_min_insert+obj_y, y_min_insert+obj_y+y_min_width)
+		    .Zrange (obj_z+base_z, obj_z+base_z+y_min_height)
+		    .Create
+		End With
+
+		Solid.Add "Heatsink:"+cname, "Heatsink:"+nextfin
+
+
+		' Bracket construction
+		If ((min_foot_height <> 0) And (min_foot_height <> 0)) Then
+			nextfin = Solid.GetNextFreeName
+
+			With Brick
+			    .Reset
+			    .Name nextfin
+			    .Component ("Heatsink")
+			    .Material ("PEC")
+			    .Xrange (obj_x+x_min_insert, obj_x+base_x-x_max_insert) 'ok
+			    .Yrange (y_min_insert+obj_y, y_min_insert+obj_y-min_foot_width)
+			    .Zrange (obj_z+base_z+y_min_height-min_foot_height, obj_z+base_z+y_min_height)
+			    .Create
+			End With
+
+			Solid.Add "Heatsink:"+cname, "Heatsink:"+nextfin
+
+			End If
+
+
+ 		currentfin = 1
+ 		metal_l = metal_l + y_min_width
+ Else
+	currentfin = 0
+	metal_l = metal_l + fin_width
+End If
+If ( nonstandard_y_max = True ) Then
+	num_finsconstructed = num_fins-1
+	metal_l = metal_l + y_max_width
+
+		With Brick
+		    .Reset
+		    .Name nextfin
+		    .Component ("Heatsink")
+		    .Material ("PEC")
+		    .Xrange (obj_x+x_min_insert, obj_x+base_x-x_max_insert)
+		    .Yrange (base_y+obj_y-y_max_insert, base_y+obj_y-y_max_insert-y_max_width)
+		    .Zrange (obj_z+base_z, obj_z+base_z+y_max_height)
+		    .Create
+		End With
+
+		Solid.Add "Heatsink:"+cname, "Heatsink:"+nextfin
+
+		' Bracket construction
+		If ((max_foot_height <> 0) And (max_foot_height <> 0)) Then
+			nextfin = Solid.GetNextFreeName
+
+			With Brick
+			    .Reset
+			    .Name nextfin
+			    .Component ("Heatsink")
+			    .Material ("PEC")
+			    .Xrange (obj_x+x_min_insert, obj_x+base_x-x_max_insert) 'ok
+			    .Yrange (base_y+obj_y-y_max_insert,base_y+obj_y-y_max_insert+min_foot_width)
+			    .Zrange (obj_z+base_z+y_max_height-max_foot_height, obj_z+base_z+y_max_height)
+			    .Create
+			End With
+
+			Solid.Add "Heatsink:"+cname, "Heatsink:"+nextfin
+
+			End If
+
+	Else
+		metal_l = metal_l + fin_width
+		num_finsconstructed = num_fins
+End If
+
+' Calculate gap
+
+If (center_gap = 0) Then
+	gap_size = ((base_y)-(metal_l)-y_min_insert-y_max_insert)/(num_fins-1)
+	Else
+		gap_size = ((base_y)-(metal_l)-center_gap-y_min_insert-y_max_insert)/(num_fins-2)
+End If
+
+start_loc = y_min_insert+obj_y+(gap_size+y_min_width)*currentfin
+end_loc = y_min_insert+fin_width+obj_y+(gap_size+y_min_width)*currentfin
+
+For currentfin = currentfin To num_finsconstructed-1 STEP +1
+
+nextfin = Solid.GetNextFreeName
+
+With Brick
+    .Reset
+    .Name nextfin
+    .Component ("Heatsink")
+    .Material ("PEC")
+    .Xrange (obj_x+x_min_insert, obj_x+base_x-x_max_insert)
+    .Yrange (start_loc, end_loc)
+    .Zrange (obj_z+base_z, obj_z+base_z+fin_height)
+    .Create
+End With
+Solid.Add "Heatsink:"+cname, "Heatsink:"+nextfin
+
+If ((currentfin = ((num_fins)/2)-1) And (center_gap <> 0)) Then
+	start_loc = start_loc + center_gap + fin_width
+	end_loc = end_loc + center_gap + fin_width
+	Debug.Print currentfin
+	Else
+	start_loc = start_loc+(fin_width+gap_size)
+	end_loc = end_loc+(fin_width+gap_size)
+End If
+
+Next
+
+
+End Sub
+Function DialogFunc%(Item As String, Action As Integer, Value As Integer)
+	Select Case Action
+	Case 1 ' Dialog box initialization
+		'Disable boxes
+			DlgEnable "Define_min"
+			DlgEnable "Define_max"
+	Case 2 ' Value changing or button pressed
+		Select Case Item
+		Case "Help"
+			StartHelp "common_preloadedmacro_Construct_Heatsink"
+			DialogFunc = True
+		'~~~~~ERROR CHECKING~~~~~
+		Case "OK"
+			If (Evaluate(DlgText("base_x")) Or Evaluate(DlgText("base_y")) Or Evaluate(DlgText("base_z"))) = 0 Then
+			MsgBox "Base dimentions must be non-zero"
+			DialogFunc = True
+			End If
+			If (Evaluate(DlgText("x_min_insert")) Or Evaluate(DlgText("x_max_insert"))) < 0 Then
+			MsgBox "Insert cannot be negative"
+			DialogFunc = True
+			End If
+			If (Evaluate(DlgText("y_min_insert")) Or Evaluate(DlgText("y_max_insert"))Or Evaluate(DlgText("x_min_insert"))Or Evaluate(DlgText("x_max_insert"))) < 0 Then
+			MsgBox "Insert cannot be negative"
+			DialogFunc = True
+			End If
+			If ((Evaluate(DlgText("num_fins")) Mod 2) > 0 And (Evaluate(DlgText("center_gap")) > 0 )) Then
+			MsgBox "Center gap can only be applied with an even number of fins"
+			DialogFunc = True
+			End If
+			If (Evaluate(DlgText("center_gap")) < 0 ) Then
+			MsgBox "Center gap may not be negative"
+			DialogFunc = True
+			End If
+			If (Evaluate(DlgText("num_fins")) <> Int(Evaluate(DlgText("num_fins"))) ) Then
+			MsgBox "Amount of blades must be integer"
+			DialogFunc = True
+			End If
+			If (Evaluate(DlgText("center_gap"))+Evaluate(DlgText("y_min_insert"))+Evaluate(DlgText("y_max_insert")) > Evaluate(DlgText("base_y")))  Then
+			MsgBox "Center gap or y-inserts too large for base size"
+			DialogFunc = True
+			End If
+			If (Evaluate(DlgText("x_min_insert"))+Evaluate(DlgText("x_max_insert")) > Evaluate(DlgText("base_x")))  Then
+			MsgBox "x-inserts too large for base size"
+			DialogFunc = True
+			End If
+		'~~~~~~END ERROR CHECK~~~~~~
+			Case "nonstandard_min"
+			DlgEnable "Define_min"
+			DialogFunc% = True 'do not exit the dialog
+			Case "nonstandard_max"
+			DlgEnable "Define_max"
+			DialogFunc% = True 'do not exit the dialog
+			Case "Define_min"
+			PushYMinDefine()
+			DialogFunc = True
+			Case "Define_max"
+			PushYmaxDefine()
+			DialogFunc = True
+		End Select
+	Case 3 ' ComboBox or TextBox Value changed
+	Case 4 ' Focus changed
+	Case 5 ' Idle
+	End Select
+End Function
+Function ShortName (lib_path As String) As String
+
+        Dim lib_dircount As Integer
+
+        lib_dircount  = InStrRev(lib_path, "\")
+        ShortName = Mid$(lib_path, lib_dircount+1, 999)
+
+End Function
+Sub PushYMinDefine()
+	Begin Dialog UserDialog 370,203 ' %GRID:10,7,1,1
+		OKButton 160,175,90,21
+		CancelButton 260,175,90,21
+		GroupBox 10,7,350,161,"Input parameters",.GroupBox1
+		GroupBox 20,84,330,77,"Bracket parameters",.GroupBox2
+		TextBox 250,28,90,21,.y_min_height
+		TextBox 250,56,90,21,.y_min_width
+		TextBox 250,105,90,21,.min_foot_height
+		TextBox 250,133,90,21,.min_foot_width
+		Text 70,35,90,14,"Fin height",.Text1
+		Text 70,56,90,14,"Base width",.Text2
+		Text 70,112,90,14,"Foot length",.Text3
+		Text 70,133,100,14,"Foot thickness",.Text4
+	End Dialog
+	Dim dlg As UserDialog
+
+	'restore previous data if given
+	dlg.y_min_height = ReStoreGlobalDataValue ("Heatsink-macro-y-min-height")
+	dlg.y_min_width = ReStoreGlobalDataValue ("Heatsink-macro-y-min-width")
+	dlg.min_foot_height = ReStoreGlobalDataValue ("Heatsink-macro-y-min-foot-height")
+	dlg.min_foot_width = ReStoreGlobalDataValue ("Heatsink-macro-y-min-foot-width")
+
+	If (Dialog(dlg) = 0) Then
+		' sub-dialogue is cancelled
+		Exit Sub
+	Else
+		StoreGlobalDataValue ("Heatsink-macro-y-min-height", dlg.y_min_height)
+		StoreGlobalDataValue ("Heatsink-macro-y-min-width", dlg.y_min_width)
+		StoreGlobalDataValue ("Heatsink-macro-y-min-foot-height", dlg.min_foot_height)
+		StoreGlobalDataValue ("Heatsink-macro-y-min-foot-width", dlg.min_foot_width)
+	End If
+
+End Sub
+Sub PushYmaxDefine()
+	Begin Dialog UserDialog 370,203 ' %GRID:10,7,1,1
+		OKButton 160,175,90,21
+		CancelButton 260,175,90,21
+		GroupBox 10,7,350,161,"Input parameters",.GroupBox1
+		GroupBox 20,84,330,77,"Bracket parameters",.GroupBox2
+		TextBox 250,28,90,21,.y_max_height
+		TextBox 250,56,90,21,.y_max_width
+		TextBox 250,105,90,21,.max_foot_height
+		TextBox 250,133,90,21,.max_foot_width
+		Text 70,35,90,14,"Fin height",.Text1
+		Text 70,56,90,14,"Base width",.Text2
+		Text 70,112,90,14,"Foot length",.Text3
+		Text 70,133,100,14,"Foot thickness",.Text4
+	End Dialog
+	Dim dlg As UserDialog
+
+	'restore previous data if given
+	dlg.y_max_height = ReStoreGlobalDataValue ("Heatsink-macro-y-max-height")
+	dlg.y_max_width = ReStoreGlobalDataValue ("Heatsink-macro-y-max-width")
+	dlg.max_foot_height = ReStoreGlobalDataValue ("Heatsink-macro-y-max-foot-height")
+	dlg.max_foot_width = ReStoreGlobalDataValue ("Heatsink-macro-y-max-foot-width")
+
+	If (Dialog(dlg) = 0) Then
+		' sub-dialogue is cancelled
+		Exit Sub
+	Else
+		StoreGlobalDataValue ("Heatsink-macro-y-max-height", dlg.y_max_height)
+		StoreGlobalDataValue ("Heatsink-macro-y-max-width", dlg.y_max_width)
+		StoreGlobalDataValue ("Heatsink-macro-y-max-foot-height", dlg.max_foot_height)
+		StoreGlobalDataValue ("Heatsink-macro-y-max-foot-width", dlg.max_foot_width)
+	End If
+
+End Sub

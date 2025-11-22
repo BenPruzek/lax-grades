@@ -1,0 +1,296 @@
+' Construct / Miscellaneous / Cable Twist
+' !!! Do not change the line above !!!
+'
+' ================================================================================================
+' Copyright 2012-2023 Dassault Systemes Deutschland GmbH
+' ================================================================================================
+' History of Changes
+' ------------------------------------------------------------------------------------------------
+' 02-Aug-2012 fhi:  zyl. endfaces orthog. to longitudinal axis
+' 01-Aug-2012 fhi:  initial version
+'--------------------------------------------------------------------------------------------
+Option Explicit
+Public macropath As String
+Public filename As String
+
+Sub Main ()
+
+Dim h As Double, i As Integer, cst_result  As Integer, cst_h As Double, cst_blend As Integer, blend_yes_no As Integer
+Dim first As String,  seconditem As String,cName As String, cst_rot_phi As Double, cst_b_rad As Double, cst_t_rad As Double
+Dim cst_wire_radius As Double, cst_nr_of_wires As Double, cst_nr_of_samples As Double
+Dim n As Integer,   r1 As Double, r2 As Double,  phi As Double, r As Double, ii As  Integer
+Dim rot_theta As Double, rot_phi As Double,  x As Double, y As Double, z As Double, phi_mod As Double, phi_mod1 As Double
+Dim  x1 As Double, y1 As Double, z1 As Double, rot_x As Double, rot_y As Double, rot_z As Double, t As String, period As Double
+Dim nd As Integer
+
+BeginHide
+
+macropath = GetInstallPath + "\Library\Macros"
+filename = macropath+"\Construct\Wires\cable_twist.bmp"
+
+screenupdating False
+
+Begin Dialog UserDialog 550,245,"Wire Transition (Cable Twist)" ',.DialogFunc ' %GRID:10,7,1,1
+		Text 10,7,100,21,"Height",.Text1
+		TextBox 160,7,80,21,.h
+		Text 10,35,100,21,"Bottom Radius",.Text2
+		TextBox 160,35,80,21,.b_rad
+		Text 10,63,90,21,"Top Radius",.Text3
+		TextBox 160,63,80,21,.t_rad
+		Text 10,91,100,21,"Rotation Angle",.Text4
+		TextBox 160,91,80,21,.rot_phi
+		Text 10,147,100,21,"Nr of Wires",.Text5
+		TextBox 160,147,80,21,.nr_of_wires
+		Picture 260,7,280,189,filename,0,.Picture1
+		Text 10,175,130,21,"Nr of Sample Points",.Text9
+		TextBox 160,175,80,21,.nr_of_samples
+		CheckBox 10,203,100,14,"Create Solid",.blend
+		TextBox 160,119,80,21,.wire_radius
+		OKButton 10,224,110,21
+		CancelButton 130,224,100,21
+		Text 160,203,70,14,"Coil-Name",.Text6
+		TextBox 260,196,280,21,.name
+		Text 10,119,80,14,"Wire Radius",.Text7
+End Dialog
+Dim dlg As UserDialog
+
+'Default values
+	dlg.h="100"
+	dlg.rot_phi="90"
+	dlg.b_rad="50."
+	dlg.wire_radius="3"
+	dlg.t_rad = "25.0"
+	dlg.nr_of_samples = "50"
+	dlg.nr_of_wires = "8"
+	dlg.blend = 1
+
+	'find proper default-name for coils
+	first=  ShortName (Resulttree.GetFirstChildName ("Components\Cable_Twist" ))
+	Do While first <> ""
+    	seconditem  = ShortName (Resulttree.GetNextItemName (  "Components\Cable_Twist\"+ first ))
+		If seconditem <> "" Then
+		 	first = seconditem
+		Else
+		 	Exit Do
+		End If
+	Loop
+	If first ="" Then
+		dlg.name = "Cable_twist"	'first coil's name
+	Else
+		dlg.name = first+"_1"			' default for next coils
+	End If
+
+	cst_result = Dialog(dlg)
+	assign "cst_result"        '  writes e.g. "cst_result = -1/0/1"     into history list
+	If (cst_result = 0) Then Exit All
+
+	cName = dlg.name
+	cst_rot_phi= cdbl(dlg.rot_phi)
+	cst_h= cdbl(dlg.h)
+	cst_b_rad =cdbl(dlg.b_rad)
+	cst_t_rad= cdbl(dlg.t_rad)
+	cst_wire_radius= cdbl(dlg.wire_radius)
+	cst_nr_of_wires= cdbl(dlg.nr_of_wires)
+	cst_nr_of_samples = cdbl(dlg.nr_of_samples)
+	cst_blend =dlg.blend
+
+	StoreDoubleParameter cName+"_rot_phi", cst_rot_phi
+	SetParameterDescription (cName+"_rot_phi", "Twist_Angle")
+	StoreDoubleParameter cName+"_hight", cst_h
+	SetParameterDescription (cName+"_hight", "Hight of cable")
+	StoreDoubleParameter cName+"_bottom_radius", cst_b_rad
+	SetParameterDescription (cName+"_bottom_radius", "Bottom Base Radius")
+	StoreDoubleParameter cName+"_top_radius", cst_t_rad
+	SetParameterDescription (cName+"_top_radius", "Top Radius")
+	StoreDoubleParameter cName+"_wire_radius", cst_wire_radius
+	SetParameterDescription (cName+"_wire_radius", "Wire Radius")
+	StoreDoubleParameter cName+"_wires", cst_nr_of_wires
+	SetParameterDescription (cName+"_wires", "Number of wires")
+	StoreDoubleParameter cName+"_samples", cst_nr_of_samples
+	SetParameterDescription (cName+"_samples", "Number of Curve Samples")
+
+	assign "cName"
+	assign "cst_blend"
+
+EndHide
+
+If (cst_result =0) Then Exit All   ' if cancel/help is clicked, exit all
+
+With Brick
+     .Reset
+     .Name "dummy_solid_trapez"
+     .Component "Cable_Twist"
+     .Material "PEC"
+     .Xrange cName+"_hight", cName+"_hight"+"+0.1"
+     .Yrange cName+"_top_radius", cName+"_top_radius"+"+0.1"
+     .Zrange cName+"_bottom_radius", cName+"_bottom_radius"+"+0.1"
+     .Create
+End With
+Solid.Delete "Cable_Twist:dummy_solid_trapez"
+
+
+r1  = restoredoubleparameter (cName+ "_top_radius")
+r2  = restoredoubleparameter (cName+ "_bottom_radius")
+h  = restoredoubleparameter (cName+ "_hight")
+phi  = restoredoubleparameter (cName+ "_rot_phi")
+r = restoredoubleparameter (cName+ "_wire_radius")
+n   = cint(restoredoubleparameter (cName+ "_samples"))
+nd   = cint(restoredoubleparameter (cName+ "_wires"))
+blend_yes_no = CInt(cst_blend)
+
+period = 2
+
+'start modeling the twist
+
+WCS.ActivateWCS "local"
+
+For i = -1 To n + 1
+
+'@ define curve circle: curve1:circle1
+With Circle
+     .Reset
+     .Name "circle_"+cstr(i)
+     .Curve "curve1"
+     .Radius r
+     .Xcenter "0"
+     .Ycenter "0"
+     .Segments "0"
+     .Create
+End With
+
+If i = -1 Then	'first circle
+	phi_mod = ((phi*0/n)*.54275*(1+Sin(0.5905*period*pi*0/n-pi/2)))
+	phi_mod1 = ((phi*(0)/n)*.54275*(1+Sin(0.5905*period*pi*(0)/n-pi/2)))
+	x = (r1/2+r2/2+0.5*(r2-r1)*Cos(pi*0/n))*Cos((pi*phi_mod /(180 )))
+	y = (r1/2+r2/2+0.5*(r2-r1)*Cos(pi*0/n))*Sin((pi*phi_mod /(180 )))
+	z = (i+1)*h/(n+2)
+	x1 =(r1/2+r2/2+0.5*(r2-r1)*Cos(pi*(0)/n))*Cos((pi*phi_mod1  /( 180 )))
+	y1= (r1/2+r2/2+0.5*(r2-r1)*Cos(pi*(0)/n))*Sin((pi*phi_mod1 /( 180 )))
+	z1 = (i+2)*h/(n+2)
+End If
+
+If i = n+1 Then	'last circle
+	phi_mod = ((phi*n/n)*.54275*(1+Sin(0.5905*period*pi*n/n-pi/2)))
+	phi_mod1 = ((phi*(n)/n)*.54275*(1+Sin(0.5905*period*pi*(n)/n-pi/2)))
+	x = (r1/2+r2/2+0.5*(r2-r1)*Cos(pi*n/n))*Cos((pi*phi_mod /(180 )))
+	y = (r1/2+r2/2+0.5*(r2-r1)*Cos(pi*n/n))*Sin((pi*phi_mod /(180 )))
+	z = (i+1)*h/(n+2)
+	x1 =(r1/2+r2/2+0.5*(r2-r1)*Cos(pi*(n)/n))*Cos((pi*phi_mod1  /( 180 )))
+	y1= (r1/2+r2/2+0.5*(r2-r1)*Cos(pi*(n)/n))*Sin((pi*phi_mod1 /( 180 )))
+	z1 = (i+2)*h/(n+2)
+End If
+
+If i > -1 And i < n+1 Then	' all other circles
+	phi_mod = ((phi*i/n)*.54275*(1+Sin(0.5905*period*pi*i/n-pi/2)))
+	phi_mod1 = ((phi*(i+1)/n)*.54275*(1+Sin(0.5905*period*pi*(i+1)/n-pi/2)))
+	x = (r1/2+r2/2+0.5*(r2-r1)*Cos(pi*i/n))*Cos((pi*phi_mod /(180 )))
+	y = (r1/2+r2/2+0.5*(r2-r1)*Cos(pi*i/n))*Sin((pi*phi_mod /(180 )))
+	z = (i+1)*h/(n+2)
+	x1 =(r1/2+r2/2+0.5*(r2-r1)*Cos(pi*(i+1)/n))*Cos((pi*phi_mod1  /( 180 )))
+	y1= (r1/2+r2/2+0.5*(r2-r1)*Cos(pi*(i+1)/n))*Sin((pi*phi_mod1 /( 180 )))
+	z1 = (i+2)*h/(n+2)
+End If
+
+'@ transform curve: translate curve1:circle1
+With Transform
+     .Reset
+     .Name "curve1:circle_"+cstr(i)
+      .Vector x,y,z
+     .UsePickedPoints "False"
+     .InvertPickedPoints "False"
+     .MultipleObjects "False"
+     .GroupObjects "False"
+     .Repetitions "1"
+     .MultipleSelection "False"
+     .Transform "Curve", "Translate"
+End With
+
+rot_y =      Atn((x1-x)/(z1-z))*180/pi'
+rot_x =      - Atn((y1-y)/(z1-z))*180/pi'
+
+'@ transform curve: tilt the curve :circle_x
+With Transform
+     .Reset
+     .Name "curve1:circle_"+cstr(i)
+     .Origin "ShapeCenter"
+     .Center "0", "0", "0"
+     .Angle  rot_x, "0", "0"
+     .MultipleObjects "False"
+     .GroupObjects "False"
+     .Repetitions "1"
+     .MultipleSelection "False"
+     .Transform "Curve", "Rotate"
+End With
+
+With Transform
+     .Reset
+     .Name "curve1:circle_"+cstr(i)
+     .Origin "ShapeCenter"
+     .Center "0", "0", "0"
+     .Angle "0", rot_y, "0"
+     .MultipleObjects "False"
+     .GroupObjects "False"
+     .Repetitions "1"
+     .MultipleSelection "False"
+     .Transform "Curve", "Rotate"
+End With
+
+Next	'circle
+
+'@ define curveloft: component1:name
+With LoftCurves
+     .Reset
+     .Name cName
+     .Component "Cable_Twist"
+     .Material "PEC"
+     .Solid "True"
+     .MinimizeTwist "True"
+     For i = -1 To n+1
+     .AddCurve "curve1:circle_"+cstr(i)
+     Next
+     If blend_yes_no = 1 Then
+     .Create
+     End If
+End With
+
+If blend_yes_no = 1 And nd > 1 Then
+  '@ transform: rotate component1:name
+  With Transform
+     .Reset
+     .Name "Cable_Twist:"+cName
+     .Origin "Free"
+     .Center "0", "0", "0"
+     .Angle "0", "0", 360/nd
+     .MultipleObjects "True"
+     .GroupObjects "False"
+     .Repetitions nd-1
+     .MultipleSelection "False"
+     .Destination ""
+     .Material ""
+     .Transform "Shape", "Rotate"
+  End With
+End If
+
+screenupdating True
+
+End Sub
+
+Function DialogFunc%(Item As String, Action As Integer, Value As Integer)
+	Select Case Action
+	Case 1 ' Dialog box initialization
+	Case 2 ' Value changing or button pressed
+		Select Case Item
+		Case "Help"
+			'StartHelp "common_preloadedmacro_Construct_Coils"
+			DialogFunc = True
+		End Select
+	Case 3 ' ComboBox or TextBox Value changed
+	Case 4 ' Focus changed
+	Case 5 ' Idle
+	End Select
+End Function
+Function ShortName (lib_path As String) As String
+        Dim lib_dircount As Integer
+        lib_dircount  = InStrRev(lib_path, "\")
+        ShortName = Mid$(lib_path, lib_dircount+1, 999)
+End Function

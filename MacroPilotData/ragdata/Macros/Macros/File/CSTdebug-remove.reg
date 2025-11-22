@@ -1,0 +1,15 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CURRENT_USER\Software\CST AG\CST Debug]
+
+[HKEY_CURRENT_USER\Software\CST AG\CST Debug\2020]
+"DebugStart"=-
+"DElog"=-
+"Modelerlog"=-
+"DSlog"=-
+"CSTSettingslog"=-
+"Guitrace"=-
+"ModelerFileloadTiming"=-
+"ModelerStartupTiming"=-
+"ModelerFilesaveTiming"=-
+"Licensetrace"=-

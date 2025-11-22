@@ -1,0 +1,425 @@
+' Construct / Online / Microstrip with Bondwire
+' !!! Do not change the line above !!!
+' ================================================================================================
+' Copyright 2014-2023 Dassault Systemes Deutschland GmbH
+' ================================================================================================
+' History of Changes
+' ------------------------------------------------------------------------------------------------
+' 01-Jan-2014 ube: Initial version
+' ================================================================================================
+
+Sub Main ()
+
+BeginHide
+
+	StoreDoubleParameter "L", 500 
+	StoreDoubleParameter "gap",  100  
+	StoreDoubleParameter "h", 127  
+	StoreDoubleParameter "patch_L", 100  
+	StoreDoubleParameter "patch_W", 220  
+	StoreDoubleParameter "setback", 50  
+	StoreDoubleParameter "t",15  
+	StoreDoubleParameter "w",127  
+	StoreDoubleParameter "ws",1000  
+	 
+	 
+	'@ define material: dielectricum
+	sCommand = ""
+	sCommand = sCommand + "With Material " + vbLf
+	sCommand = sCommand + ".Reset " + vbLf
+	sCommand = sCommand + ".Name ""dielectricum""" + vbLf
+	sCommand = sCommand + ".Type ""Normal""" + vbLf
+	sCommand = sCommand + ".Epsilon ""9.9""" + vbLf
+	sCommand = sCommand + ".Mu ""1""" + vbLf
+	sCommand = sCommand + ".Colour ""1"", ""1"", ""0.501961""" + vbLf
+	sCommand = sCommand + ".Create" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define material: dielectricum", sCommand
+
+
+	'@ new component: component1
+	sCommand = ""
+	sCommand = sCommand + "With Component" + vbLf
+	sCommand = sCommand + ".New ""component1""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "new component: component1", sCommand
+
+
+	'@ define brick: component1:substrate
+	sCommand = ""
+	sCommand = sCommand + "With Brick" + vbLf
+	sCommand = sCommand + ".Reset " + vbLf
+	sCommand = sCommand + ".Name ""substrate""" + vbLf
+	sCommand = sCommand + ".Component ""component1""" + vbLf
+	sCommand = sCommand + ".Material ""dielectricum""" + vbLf
+	sCommand = sCommand + ".Xrange ""-L"", ""0""" + vbLf
+	sCommand = sCommand + ".Yrange ""-ws/2"", ""ws/2""" + vbLf
+	sCommand = sCommand + ".Zrange ""0"", ""h""" + vbLf
+	sCommand = sCommand + ".Create" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define brick: component1:substrate", sCommand
+
+
+	'@ transform: translate component1:substrate
+	sCommand = ""
+	sCommand = sCommand + "With Transform " + vbLf
+	sCommand = sCommand + ".Reset " + vbLf
+	sCommand = sCommand + ".Name ""component1:substrate""" + vbLf
+	sCommand = sCommand + ".Vector ""-gap/2"", ""0"", ""0""" + vbLf
+	sCommand = sCommand + ".UsePickedPoints ""False""" + vbLf
+	sCommand = sCommand + ".InvertPickedPoints ""False""" + vbLf
+	sCommand = sCommand + ".MultipleObjects ""False""" + vbLf
+	sCommand = sCommand + ".GroupObjects ""False""" + vbLf
+	sCommand = sCommand + ".Repetitions ""1""" + vbLf
+	sCommand = sCommand + ".MultipleSelection ""False""" + vbLf
+	sCommand = sCommand + ".TranslateAdvanced " + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "transform: translate component1:substrate", sCommand
+
+
+	'@ pick center point
+	sCommand = ""
+	sCommand = sCommand + "With Pick" + vbLf
+	sCommand = sCommand + ".PickCenterpointFromId ""component1:substrate"", ""1""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "pick center point", sCommand
+
+
+	'@ align wcs with point
+	sCommand = ""
+	sCommand = sCommand + "With WCS" + vbLf
+	sCommand = sCommand + ".AlignWCSWithSelectedPoint " + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "align wcs with point", sCommand
+
+
+	'@ store picked point: 1
+	sCommand = ""
+	sCommand = sCommand + "With Pick" + vbLf
+	sCommand = sCommand + ".NextPickToDatabase ""1""" + vbLf
+	sCommand = sCommand + ".PickMidpointFromId ""component1:substrate"", ""3""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "store picked point: 1", sCommand
+
+
+	'@ store picked point: 2
+	sCommand = ""
+	sCommand = sCommand + "With Pick" + vbLf
+	sCommand = sCommand + ".NextPickToDatabase ""2""" + vbLf
+	sCommand = sCommand + ".PickMidpointFromId ""component1:substrate"", ""1""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "store picked point: 2", sCommand
+
+
+	'@ define brick: component1:strip
+	sCommand = ""
+	sCommand = sCommand + "With Brick" + vbLf
+	sCommand = sCommand + ".Reset " + vbLf
+	sCommand = sCommand + ".Name ""strip""" + vbLf
+	sCommand = sCommand + ".Component ""component1""" + vbLf
+	sCommand = sCommand + ".Material ""PEC""" + vbLf
+	sCommand = sCommand + ".Xrange ""xp(1)"", ""xp(2)-setback""" + vbLf
+	sCommand = sCommand + ".Yrange ""yp(1) - 0.5*(w)"", ""yp(1) + 0.5*(w)""" + vbLf
+	sCommand = sCommand + ".Zrange ""0"", ""t""" + vbLf
+	sCommand = sCommand + ".Create" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define brick: component1:strip", sCommand
+
+
+	'@ define brick: component1:patch
+	sCommand = ""
+	sCommand = sCommand + "With Brick" + vbLf
+	sCommand = sCommand + ".Reset " + vbLf
+	sCommand = sCommand + ".Name ""patch""" + vbLf
+	sCommand = sCommand + ".Component ""component1""" + vbLf
+	sCommand = sCommand + ".Material ""PEC""" + vbLf
+	sCommand = sCommand + ".Xrange ""xp(2)-patch_L-setback"", ""xp(2)-setback""" + vbLf
+	sCommand = sCommand + ".Yrange ""yp(2) - 0.5*(patch_W)"", ""yp(2) + 0.5*(patch_W)""" + vbLf
+	sCommand = sCommand + ".Zrange ""0"", ""t""" + vbLf
+	sCommand = sCommand + ".Create" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define brick: component1:patch", sCommand
+
+
+	'@ clear picks
+	sCommand = ""
+	sCommand = sCommand + "With Pick" + vbLf
+	sCommand = sCommand + ".ClearAllPicks " + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "clear picks", sCommand
+
+
+	'@ activate global coordinates
+	sCommand = ""
+	sCommand = sCommand + "With WCS" + vbLf
+	sCommand = sCommand + ".ActivateWCS ""global""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "activate global coordinates", sCommand
+
+
+	'@ transform: mirror component1
+	sCommand = ""
+	sCommand = sCommand + "With Transform " + vbLf
+	sCommand = sCommand + ".Reset " + vbLf
+	sCommand = sCommand + ".Name ""component1""" + vbLf
+	sCommand = sCommand + ".Origin ""Free""" + vbLf
+	sCommand = sCommand + ".Center ""0"", ""0"", ""0""" + vbLf
+	sCommand = sCommand + ".PlaneNormal ""2"", ""0"", ""0""" + vbLf
+	sCommand = sCommand + ".MultipleObjects ""True""" + vbLf
+	sCommand = sCommand + ".GroupObjects ""False""" + vbLf
+	sCommand = sCommand + ".Repetitions ""1""" + vbLf
+	sCommand = sCommand + ".MultipleSelection ""False""" + vbLf
+	sCommand = sCommand + ".Component """"" + vbLf
+	sCommand = sCommand + ".Material """"" + vbLf
+	sCommand = sCommand + ".MirrorAdvanced " + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "transform: mirror component1", sCommand
+
+
+	'@ define bondwire: wire1
+	sCommand = ""
+	sCommand = sCommand + "With Wire" + vbLf
+	sCommand = sCommand + ".Reset " + vbLf
+	sCommand = sCommand + ".Name ""wire1""" + vbLf
+	sCommand = sCommand + ".Type ""BondWire""" + vbLf
+	sCommand = sCommand + ".Height ""25""" + vbLf
+	sCommand = sCommand + ".Radius ""13""" + vbLf
+	sCommand = sCommand + ".Point1 ""gap/2+patch_L/2+setback"", ""0.0"", ""h+t"", ""False""" + vbLf
+	sCommand = sCommand + ".Point2 ""-(gap/2+patch_L/2+setback)"", ""0.0"", ""h+t"", ""False""" + vbLf
+	sCommand = sCommand + ".BondWireType ""Spline""" + vbLf
+	sCommand = sCommand + ".Alpha ""75""" + vbLf
+	sCommand = sCommand + ".Beta ""35""" + vbLf
+	sCommand = sCommand + ".RelativeCenterPosition ""0.5""" + vbLf
+	sCommand = sCommand + ".Material ""PEC""" + vbLf
+	sCommand = sCommand + ".SolidWireModel ""True""" + vbLf
+	sCommand = sCommand + ".Termination ""Extended""" + vbLf
+	sCommand = sCommand + ".Add" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define bondwire: wire1", sCommand
+
+
+	'@ transform wire: translate wire1
+	sCommand = ""
+	sCommand = sCommand + "With Transform " + vbLf
+	sCommand = sCommand + ".Reset " + vbLf
+	sCommand = sCommand + ".Name ""wire1""" + vbLf
+	sCommand = sCommand + ".Vector ""0"", ""w/2"", ""0""" + vbLf
+	sCommand = sCommand + ".UsePickedPoints ""False""" + vbLf
+	sCommand = sCommand + ".InvertPickedPoints ""False""" + vbLf
+	sCommand = sCommand + ".MultipleObjects ""True""" + vbLf
+	sCommand = sCommand + ".GroupObjects ""False""" + vbLf
+	sCommand = sCommand + ".Repetitions ""1""" + vbLf
+	sCommand = sCommand + ".MultipleSelection ""False""" + vbLf
+	sCommand = sCommand + ".Material """"" + vbLf
+	sCommand = sCommand + ".TranslateWire " + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "transform wire: translate wire1", sCommand
+
+
+	'@ transform wire: translate wire1
+	sCommand = ""
+	sCommand = sCommand + "With Transform " + vbLf
+	sCommand = sCommand + ".Reset " + vbLf
+	sCommand = sCommand + ".Name ""wire1""" + vbLf
+	sCommand = sCommand + ".Vector ""0"", ""-w/2"", ""0""" + vbLf
+	sCommand = sCommand + ".UsePickedPoints ""False""" + vbLf
+	sCommand = sCommand + ".InvertPickedPoints ""False""" + vbLf
+	sCommand = sCommand + ".MultipleObjects ""False""" + vbLf
+	sCommand = sCommand + ".GroupObjects ""False""" + vbLf
+	sCommand = sCommand + ".Repetitions ""1""" + vbLf
+	sCommand = sCommand + ".MultipleSelection ""False""" + vbLf
+	sCommand = sCommand + ".TranslateWire " + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "transform wire: translate wire1", sCommand
+
+
+	'@ pick face
+	sCommand = ""
+	sCommand = sCommand + "With Pick" + vbLf
+	sCommand = sCommand + ".PickFaceFromId ""component1:substrate_1"", ""4""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "pick face", sCommand
+
+
+	'@ define port: 1
+	sCommand = ""
+	sCommand = sCommand + "With Port " + vbLf
+	sCommand = sCommand + ".Reset " + vbLf
+	sCommand = sCommand + ".PortNumber ""1""" + vbLf
+	sCommand = sCommand + ".NumberOfModes ""1""" + vbLf
+	sCommand = sCommand + ".AdjustPolarization False " + vbLf
+	sCommand = sCommand + ".PolarizationAngle ""0.0""" + vbLf
+	sCommand = sCommand + ".ReferencePlaneDistance ""0""" + vbLf
+	sCommand = sCommand + ".TextSize ""50""" + vbLf
+	sCommand = sCommand + ".Coordinates ""Picks""" + vbLf
+	sCommand = sCommand + ".Orientation ""positive""" + vbLf
+	sCommand = sCommand + ".PortOnBound ""True""" + vbLf
+	sCommand = sCommand + ".ClipPickedPortToBound ""False""" + vbLf
+	sCommand = sCommand + ".Xrange ""550"", ""550""" + vbLf
+	sCommand = sCommand + ".Yrange ""-500"", ""500""" + vbLf
+	sCommand = sCommand + ".Zrange ""0"", ""127""" + vbLf
+	sCommand = sCommand + ".XrangeAdd ""0.0"", ""0.0""" + vbLf
+	sCommand = sCommand + ".YrangeAdd ""0.0"", ""0.0""" + vbLf
+	sCommand = sCommand + ".ZrangeAdd ""0.0"", ""400""" + vbLf
+	sCommand = sCommand + ".SingleEnded ""False""" + vbLf
+	sCommand = sCommand + ".Create " + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define port: 1", sCommand
+
+
+	'@ pick face
+	sCommand = ""
+	sCommand = sCommand + "With Pick" + vbLf
+	sCommand = sCommand + ".PickFaceFromId ""component1:substrate"", ""4""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "pick face", sCommand
+
+
+	'@ define port: 2
+	sCommand = ""
+	sCommand = sCommand + "With Port " + vbLf
+	sCommand = sCommand + ".Reset " + vbLf
+	sCommand = sCommand + ".PortNumber ""2""" + vbLf
+	sCommand = sCommand + ".NumberOfModes ""1""" + vbLf
+	sCommand = sCommand + ".AdjustPolarization False " + vbLf
+	sCommand = sCommand + ".PolarizationAngle ""0.0""" + vbLf
+	sCommand = sCommand + ".ReferencePlaneDistance ""0""" + vbLf
+	sCommand = sCommand + ".TextSize ""50""" + vbLf
+	sCommand = sCommand + ".Coordinates ""Full""" + vbLf
+	sCommand = sCommand + ".Orientation ""xmin""" + vbLf
+	sCommand = sCommand + ".PortOnBound ""True""" + vbLf
+	sCommand = sCommand + ".ClipPickedPortToBound ""False""" + vbLf
+	sCommand = sCommand + ".Xrange ""-1050"", ""-1050""" + vbLf
+	sCommand = sCommand + ".Yrange ""-500"", ""500""" + vbLf
+	sCommand = sCommand + ".Zrange ""0"", ""627""" + vbLf
+	sCommand = sCommand + ".XrangeAdd ""0.0"", ""0.0""" + vbLf
+	sCommand = sCommand + ".YrangeAdd ""0.0"", ""0.0""" + vbLf
+	sCommand = sCommand + ".ZrangeAdd ""0.0"", ""0.0""" + vbLf
+	sCommand = sCommand + ".SingleEnded ""False""" + vbLf
+	sCommand = sCommand + ".Create " + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define port: 2", sCommand
+
+
+	'@ clear picks
+	sCommand = ""
+	sCommand = sCommand + "With Pick" + vbLf
+	sCommand = sCommand + ".ClearAllPicks " + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "clear picks", sCommand
+	
+
+	'@ boolean add shapes: component1:patch, component1:strip
+	sCommand = ""
+	sCommand = sCommand + "With Solid" + vbLf
+	sCommand = sCommand + ".Add ""component1:patch"", ""component1:strip""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "boolean add shapes: component1:patch, component1:strip", sCommand
+
+
+	'@ boolean add shapes: component1:patch_1, component1:strip_1
+	sCommand = ""
+	sCommand = sCommand + "With Solid" + vbLf
+	sCommand = sCommand + ".Add ""component1:patch_1"", ""component1:strip_1""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "boolean add shapes: component1:patch_1, component1:strip_1", sCommand
+
+
+	'@ define units
+	sCommand = ""
+	sCommand = sCommand + "With Units " + vbLf
+	sCommand = sCommand + ".Geometry ""um""" + vbLf
+	sCommand = sCommand + ".Frequency ""GHz""" + vbLf
+	sCommand = sCommand + ".Time ""ps""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define units", sCommand
+
+
+	'@ define background
+	sCommand = ""
+	sCommand = sCommand + "With Background " + vbLf
+	sCommand = sCommand + ".Reset " + vbLf
+	sCommand = sCommand + ".Type ""Normal""" + vbLf
+	sCommand = sCommand + ".Epsilon ""1.0""" + vbLf
+	sCommand = sCommand + ".Mu ""1.0""" + vbLf
+	sCommand = sCommand + ".ThermalType ""Normal""" + vbLf
+	sCommand = sCommand + ".ThermalConductivity ""0.0""" + vbLf
+	sCommand = sCommand + ".XminSpace ""0.0""" + vbLf
+	sCommand = sCommand + ".XmaxSpace ""0.0""" + vbLf
+	sCommand = sCommand + ".YminSpace ""0.0""" + vbLf
+	sCommand = sCommand + ".YmaxSpace ""0.0""" + vbLf
+	sCommand = sCommand + ".ZminSpace ""0.0""" + vbLf
+	sCommand = sCommand + ".ZmaxSpace ""0.0""" + vbLf
+	sCommand = sCommand + ".ApplyInAllDirections ""False""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define background", sCommand
+
+
+	'@ define frequency range
+	sCommand = ""
+	sCommand = sCommand + "With Solver" + vbLf
+	sCommand = sCommand + ".FrequencyRange ""0.0"", ""100""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define frequency range", sCommand
+
+
+	'@ define boundaries
+	sCommand = ""
+	sCommand = sCommand + "With Boundary" + vbLf
+	sCommand = sCommand + ".Xmin ""electric""" + vbLf
+	sCommand = sCommand + ".Xmax ""electric""" + vbLf
+	sCommand = sCommand + ".Ymin ""electric""" + vbLf
+	sCommand = sCommand + ".Ymax ""electric""" + vbLf
+	sCommand = sCommand + ".Zmin ""electric""" + vbLf
+	sCommand = sCommand + ".Zmax ""electric""" + vbLf
+	sCommand = sCommand + ".Xsymmetry ""none""" + vbLf
+	sCommand = sCommand + ".Ysymmetry ""magnetic""" + vbLf
+	sCommand = sCommand + ".Zsymmetry ""none""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define boundaries", sCommand	
+	
+
+	'@ set mesh properties
+	sCommand = ""
+	sCommand = sCommand + "With MeshSettings " + vbLf
+	sCommand = sCommand + ".SetMeshType ""Hex""" + vbLf
+	sCommand = sCommand + ".Set ""StepsPerWaveNear"", ""10""" + vbLf
+	sCommand = sCommand + ".Set ""WavelengthRefinementSameAsNear"", ""1""" + vbLf
+	sCommand = sCommand + ".Set ""StepsPerBoxNear"", ""10""" + vbLf
+	sCommand = sCommand + ".Set ""GeometryRefinementSameAsNear"", ""1""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "set mesh properties (Hexahedral)", sCommand
+
+	
+	'@ define solver parameters
+	sCommand = ""
+	sCommand = sCommand + "With Solver " + vbLf
+	sCommand = sCommand + ".CalculationType ""TD-S""" + vbLf
+	sCommand = sCommand + ".StimulationPort ""All""" + vbLf
+	sCommand = sCommand + ".StimulationMode ""All""" + vbLf
+	sCommand = sCommand + ".SteadyStateLimit ""-40""" + vbLf
+	sCommand = sCommand + ".AdaptivePortMeshing ""False" + vbLf
+	'sCommand = sCommand + ".ResetSParaSymm " + vbLf
+	'sCommand = sCommand + ".SParaSymmetry ""True""" + vbLf
+	'sCommand = sCommand + ".DefSParaSymm " + vbLf
+	'sCommand = sCommand + ".SPara ""1,1""" + vbLf
+	'sCommand = sCommand + ".SPara ""2,2""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define solver parameters", sCommand
+
+
+	'@ define solver s-parameter symmetries
+	sCommand = ""
+	sCommand = sCommand + "With Solver " + vbLf
+	sCommand = sCommand + ".ResetSParaSymm " + vbLf
+	sCommand = sCommand + ".SParaSymmetry ""True""" + vbLf
+	sCommand = sCommand + ".DefSParaSymm " + vbLf
+	sCommand = sCommand + ".SPara ""1,1""" + vbLf
+	sCommand = sCommand + ".SPara ""2,2""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define solver s-parameter symmetries", sCommand
+
+	ResetViewToStructure()
+EndHide
+
+End Sub

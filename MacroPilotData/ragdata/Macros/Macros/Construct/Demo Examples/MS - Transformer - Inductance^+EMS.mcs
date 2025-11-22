@@ -1,0 +1,286 @@
+' Construct / Online / Transformer - Inductance
+' !!! Do not change the line above !!!
+' ================================================================================================
+' Copyright 2014-2023 Dassault Systemes Deutschland GmbH
+' ================================================================================================
+' History of Changes
+' ------------------------------------------------------------------------------------------------
+' 01-Jan-2014 ube: Initial version
+' ================================================================================================
+
+Sub Main ()
+BeginHide
+
+Dim sCommand As String
+'@ use template: Magnetostatics
+' (CSTxEMSxPSxONLY)
+
+StoreDoubleParameter "lw_core", 4
+SetParameterDescription ("lw_core", "length and width of the core" )
+StoreDoubleParameter "mu_core", 200
+SetParameterDescription ("mu_core", "relative mu of the core" )
+StoreDoubleParameter "cs_core", 0.5
+SetParameterDescription ("cs_core", "dimension of the rectangular cross section of the core" )
+StoreDoubleParameter "cs_coil", 0.25
+SetParameterDescription ("cs_coil", "diameter of the circular cross section of the coils" )
+StoreParameter "N1", 10
+SetParameterDescription ("N1", "coil 1: number of turns" )
+StoreParameter "N2", 100
+SetParameterDescription ("N2", "coil 2: number of turns" )
+
+
+'@ change solver and mesh type
+sCommand = ""
+sCommand = sCommand + "ChangeSolverAndMeshType ""LF MStatic""" + vbLf
+AddToHistory "change solver and mesh type", sCommand
+
+
+'@ define units
+sCommand = ""
+sCommand = sCommand + "With Units " + vbLf
+sCommand = sCommand + ".Geometry ""mm""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define units", sCommand 
+
+
+'@ new curve: curve1
+sCommand = ""
+sCommand = sCommand + "With Curve" + vbLf
+sCommand = sCommand + ".NewCurve ""curve1""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "new curve: curve1", sCommand
+
+
+'@ define curve rectangle: curve1:rectangle1
+sCommand = ""
+sCommand = sCommand + "With Rectangle" + vbLf
+sCommand = sCommand + ".Reset " + vbLf
+sCommand = sCommand + ".Name ""rectangle1""" + vbLf
+sCommand = sCommand + ".Curve ""curve1""" + vbLf
+sCommand = sCommand + ".Xrange ""-lw_core/2"", ""lw_core/2""" + vbLf
+sCommand = sCommand + ".Yrange ""-lw_core/2"", ""lw_core/2""" + vbLf
+sCommand = sCommand + ".Create" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define curve rectangle: curve1:rectangle1", sCommand
+
+
+'@ define material: core
+sCommand = ""
+sCommand = sCommand + "With Material " + vbLf
+sCommand = sCommand + ".Reset " + vbLf
+sCommand = sCommand + ".Name ""core""" + vbLf
+sCommand = sCommand + ".FrqType ""all""" + vbLf
+sCommand = sCommand + ".Type ""Normal""" + vbLf
+sCommand = sCommand + ".Epsilon ""1""" + vbLf
+sCommand = sCommand + ".Mu ""mu_core""" + vbLf
+sCommand = sCommand + ".Colour ""0.501961"", ""0.25098"", ""0""" + vbLf
+sCommand = sCommand + ".Create" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define material: core", sCommand 
+
+
+'@ new component: component1
+sCommand = ""
+sCommand = sCommand + "With Component" + vbLf
+sCommand = sCommand + ".New ""component1""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "new component: component1", sCommand
+
+
+'@ define tracefromcurve: component1:solid1
+sCommand = ""
+sCommand = sCommand + "With TraceFromCurve " + vbLf
+sCommand = sCommand + ".Reset " + vbLf
+sCommand = sCommand + ".Name ""solid1""" + vbLf
+sCommand = sCommand + ".Component ""component1""" + vbLf
+sCommand = sCommand + ".Material ""core""" + vbLf
+sCommand = sCommand + ".Curve ""curve1:rectangle1""" + vbLf
+sCommand = sCommand + ".Thickness ""cs_core""" + vbLf
+sCommand = sCommand + ".Width ""cs_core""" + vbLf
+sCommand = sCommand + ".RoundStart ""False""" + vbLf
+sCommand = sCommand + ".RoundEnd ""False""" + vbLf
+sCommand = sCommand + ".Create " + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define tracefromcurve: component1:solid1", sCommand 
+
+
+'@ activate local coordinates
+sCommand = ""
+sCommand = sCommand + "With WCS" + vbLf
+sCommand = sCommand + ".ActivateWCS ""local""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "activate local coordinates", sCommand
+
+
+'@ rotate wcs around u +90 degrees
+sCommand = ""
+sCommand = sCommand + "With WCS" + vbLf
+sCommand = sCommand + ".RotateWCS ""u"", ""90""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "rotate wcs around u +90 degrees", sCommand
+
+
+'@ move wcs
+sCommand = ""
+sCommand = sCommand + "With WCS" + vbLf
+sCommand = sCommand + ".MoveWCS ""local"", ""-lw_core/2"", ""0.0"", ""0.0"""+ vbLf
+sCommand = sCommand + ".MoveWCS ""local"", ""0.0"", ""cs_core/2"", ""0.0"""+ vbLf
+sCommand = sCommand + "End With"
+AddToHistory "move wcs", sCommand
+
+
+'@ define curve rectangle: curve1:rectangle1
+sCommand = ""
+sCommand = sCommand + "With Rectangle" + vbLf
+sCommand = sCommand + ".Reset " + vbLf
+sCommand = sCommand + ".Name ""rectangle1""" + vbLf
+sCommand = sCommand + ".Curve ""curve1""" + vbLf
+sCommand = sCommand + ".Xrange ""-cs_core/2 - 1.5 * cs_coil/2"", ""cs_core/2 + 1.5 * cs_coil/2""" + vbLf
+sCommand = sCommand + ".Yrange ""-cs_core/2 - 1.5 * cs_coil/2"", ""cs_core/2 + 1.5 * cs_coil/2""" + vbLf
+sCommand = sCommand + ".Create" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define curve rectangle: curve1:rectangle1", sCommand
+
+
+'@ align wcs with edge
+sCommand = ""
+sCommand = sCommand + "Pick.PickEdgeOnCurveFromId ""curve1:rectangle1"", ""2"", ""2""" + vbLf
+sCommand = sCommand + "WCS.AlignWCSWithSelected ""EdgeCenter""" + vbLf
+AddToHistory "align wcs with edge", sCommand
+
+
+'@ rotate wcs around v +90 degrees
+sCommand = ""
+sCommand = sCommand + "With WCS" + vbLf
+sCommand = sCommand + ".RotateWCS ""v"", ""90""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "rotate wcs around v +90 degrees", sCommand
+
+
+'@ define curve circle: curve1:circle1
+sCommand = ""
+sCommand = sCommand + "With Circle" + vbLf
+sCommand = sCommand + ".Reset " + vbLf
+sCommand = sCommand + ".Name ""circle1""" + vbLf
+sCommand = sCommand + ".Curve ""curve1""" + vbLf
+sCommand = sCommand + ".Radius ""cs_coil/2""" + vbLf
+sCommand = sCommand + ".Xcenter ""0.0""" + vbLf
+sCommand = sCommand + ".Ycenter ""0""" + vbLf
+sCommand = sCommand + ".Segments ""0""" + vbLf
+sCommand = sCommand + ".Create" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define curve circle: curve1:circle1", sCommand
+
+
+'@ define coil from curves: coil1
+sCommand = ""
+sCommand = sCommand + "With Coil" + vbLf
+sCommand = sCommand + ".Reset " + vbLf
+sCommand = sCommand + ".Name ""coil1""" + vbLf
+sCommand = sCommand + ".Material ""Vacuum""" + vbLf
+sCommand = sCommand + ".ProjectProfileToPathAdvanced ""True""" + vbLf
+sCommand = sCommand + ".ProfileName ""curve1:circle1""" + vbLf
+sCommand = sCommand + ".PathName ""curve1:rectangle1""" + vbLf
+sCommand = sCommand + ".Current ""1.0""" + vbLf
+sCommand = sCommand + ".Phase ""0.0""" + vbLf
+sCommand = sCommand + ".NTurns ""N1""" + vbLf
+sCommand = sCommand + ".Create " + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define coil from curves: coil1", sCommand
+
+
+'@ activate global coordinates
+sCommand = ""
+sCommand = sCommand + "With WCS" + vbLf
+sCommand = sCommand + ".ActivateWCS ""global""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "activate global coordinates", sCommand
+
+
+'@ transform coil: mirror coil1
+sCommand = ""
+sCommand = sCommand + "With Transform " + vbLf
+sCommand = sCommand + ".Reset " + vbLf
+sCommand = sCommand + ".Name ""coil1""" + vbLf
+sCommand = sCommand + ".Origin ""Free""" + vbLf
+sCommand = sCommand + ".Center ""0"", ""0"", ""0""" + vbLf
+sCommand = sCommand + ".PlaneNormal ""1"", ""0"", ""0""" + vbLf
+sCommand = sCommand + ".MultipleObjects ""True""" + vbLf
+sCommand = sCommand + ".GroupObjects ""False""" + vbLf
+sCommand = sCommand + ".Repetitions ""1""" + vbLf
+sCommand = sCommand + ".MultipleSelection ""False""" + vbLf
+sCommand = sCommand + ".MirrorCoil " + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "transform coil: mirror coil1", sCommand 
+
+
+'@ change coil properties: coil1_1
+sCommand = ""
+sCommand = sCommand + "With Coil" + vbLf
+sCommand = sCommand + ".Reset " + vbLf
+sCommand = sCommand + ".Name ""coil1_1""" + vbLf
+sCommand = sCommand + ".Material ""Vacuum""" + vbLf
+sCommand = sCommand + ".Current ""1.0""" + vbLf
+sCommand = sCommand + ".Phase ""0.0""" + vbLf
+sCommand = sCommand + ".NTurns ""N2""" + vbLf
+sCommand = sCommand + ".Change " + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "change coil properties: coil1_1", sCommand
+
+
+'@ define background
+sCommand = ""
+sCommand = sCommand + "With Background " + vbLf
+sCommand = sCommand + ".Reset " + vbLf
+sCommand = sCommand + ".Type ""Normal""" + vbLf
+sCommand = sCommand + ".Epsilon ""1.0""" + vbLf
+sCommand = sCommand + ".Mu ""1.0""" + vbLf
+sCommand = sCommand + ".ThermalType ""Normal""" + vbLf
+sCommand = sCommand + ".ThermalConductivity ""0.0""" + vbLf
+sCommand = sCommand + ".XminSpace ""12""" + vbLf
+sCommand = sCommand + ".XmaxSpace ""12""" + vbLf
+sCommand = sCommand + ".YminSpace ""12""" + vbLf
+sCommand = sCommand + ".YmaxSpace ""12""" + vbLf
+sCommand = sCommand + ".ZminSpace ""12""" + vbLf
+sCommand = sCommand + ".ZmaxSpace ""12""" + vbLf
+sCommand = sCommand + ".ApplyInAllDirections ""False""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define background", sCommand 
+
+
+'@ define boundaries
+sCommand = ""
+sCommand = sCommand + "With Boundary" + vbLf
+sCommand = sCommand + ".Xmin ""magnetic""" + vbLf
+sCommand = sCommand + ".Xmax ""magnetic""" + vbLf
+sCommand = sCommand + ".Ymin ""magnetic""" + vbLf
+sCommand = sCommand + ".Ymax ""magnetic""" + vbLf
+sCommand = sCommand + ".Zmin ""magnetic""" + vbLf
+sCommand = sCommand + ".Zmax ""magnetic""" + vbLf
+sCommand = sCommand + ".Xsymmetry ""none""" + vbLf
+sCommand = sCommand + ".Ysymmetry ""magnetic""" + vbLf
+sCommand = sCommand + ".Zsymmetry ""electric""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define boundaries", sCommand
+
+
+'@ define m-static solver parameters
+sCommand = ""
+sCommand = sCommand + "With MStaticSolver" + vbLf
+sCommand = sCommand + ".Reset " + vbLf
+sCommand = sCommand + ".Method ""Tetrahedral Mesh""" + vbLf
+sCommand = sCommand + ".Accuracy ""1e-6""" + vbLf
+sCommand = sCommand + ".Preconditioner  ""ILU""" + vbLf
+sCommand = sCommand + ".ApparentInductanceMatrix ""True""" + vbLf
+sCommand = sCommand + ".MeshAdaption ""True""" + vbLf
+sCommand = sCommand + ".TetSolverOrder ""2""" + vbLf
+sCommand = sCommand + ".TetAdaption ""True""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define m-static solver parameters", sCommand
+
+ResetViewToStructure()
+EndHide
+
+ChangeSolverType "LF MStatic" 
+
+End Sub

@@ -1,0 +1,85 @@
+' Construct / Vias / Vias from Picks
+' !!! Do not change the line above !!!
+' macro.515
+' ================================================================================================
+' Copyright 2003-2023 Dassault Systemes Deutschland GmbH
+' ================================================================================================
+' History of Changes
+' ------------------------------------------------------------------------------------------------
+' 09-Jan-2014 kko: disabled FastModelLoad for this macro, because Getter-Methods are used. PR 32148
+' 28-Jul-2004 imu: added loop to check if cst_via_radius is defined (to avoid problems when defining the parameter)
+' 19-Feb-2003 reh: initial version
+'----------------------------------------------------------
+
+Sub Main () 
+
+	FastModelLoad "False"
+
+	Dim cst_nopp As Long
+	Dim cst_xp1 As Double, cst_yp1 As Double, cst_zp1 As Double
+	Dim cst_xp2 As Double, cst_yp2 As Double, cst_zp2 As Double
+	Dim cst_rad As Double, cst_length As Double
+	Dim ltrue As Boolean
+	Dim cst_ii As Long
+	Dim cst_macro_via_radius As Double
+
+	' imu - added
+	' ======================
+
+	Dim cst_npar As Long, cst_rad_defined As Boolean
+	cst_npar = GetNumberOfParameters
+	cst_rad_defined = False
+
+	For cst_ii = 0 To cst_npar-1
+		If GetParameterName (cst_ii) = "cst_via_radius" Then cst_rad_defined = True
+	Next cst_ii
+	If cst_rad_defined = False Then GoTo ERROR_VR_MISSING
+	' imu - added
+	' ======================
+
+	'On Error GoTo ERROR_VR_MISSING
+	cst_macro_via_radius = RestoreDoubleParameter("cst_via_radius")
+
+	cst_nopp = Pick.GetNumberOfPickedPoints
+	If cst_nopp < 2 Then
+		MsgBox "Pick at leat 2 points before running the macro",vbOkOnly+vbCritical,"Abort Macro Execution"
+		Exit Sub
+	End If
+	
+	For cst_ii = 1 To Int(cst_nopp/2)
+	
+		WCS.ActivateWCS "global"
+		
+		ltrue = Pick.GetPickpointCoordinates(cst_nopp-2*(cst_ii-1), cst_xp2, cst_yp2, cst_zp2)
+		ltrue = Pick.GetPickpointCoordinates(cst_nopp-2*(cst_ii-1)-1, cst_xp1, cst_yp1, cst_zp1)
+	
+		cst_length = Sqr((cst_xp2-cst_xp1)^2+(cst_yp2-cst_yp1)^2+(cst_zp2-cst_zp1)^2)
+	
+		WCS.ActivateWCS "local"
+		WCS.SetNormal(cst_xp2-cst_xp1, cst_yp2-cst_yp1, cst_zp2-cst_zp1)
+    	WCS.SetOrigin(cst_xp1, cst_yp1, cst_zp1)
+
+		With Cylinder 
+     		.Reset 
+     		.Name Solid.GetNextFreeName 
+			.Component "PEC"
+			.Material "PEC"
+	 		.OuterRadius cst_macro_via_radius
+     		.InnerRadius "0" 
+     		.Axis "z" 
+     		.Zrange "0.0", cst_length
+     		.Xcenter "0.0" 
+     		.Ycenter "0.0" 
+     		.Create 
+		End With 
+	
+	Next cst_ii
+	Pick.ClearAllPicks  
+	
+	Exit Sub
+	
+ERROR_VR_MISSING:
+	MsgBox "Please define a variable named: 'cst_via_radius' first with desired radius",vbOkOnly+vbExclamation,"Macro Execution stopped"
+	Exit Sub
+	
+End Sub

@@ -1,0 +1,397 @@
+' Construct / Coils / Conical Spiral
+' !!! Do not change the line above !!!
+ '--------------------------------------------------------------------------------------------
+'Type: Conical Archimedean Spiral  r1 = r, r2 = r+k*phi, phi = n*2*pi
+'Type: Conical Logarithmic Spiral  r1 = r, r2 = r*exp(k*phi), phi = n*2*pi
+'
+'Ref:       https://en.wikipedia.org/wiki/Conical_spiral
+'-----------------------------------------------------------------------------------------------------------------------------
+' Copyright 2021-2023 Dassault Systemes Deutschland GmbH
+' ================================================================================================
+' History of Changes
+'-----------------------------------------------------------------------------------------------------------------------------
+' 04-Aug-2021 yco: Initial version
+'-------------------------------------------------
+Option Explicit
+
+Const HelpFileName = "common_preloadedmacro_Construct_Coils"
+
+'-----------------------------------------------------------------------------------------------------------------------------
+
+Sub Main ()
+
+Dim cname As String, icst_N_spirals As Integer, dcst_N_turns As Double
+Dim dcst_thickness As Double, dcst_r1 As Double, dcst_r_wire As Double, dcst_k As Double
+Dim dcst_beta As Double, dcst_theta As Double
+Dim icst_CW_or_CCW As Integer, icst_archi_or_log As Integer, icst_strip_or_wire As Integer
+Dim pi180 As Double, cst_pi As Double
+Dim first As String,  seconditem As String
+Dim cst_result As Integer
+
+pi180	= Atn(1)*4/180. 	' = pi/180
+cst_pi	= Atn(1)*4.		' = PI
+
+BeginHide
+
+	Begin Dialog UserDialog 550,390,"Conical Spiral",.DialogFunc ' %GRID:10,3,1,1
+		GroupBox 10,0,530,360,"",.GroupBox1
+		Text 20,10,200,14,"Component Name",.cNameLabel
+		TextBox 20,25,200,21,.cName
+		GroupBox 15,48,205,50,"",.GroupBox2
+		OptionGroup .CW_or_CCW
+			OptionButton 25,58,150,18,"Clockwise",.OptionButton1
+			OptionButton 25,76,150,18,"Counter-clockwise",.OptionButton2
+
+		GroupBox 15,100,265,60,"Cone",.GroupBox3
+		Text 25,115,120,14,"Top radius (=r1)",.TopRadiusLabel
+		TextBox 25,130,100,21,.r1
+		Text 160,115,110,14,"Slant angle (deg)",.SlantAngleLabel
+		TextBox 160,130,100,21,.beta
+
+		GroupBox 15,162,520,195,"Spiral",.GroupBox4
+		Text 25,177,120,14,"N. of spirals (=N)",.SpiralsLabel
+		TextBox 25,192,100,21,.spirals
+		Text 160,177,120,14,"N. of turns (=n)",.TurnsLabel
+		TextBox 160,192,100,21,.turns
+
+		GroupBox 20,215,260,138,"",.GroupBox5
+		OptionGroup .strip_or_wire
+			OptionButton 30,225,100,18,"Strip",.OptionButton3
+			OptionButton 160,225,100,18,"Wire",.OptionButton4
+		Text 30,245,100,14,"Thickness",.ThicknessLabel
+		TextBox 30,260,95,21,.thickness
+		Text 30,283,120,14,"Arc angle (deg)",.ArcAngleLabel
+		TextBox 30,298,95,21,.theta
+		Text 160,245,100,14,"Wire radius",.WireRadiusLabel
+		TextBox 160,260,100,21,.r_wire
+		Text 30,323,240,28,"Note: arc defines opening angle of spiral.",.Text1
+
+		GroupBox 290,215,240,138,"",.GroupBox6
+		OptionGroup .archi_or_log
+			OptionButton 300,225,220,18,"Archimedean (r2 = r1+k*phi)",.OptionButton5
+			OptionButton 300,244,220,18,"Logarithmic (r2 = r1*exp(k*phi))",.OptionButton6
+		Text 300,274,150,14,"Increase coeff (=k)",.IncreaseCoeffLabel
+		TextBox 300,289,100,21,.k
+		Text 300,315,150,14,"where phi = n*2*pi.",.Text2
+
+		Picture 290,10,120,150,GetInstallPath + "\Library\Macros\Construct\Coils\Conical Archimedean Spiral.bmp",0,.Picture1
+		Picture 415,10,120,150,GetInstallPath + "\Library\Macros\Construct\Coils\Conical Logarithmic Spiral.bmp",0,.Picture2
+
+		OKButton 20,364,90,21
+		CancelButton 120,364,90,21
+		PushButton 220,364,90,21,"Help",.Help
+	End Dialog
+
+	Dim dlg As UserDialog
+
+	dlg.spirals   	= "2"
+	dlg.turns		= "3"
+	dlg.r1			= "1"
+	dlg.r_wire		= "0.2"
+	dlg.thickness   = "0.2"
+	dlg.k         	= "0.12"
+	dlg.beta        = "80"
+	dlg.theta		= "45"
+
+	dlg.CW_or_CCW   	= 1
+	dlg.strip_or_wire	= 0
+	dlg.archi_or_log   	= 1
+
+	'find proper default-name for coils
+	first=  ShortName (Resulttree.GetFirstChildName ("Components\Conical_spirals"))
+	Do While first <> ""
+		seconditem  = ShortName (Resulttree.GetNextItemName ("Components\Conical_spirals\"+ first))
+		If seconditem <> "" Then
+		 	first = seconditem
+		Else
+		 	Exit Do
+		End If
+	Loop
+	If first ="" Then
+		dlg.cName = "Conical_spiral"	'first coil's name
+	Else
+		dlg.cName = first+"_1"			' default for next coils
+	End If
+
+	cst_result = Dialog(dlg)
+	assign "cst_result"        			'  writes e.g. "cst_result = -1/0/1"     into history list
+	If (cst_result = 0) Then Exit All
+
+	cname			= dlg.cName
+	
+	icst_N_spirals	= cint(dlg.spirals)
+	dcst_N_turns	= cdbl(dlg.turns)
+	dcst_r1			= cdbl(dlg.r1)
+	dcst_r_wire		= cdbl(dlg.r_wire)
+	dcst_thickness	= cdbl(dlg.thickness)
+	dcst_k			= cdbl(dlg.k)
+	dcst_beta		= cdbl(dlg.beta)
+	dcst_theta		= cdbl(dlg.theta)
+
+	icst_CW_or_CCW 		= dlg.CW_or_CCW
+	icst_strip_or_wire	= dlg.strip_or_wire
+	icst_archi_or_log   = dlg.archi_or_log
+
+	assign "cname"
+
+	StoreParameter (cname+"_N_spirals", icst_N_spirals)
+	SetParameterDescription (cname+"_N_spirals", "Number of spirals")
+	StoreDoubleParameter (cname+"_N_turns", dcst_N_turns)
+	SetParameterDescription (cname+"_N_turns", "Number of turns of spiral")
+	StoreDoubleParameter (cname+"_thickness", dcst_thickness)
+	SetParameterDescription (cname+"_thickness", "Thickness of spiral")
+	StoreDoubleParameter (cname+"_r_wire", dcst_r_wire)
+	SetParameterDescription (cname+"_r_wire", "Radius of wire")
+	StoreDoubleParameter (cname+"_r1", dcst_r1)
+	SetParameterDescription (cname+"_r1", "Top radius of cone")
+	StoreDoubleParameter (cname+"_beta", dcst_beta)
+	SetParameterDescription (cname+"_beta", "Slant angle of cone in deg")
+	StoreDoubleParameter (cname+"_k", dcst_k)
+	SetParameterDescription (cname+"_k", "Coefficient of spiral increase")
+	StoreDoubleParameter (cname+"_theta", dcst_theta)
+	SetParameterDescription (cname+"_theta", "Arc angle of spiral opening in deg")
+
+	StoreParameterWithDescription (cname+"_CW_or_CCW", cstr(icst_CW_or_CCW), "Clockwise: 0, counter-clockwise: 1")
+	StoreParameterWithDescription (cname+"_strip_or_wire", cstr(icst_strip_or_wire), "Strip: 0, wire: 1")
+	StoreParameterWithDescription (cname+"_archi_or_log", cstr(icst_archi_or_log), "archimedean: 0, logarithmic: 1")
+	
+	StoreParameterWithDescription (cname+"_phi", cname+"_N_turns*2*pi", "Rotation angle of spiral in rad")
+	StoreParameterWithDescription (cname+"_r2", "IIf("+cname+"_archi_or_log = 0, "+cname+"_r1+"+cname+"_k*"+cname+"_phi, "+cname+"_r1*Exp("+cname+"_k*"+cname+"_phi))", "Bottom radius of cone")
+	StoreParameterWithDescription (cname+"_r_inc", "IIf("+cname+"_strip_or_wire = 0, "+cname+"_thickness, "+cname+"_r_wire)"+"/sinD("+cname+"_beta)", "Increased radius due to spiral thickness")
+	StoreParameterWithDescription (cname+"_slope", "tanD("+cname+"_beta)", "Slope of cone")
+	StoreParameterWithDescription (cname+"_height", cname+"_slope*("+cname+"_r2-"+cname+"_r1)", "Height of cone")
+	
+
+EndHide
+
+If (cst_result = 0) Then Exit All   ' if cancel/help is clicked, exit all
+If (cst_result = 1) Then Exit All
+
+With Cone
+     .Reset
+     .Name "Cone"
+     .Component "Conical_spirals/"+cname
+     .Material "Vacuum"
+     .BottomRadius cname+"_r2"
+     .TopRadius cname+"_r1"
+     .Axis "z"
+     .Zrange "-"+cname+"_height", "0"
+     .Xcenter "0"
+     .Ycenter "0"
+     .Segments "0"
+     .Create
+End With
+
+If (cint(cname+"_strip_or_wire") = 0) Then
+
+	If (cdbl(cname+"_thickness") = 0) Then
+		' create analytic face
+		With AnalyticalFace
+		 .Reset
+		 .Name "Spiral"
+		 .Component "Conical_spirals/"+cname
+		 .Material "PEC"
+		 If (cint(cname+"_archi_or_log") = 0) Then		' archimedean spiral
+			 .LawX "("+cname+"_r1+"+cname+"_k*u)*Cos(u+v)"
+			 If (cint(cname+ "_CW_or_CCW") = 1) Then
+				.LawY "("+cname+"_r1+"+cname+"_k*u)*Sin(u+v)"    	' counter-clockwise
+			 Else
+				.LawY "-("+cname+"_r1+"+cname+"_k*u)*Sin(u+v)"	' clockwise
+			 End If
+			 .LawZ "-"+cname+"_slope*"+cname+"_k*u"
+		 Else											' logarithmic spiral
+			 .LawX cname+"_r1*exp("+cname+"_k*u)*Cos(u+v)"
+			 If (cint(cname+ "_CW_or_CCW") = 1) Then
+				.LawY cname+"_r1*exp("+cname+"_k*u)*Sin(u+v)"    	' counter-clockwise
+			 Else
+				.LawY "-"+cname+"_r1*exp("+cname+"_k*u)*Sin(u+v)"	' clockwise
+			 End If
+			 .LawZ cname+"_slope*"+cname+"_r1*(1-exp("+cname+"_k*u))"
+		End If
+		 .ParameterRangeU ("0", cname+"_phi")
+		 .ParameterRangeV ("-"+cname+"_theta/2*"+cstr(pi180), cname+"_theta/2*"+cstr(pi180))
+		 .Create
+		End With
+	Else
+		' sweep curve
+		With AnalyticalFace
+		 .Reset
+		 .Name "Spiral_temp"
+		 .Component "Conical_spirals/"+cname
+		 .Material "PEC"
+		 If (cint(cname+"_archi_or_log") = 0) Then		' archimedean spiral
+			 .LawX "("+cname+"_r1+"+cname+"_k*u+v)*cos(u)"
+			 If (cint(cname+ "_CW_or_CCW") = 1) Then
+				.LawY "("+cname+"_r1+"+cname+"_k*u+v)*sin(u)"    	' counter-clockwise
+			 Else
+				.LawY "-("+cname+"_r1+"+cname+"_k*u+v)*sin(u)"		' clockwise
+			 End If
+			 .LawZ "-"+cname+"_slope*"+cname+"_k*u"
+		Else											' logarithmic spiral
+			 .LawX "("+cname+"_r1*exp("+cname+"_k*u)+v)*cos(u)"
+			 If (cint(cname+ "_CW_or_CCW") = 1) Then
+				.LawY "("+cname+"_r1*exp("+cname+"_k*u)+v)*sin(u)"    	' counter-clockwise
+			 Else
+				.LawY "-("+cname+"_r1*exp("+cname+"_k*u)+v)*sin(u)"		' clockwise
+			 End If
+			 .LawZ cname+"_slope*"+cname+"_r1*(1- exp("+cname+"_k*u))"
+		End If
+		 .ParameterRangeU "0", cname+"_phi"
+		 .ParameterRangeV "0", cname+"_r_inc"
+		 .Create
+		End With
+
+		Pick.PickDanglingEdgeChainFromId "Conical_spirals/"+cname+":Spiral_temp", "1"
+
+		With EdgeCurve
+		 .Reset
+		 .Name "edges1"
+		 .Curve "curve1"
+		 .Create
+		End With
+
+		With Arc
+		 .Reset
+		 .Name "arc1"
+		 .Curve "curve1"
+		 .Orientation "Clockwise"
+		 .XCenter "0"
+		 .YCenter "0"
+		 .X1 cname+"_r1*cosD("+cname+"_theta/2)"
+		 .Y1 cname+"_r1*sinD("+cname+"_theta/2)"
+		 .X2 "0.0"
+		 .Y2 "0.0"
+		 .Angle cname+"_theta"
+		 .UseAngle "True"
+		 .Segments "0"
+		 .Create
+		End With
+
+		Solid.Delete "Conical_spirals/"+cname+":Spiral_temp"
+
+		With SweepCurve
+		 .Reset
+		 .Name "Spiral"
+		 .Component "Conical_spirals/"+cname
+		 .Material "PEC"
+		 .Twistangle "0.0"
+		 .Taperangle "0.0"
+		 .ProjectProfileToPathAdvanced "False"
+		 .CutEndOff "False"
+		 .DeleteProfile "True"
+		 .DeletePath "True"
+		 .Path "curve1:arc1"
+		 .Curve "curve1:edges1"
+		 .Create
+		End With
+	End If
+Else
+	' sweep curve
+	With AnalyticalCurve
+		 .Reset
+		 .Name "analytical1"
+		 .Curve "curve1"
+		 If (cint(cname+"_archi_or_log") = 0) Then		' archimedean spiral
+			 .LawX "("+cname+"_r1+"+cname+"_k*t+"+cname+"_r_inc)*cos(t)"
+			 If (cint(cname+ "_CW_or_CCW") = 1) Then		' counter-clockwise
+				.LawY "("+cname+"_r1+"+cname+"_k*t+"+cname+"_r_inc)*sin(t)"
+			 Else											' clockwise
+				.LawY "-("+cname+"_r1+"+cname+"_k*t+"+cname+"_r_inc)*sin(t)"
+			 End If
+			 .LawZ "-"+cname+"_slope*"+cname+"_k*t"
+		 Else											' logarithmic spiral
+			 .LawX "("+cname+"_r1*exp("+cname+"_k*t)+"+cname+"_r_inc)*cos(t)"
+			 If (cint(cname+ "_CW_or_CCW") = 1) Then		' counter-clockwise
+				.LawY "("+cname+"_r1*exp("+cname+"_k*t)+"+cname+"_r_inc)*sin(t)"
+			 Else											' clockwise
+				.LawY "-("+cname+"_r1*exp("+cname+"_k*t)+"+cname+"_r_inc)*sin(t)"
+			 End If
+			 .LawZ cname+"_slope*"+cname+"_r1*(1-exp("+cname+"_k*t))"
+		 End If
+		 .ParameterRange "0", cname+"_phi"
+		 .Create
+	End With
+
+	With Circle
+		 .Reset
+		 .Name "circle1"
+		 .Curve "curve1"
+		 .Radius cname+"_r_wire"
+		 .Xcenter cname+"_r1+"+cname+"_r_inc"
+		 .Ycenter "0.0"
+		 .Segments "0"
+		 .Create
+	End With
+
+	With SweepCurve
+		 .Reset
+		 .Name "Spiral"
+		 .Component "Conical_spirals/"+cname
+		 .Material "PEC"
+		 .Twistangle "0.0"
+		 .Taperangle "0.0"
+		 .ProjectProfileToPathAdvanced "True"
+		 .CutEndOff "True"
+		 .DeleteProfile "True"
+		 .DeletePath "True"
+		 .Path "curve1:analytical1"
+		 .Curve "curve1:circle1"
+		 .Create
+	End With
+
+End If
+
+If (cint(cname+"_N_spirals") > 1) Then
+		With Transform
+	     .Reset
+	     .Name "Conical_spirals/"+cname+":Spiral"
+	     .Origin "Free"
+	     .Center "0", "0", "0"
+	     .Angle "0", "0", "360/"+cname+"_N_spirals"
+	     .MultipleObjects "True"
+	     .GroupObjects "False"
+	     .Repetitions cname+"_N_spirals-1"
+	     .MultipleSelection "False"
+	     .Destination ""
+	     .Material "PEC"
+	     .Transform "Shape", "Rotate"
+		End With
+End If
+
+End Sub
+
+Sub UpdateDialog(iAction As Integer)
+
+	' iAction determines if UpdateDialog is called during initialization of dialog, or during changes in dialog settings
+	DlgEnable("thickness", 	DlgValue("strip_or_wire")=0)
+	DlgEnable("theta", 		DlgValue("strip_or_wire")=0)
+	DlgEnable("r_wire", 	DlgValue("strip_or_wire")=1)
+
+End Sub
+
+Function DialogFunc%(Item As String, Action As Integer, Value As Integer)
+	Select Case Action
+	Case 1 ' Dialog box initialization
+		UpdateDialog(Action)
+		' DialogFunc = True
+	Case 2 ' Value changing or button pressed
+		Select Case Item
+		Case "strip_or_wire"
+			UpdateDialog(Action)
+			DialogFunc = True
+		Case "Help"
+			StartHelp HelpFileName
+			DialogFunc = True
+		End Select
+	Case 3 ' ComboBox or TextBox Value changed
+	Case 4 ' Focus changed
+	Case 5 ' Idle
+	End Select
+End Function
+
+Function ShortName (lib_path As String) As String
+	Dim lib_dircount As Integer
+
+	lib_dircount  = InStrRev(lib_path, "\")
+	ShortName = Mid$(lib_path, lib_dircount+1, 999)
+End Function

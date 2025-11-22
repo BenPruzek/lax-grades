@@ -1,0 +1,366 @@
+' Construct / Online / Horn antenna
+' !!! Do not change the line above !!!
+' ================================================================================================
+' Copyright 2014-2023 Dassault Systemes Deutschland GmbH
+' ================================================================================================
+' History of Changes
+' ------------------------------------------------------------------------------------------------
+' 17-Jan-2014 ube: Initial version
+' ================================================================================================
+
+Sub Main ()
+
+'@ switch Bounding Box on
+Plot.DrawBox True
+
+'@ switch working plane off
+Plot.DrawWorkplane "false"
+
+BeginHide
+	StoreDoubleParameter "taper_angle", 30
+	StoreDoubleParameter "horn_length", 30
+	StoreDoubleParameter "wall_thickness", 2.0
+	StoreDoubleParameter "waveguide_width", 20
+	StoreDoubleParameter "waveguide_height", 10
+	StoreParameter "fmin", "160/waveguide_width"
+	StoreParameter "fmax", "200/waveguide_width"
+	StoreParameter "fctr", "180/waveguide_width"
+	StoreParameter "f1", "fmin"
+	StoreParameter "f2", "0.5*(fctr+fmin)"
+	StoreParameter "f4", "0.5*(fctr+fmax)"
+	StoreParameter "f5", "fmax"
+
+	Dim sCommand As String
+
+	'@ new component: component1
+	sCommand = ""
+	sCommand = sCommand + "With Component " + vbLf
+	sCommand = sCommand + ".New ""component1""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "new component: component1", sCommand	
+
+
+	'@ define brick: component1:solid1
+	sCommand = ""
+	sCommand = sCommand + "With Brick " + vbLf	
+	sCommand = sCommand + ".Reset" + vbLf	
+	sCommand = sCommand + ".Name ""solid1""" + vbLf
+	sCommand = sCommand + ".Component ""component1""" + vbLf
+	sCommand = sCommand + ".Material ""PEC""" + vbLf
+	sCommand = sCommand + ".Xrange ""-waveguide_width/2"", ""waveguide_width/2""" + vbLf
+	sCommand = sCommand + ".Yrange ""-waveguide_height/2"", ""waveguide_height/2""" + vbLf
+	sCommand = sCommand + ".Zrange ""0"", ""6""" + vbLf
+	sCommand = sCommand + ".Create" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define brick: component1:solid1", sCommand	
+
+	
+	'@ pick face
+	sCommand = ""
+	sCommand = sCommand + "With Pick" + vbLf
+	sCommand = sCommand + ".PickFaceFromId ""component1:solid1"", ""1""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "pick face", sCommand
+
+	
+	'@ define extrude: component1:solid2
+	sCommand = ""
+	sCommand = sCommand + "With Extrude" + vbLf
+	sCommand = sCommand + ".Name ""solid2""" + vbLf	
+	sCommand = sCommand + ".Component ""component1""" + vbLf
+	sCommand = sCommand + ".Material ""PEC""" + vbLf
+	sCommand = sCommand + ".Mode ""Picks""" + vbLf	
+	sCommand = sCommand + ".Height ""horn_length""" + vbLf	
+	sCommand = sCommand + ".Twist ""0.0""" + vbLf	
+	sCommand = sCommand + ".Taper ""taper_angle""" + vbLf
+	sCommand = sCommand + ".UsePicksForHeight ""False""" + vbLf	
+	sCommand = sCommand + ".DeleteBaseFaceSolid ""False""" + vbLf
+	sCommand = sCommand + ".ClearPickedFace ""True""" + vbLf
+	sCommand = sCommand + ".Create" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define extrude: component1:solid2", sCommand
+	
+	
+	'@ boolean add shapes: component1:solid1, component1:solid2
+	sCommand = ""
+	sCommand = sCommand + "With Solid" + vbLf
+	sCommand = sCommand + ".Add ""component1:solid1"", ""component1:solid2""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "boolean add shapes: component1:solid1, component1:solid2", sCommand
+
+	
+	'@ pick face
+	sCommand = ""
+	sCommand = sCommand + "With Pick" + vbLf
+	sCommand = sCommand + ".PickFaceFromId ""component1:solid1"", ""5""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "pick face", sCommand
+	
+
+	'@ pick face
+	sCommand = ""
+	sCommand = sCommand + "With Pick" + vbLf
+	sCommand = sCommand + ".PickFaceFromId ""component1:solid1"", ""8""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "pick face", sCommand	
+	
+
+	'@ shell object: component1:solid1
+	sCommand = ""
+	sCommand = sCommand + "With Solid" + vbLf
+	sCommand = sCommand + ".AdvancedShell ""component1:solid1"", ""Outside"", ""wall_thickness""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "shell object: component1:solid1", sCommand	
+
+
+	'@ pick end point
+	sCommand = ""
+	sCommand = sCommand + "With Pick" + vbLf
+	sCommand = sCommand + ".PickEndpointFromId ""component1:solid1"", ""16""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "pick end point", sCommand
+	
+	
+	'@ pick end point
+	sCommand = ""
+	sCommand = sCommand + "With Pick" + vbLf
+	sCommand = sCommand + ".PickEndpointFromId ""component1:solid1"", ""15""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "pick end point", sCommand
+
+
+	'@ pick end point
+	sCommand = ""
+	sCommand = sCommand + "With Pick" + vbLf
+	sCommand = sCommand + ".PickEndpointFromId ""component1:solid1"", ""13""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "pick end point", sCommand	
+	
+
+	'@ define port: 1
+	sCommand = ""
+	sCommand = sCommand + "With Port " + vbLf
+	sCommand = sCommand + ".Reset " + vbLf
+	sCommand = sCommand + ".PortNumber ""1""" + vbLf
+	sCommand = sCommand + ".NumberOfModes ""1""" + vbLf
+	sCommand = sCommand + ".AdjustPolarization False " + vbLf
+	sCommand = sCommand + ".PolarizationAngle ""0.0""" + vbLf
+	sCommand = sCommand + ".ReferencePlaneDistance ""0""" + vbLf
+	sCommand = sCommand + ".TextSize ""50""" + vbLf
+	sCommand = sCommand + ".Coordinates ""Picks""" + vbLf
+	sCommand = sCommand + ".Orientation ""zmin""" + vbLf
+	sCommand = sCommand + ".PortOnBound ""True""" + vbLf
+	sCommand = sCommand + ".ClipPickedPortToBound ""False""" + vbLf
+	sCommand = sCommand + ".Create " + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define port: 1", sCommand
+
+
+	'@ clear picks
+	sCommand = ""
+	sCommand = sCommand + "With Pick" + vbLf
+	sCommand = sCommand + ".ClearAllPicks" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "clear picks", sCommand	
+
+	
+	'@ define units
+	sCommand = ""
+	sCommand = sCommand + "With Units " + vbLf
+	sCommand = sCommand + ".Geometry ""mm""" + vbLf
+	sCommand = sCommand + ".Frequency ""GHz""" + vbLf
+	sCommand = sCommand + ".Time ""ns""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define units", sCommand	
+
+	
+	'@ define frequency range
+	sCommand = ""
+	sCommand = sCommand + "With Solver" + vbLf
+	sCommand = sCommand + ".FrequencyRange ""fmin"", ""fmax""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define frequency range", sCommand	
+
+
+	'@ define background
+	sCommand = ""
+	sCommand = sCommand + "With Background " + vbLf
+	sCommand = sCommand + ".Reset " + vbLf
+	sCommand = sCommand + ".Type ""Normal""" + vbLf
+	sCommand = sCommand + ".Epsilon ""1.0""" + vbLf
+	sCommand = sCommand + ".Mu ""1.0""" + vbLf
+	sCommand = sCommand + ".ThermalType ""Normal""" + vbLf
+	sCommand = sCommand + ".ThermalConductivity ""0.0""" + vbLf
+	sCommand = sCommand + ".XminSpace ""0.0""" + vbLf
+	sCommand = sCommand + ".XmaxSpace ""0.0""" + vbLf
+	sCommand = sCommand + ".YminSpace ""0.0""" + vbLf
+	sCommand = sCommand + ".YmaxSpace ""0.0""" + vbLf
+	sCommand = sCommand + ".ZminSpace ""0.0""" + vbLf
+	sCommand = sCommand + ".ZmaxSpace ""1.5*horn_length""" + vbLf
+	sCommand = sCommand + ".ApplyInAllDirections ""False""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define background", sCommand	
+
+	
+	'@ define boundaries
+	sCommand = ""
+	sCommand = sCommand + "With Boundary" + vbLf
+	sCommand = sCommand + ".Xmin ""expanded open""" + vbLf
+	sCommand = sCommand + ".Xmax ""expanded open""" + vbLf
+	sCommand = sCommand + ".Ymin ""expanded open""" + vbLf
+	sCommand = sCommand + ".Ymax ""expanded open""" + vbLf
+	sCommand = sCommand + ".Zmin ""expanded open""" + vbLf
+	sCommand = sCommand + ".Zmax ""expanded open""" + vbLf
+	sCommand = sCommand + ".Xsymmetry ""magnetic""" + vbLf
+	sCommand = sCommand + ".Ysymmetry ""electric""" + vbLf
+	sCommand = sCommand + ".Zsymmetry ""none""" + vbLf
+	sCommand = sCommand + ".Zsymmetry ""none""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define boundaries", sCommand	
+
+	'@ define pml specials
+	sCommand = ""
+	sCommand = sCommand + "With Boundary" + vbLf
+	sCommand = sCommand + ".MinimumDistanceReferenceFrequencyType ""CenterNMonitors""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define pml specials", sCommand
+	
+	'@ define e-field monitor
+	sCommand = ""
+	sCommand = sCommand + "With Monitor" + vbLf
+	sCommand = sCommand + "     .Reset" + vbLf
+	sCommand = sCommand + "     .Name ""e-field (f=fctr)""" + vbLf
+	sCommand = sCommand + "     .Dimension ""Volume""" + vbLf
+	sCommand = sCommand + "     .Domain ""Frequency""" + vbLf
+	sCommand = sCommand + "     .FieldType ""Efield""" + vbLf
+	sCommand = sCommand + "     .Frequency ""fctr""" + vbLf
+	sCommand = sCommand + "     .Create" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define monitor: e-field (f=fctr)", sCommand
+
+	'@ define h-field monitor
+	sCommand = ""
+	sCommand = sCommand + "With Monitor" + vbLf
+	sCommand = sCommand + "     .Reset" + vbLf
+	sCommand = sCommand + "     .Name ""h-field (f=fctr)""" + vbLf
+	sCommand = sCommand + "     .Dimension ""Volume""" + vbLf
+	sCommand = sCommand + "     .Domain ""Frequency""" + vbLf
+	sCommand = sCommand + "     .FieldType ""Hfield""" + vbLf
+	sCommand = sCommand + "     .Frequency ""fctr""" + vbLf
+	sCommand = sCommand + "     .Create" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define monitor: h-field (f=fctr)", sCommand
+
+
+	'@ define farfield monitor
+	sCommand = ""
+	sCommand = sCommand + "With Monitor" + vbLf
+	sCommand = sCommand + "     .Reset" + vbLf
+	sCommand = sCommand + "     .Name ""farfield (f=fctr)""" + vbLf
+	sCommand = sCommand + "     .Domain ""Frequency""" + vbLf
+	sCommand = sCommand + "     .FieldType ""Farfield""" + vbLf
+	sCommand = sCommand + "     .Frequency ""fctr""" + vbLf
+	sCommand = sCommand + "     .Create" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define farfield monitor: farfield (f=fctr)", sCommand
+
+	'@ define farfield monitor
+	sCommand = ""
+	sCommand = sCommand + "With Monitor" + vbLf
+	sCommand = sCommand + "     .Reset" + vbLf
+	sCommand = sCommand + "     .Name ""farfield (f=f1)""" + vbLf
+	sCommand = sCommand + "     .Domain ""Frequency""" + vbLf
+	sCommand = sCommand + "     .FieldType ""Farfield""" + vbLf
+	sCommand = sCommand + "     .Frequency ""f1""" + vbLf
+	sCommand = sCommand + "     .Create" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define farfield monitor: farfield (f=f1)", sCommand
+
+	'@ define farfield monitor
+	sCommand = ""
+	sCommand = sCommand + "With Monitor" + vbLf
+	sCommand = sCommand + "     .Reset" + vbLf
+	sCommand = sCommand + "     .Name ""farfield (f=f2)""" + vbLf
+	sCommand = sCommand + "     .Domain ""Frequency""" + vbLf
+	sCommand = sCommand + "     .FieldType ""Farfield""" + vbLf
+	sCommand = sCommand + "     .Frequency ""f2""" + vbLf
+	sCommand = sCommand + "     .Create" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define farfield monitor: farfield (f=f2)", sCommand
+
+	'@ define farfield monitor
+	sCommand = ""
+	sCommand = sCommand + "With Monitor" + vbLf
+	sCommand = sCommand + "     .Reset" + vbLf
+	sCommand = sCommand + "     .Name ""farfield (f=f4)""" + vbLf
+	sCommand = sCommand + "     .Domain ""Frequency""" + vbLf
+	sCommand = sCommand + "     .FieldType ""Farfield""" + vbLf
+	sCommand = sCommand + "     .Frequency ""f4""" + vbLf
+	sCommand = sCommand + "     .Create" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define farfield monitor: farfield (f=f4)", sCommand
+
+	'@ define farfield monitor
+	sCommand = ""
+	sCommand = sCommand + "With Monitor" + vbLf
+	sCommand = sCommand + "     .Reset" + vbLf
+	sCommand = sCommand + "     .Name ""farfield (f=f5)""" + vbLf
+	sCommand = sCommand + "     .Domain ""Frequency""" + vbLf
+	sCommand = sCommand + "     .FieldType ""Farfield""" + vbLf
+	sCommand = sCommand + "     .Frequency ""f5""" + vbLf
+	sCommand = sCommand + "     .Create" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define farfield monitor: farfield (f=f5)", sCommand
+
+	'@ define solver parameters
+	sCommand = ""
+	sCommand = sCommand + "With Solver " + vbLf
+	sCommand = sCommand + ".CalculationType ""TD-S""" + vbLf
+	sCommand = sCommand + ".StimulationPort ""All""" + vbLf
+	sCommand = sCommand + ".StimulationMode ""All""" + vbLf
+	sCommand = sCommand + ".SteadyStateLimit ""-40""" + vbLf
+	sCommand = sCommand + ".AdaptivePortMeshing False" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define solver parameters", sCommand
+
+	
+	'@ s-parameter post processing: vswr
+	sCommand = ""
+	sCommand = sCommand + "With PostProcess1D " + vbLf
+	sCommand = sCommand + ".ActivateOperation ""vswr"", ""True""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "(*) s-parameter post processing: vswr", sCommand
+
+	
+	'@ s-parameter post processing: yz-matrices
+	sCommand = ""
+	sCommand = sCommand + "With PostProcess1D " + vbLf
+	sCommand = sCommand + ".ActivateOperation ""yz-matrices"", ""True""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "(*) s-parameter post processing: yz-matrices", sCommand
+
+	'@ Farfield cuts
+	sCommand = ""
+	sCommand = sCommand + "With FarfieldPlot" + vbLf
+	sCommand = sCommand + " .ClearCuts" + vbLf
+	sCommand = sCommand + " .AddCut ""lateral"", ""0"", ""1""" + vbLf
+	sCommand = sCommand + " .AddCut ""lateral"", ""45"", ""1""" + vbLf
+	sCommand = sCommand + " .AddCut ""lateral"", ""90"", ""1""" + vbLf
+	sCommand = sCommand + " .AddCut ""polar"", ""45"", ""1""" + vbLf
+	sCommand = sCommand + " .AddCut ""polar"", ""90"", ""1""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "(*) define farfield cuts", sCommand
+
+'With FarfieldPlot
+'	.ClearCuts ' lateral=phi, polar=theta
+'	.AddCut "lateral", "0", "1"
+'	.AddCut "lateral", "45", "1"
+'	.AddCut "lateral", "90", "1"
+'	.AddCut "polar", "45", "1"
+'	.AddCut "polar", "90", "1"
+'End With
+
+	ResetViewToStructure()
+EndHide
+
+End Sub

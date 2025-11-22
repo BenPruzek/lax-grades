@@ -1,0 +1,480 @@
+' Heatsink
+'-----------------------------------------------------------------------------------------------------------------------------
+' Copyright 2010-2023 Dassault Systemes Deutschland GmbH
+' ================================================================================================
+' History of Changes
+'-----------------------------------------------------------------------------------------------------------------------------
+' 04-Jan-2022 mha: rearranged gui elements
+' 12-Oct-2015 ube: improved error handling
+' 03-Sep-2010 nst: Initial version
+'-----------------------------------------------------------------------------------------------------------------------------
+
+Option Explicit
+Sub Main ()
+
+' object origin
+Dim sobj_x As String
+Dim sobj_y As String
+Dim sobj_z As String
+Dim obj_x As Double
+Dim obj_y As Double
+Dim obj_z As Double
+
+'base size
+Dim sbase_x As String
+Dim sbase_y As String
+Dim sbase_z As String
+Dim base_x As Double
+Dim base_y As Double
+Dim base_z As Double
+
+' pin parameters
+Dim pin_height As Double
+Dim x_pin_l As Double
+Dim y_pin_l As Double
+Dim pins_in_x As Integer
+Dim pins_in_y As Integer
+Dim cg_x As Double
+Dim cg_y As Double
+
+Dim spin_height As String
+Dim sx_pin_l As String
+Dim sy_pin_l As String
+Dim spins_in_x As String
+Dim spins_in_y As String
+Dim scg_x As String
+Dim scg_y As String
+
+' name parameters
+Dim first As String
+Dim seconditem As String
+Dim cname As String
+Dim next_pin As String
+
+' Gap parameters
+Dim x_pingap As Double
+Dim y_pingap As Double
+
+'optionbox parameters
+Dim square_or_circle As Integer
+Dim inline_or_stag As Integer
+
+
+'check result
+Dim cst_result       As Integer
+
+BeginHide
+' User interface
+	Dim bRedefine As Boolean
+	Begin Dialog UserDialog 614,332,"Create new heatsink",.DialogFunc ' %GRID:10,7,1,1
+		GroupBox      10,   7, 594, 285, "Input parameters", .GroupBox5
+		Text          20,  27,  41,  14, "Name:",            .Text10
+		TextBox       70,  24, 190,  21, .heatsink_name
+
+		GroupBox      20,  55, 145, 110, "Corner point", .GroupBox1
+		Text          35,  78,  10,  14, "x:", .Text1
+		TextBox       60,  75,  90,  21, .obj_x
+		Text          35, 108,  10,  14, "y:", .Text2
+		TextBox       60, 105,  90,  21, .obj_y
+		Text          35, 138,  10,  14, "z:", .Text3
+		TextBox       60, 135,  90,  21, .obj_z
+
+		GroupBox     175,  55, 145, 110, "Base size", .GroupBox2
+		Text         190,  78,  10,  14, "x:", .Text11
+		TextBox      215,  75,  90,  21, .base_x
+		Text         190, 108,  10,  14, "y:", .Text12
+		TextBox      215, 105,  90,  21, .base_y
+		Text         190, 138,  10,  14, "z:", .Text13
+		TextBox      215, 135,  90,  21, .base_z
+
+		GroupBox     330,  20, 264, 145, "Pin settings",   .GroupBox3
+		Text         340,  47,  68,  14, "Pin height:",    .Text4
+		TextBox      423,  44, 102,  21, .pin_height
+		OptionGroup                                        .square_or_circle
+		OptionButton 340,  75,  70,  14, "Square",         .Square
+		OptionButton 420,  75,  70,  14, "Circle",         .Circle
+		Text         340, 108,  80,  14, "X pin length:" , .Text5
+		TextBox      435, 105,  90,  21, .x_pin_l
+		Text         340, 138,  80,  14, "Y pin length:",  .Text6
+		TextBox      435, 135,  90,  21, .y_pin_l
+
+		GroupBox      20, 170, 574, 112, "Pin arrangment",             .GroupBox4
+		OptionGroup                                                    .inline_or_stag
+		OptionButton  35, 189,  56,  14, "Inline",                     .Inline
+		OptionButton 106, 189,  88,  14, "Staggered",                  .Stag
+		Text          35, 215, 120,  14, "Pins in x direction:",       .Text7
+		TextBox      207, 212,  90,  21, .pins_in_x
+		Text         317, 215, 120,  14, "Pins in y direction:",       .Text8
+		TextBox      489, 212,  90,  21, .pins_in_y
+		Text          35, 245, 157,  14, "Center gap in x direction:", .Text9
+		TextBox      207, 242,  90,  21, .cg_x
+		Text         317, 245, 157,  14, "Center gap in y direction:", .Text14
+		TextBox      489, 242,  90,  21, .cg_y
+		OKButton      20, 301,  90,  21
+		CancelButton 125, 301,  90,  21
+	End Dialog
+	Dim dlg As UserDialog
+
+' dialogue defaults
+
+	dlg.obj_x  = "0"
+	dlg.obj_y = "0"
+	dlg.obj_z = "0"
+
+	dlg.base_x = "4"
+	dlg.base_y = "4"
+	dlg.base_z = "0.25"
+
+	dlg.pin_height = "3"
+	dlg.x_pin_l = "0.25"
+	dlg.y_pin_l = "0.1"
+
+	dlg.pins_in_x = "8"
+	dlg.pins_in_y = "6"
+	dlg.cg_x = "0"
+	dlg.cg_y = "0"
+
+	dlg.square_or_circle = 0 ' Square
+	dlg.inline_or_stag = 0 ' Inline
+
+
+
+	'find proper default-name for heatsink
+	first =  ShortName(Resulttree.GetFirstChildName ("Components\Heatsink"))
+	Do While first <> ""
+    	seconditem  = ShortName (Resulttree.GetNextItemName ("Components\Heatsink\"+ first))
+		If seconditem <> "" Then
+		 	first = seconditem
+		Else
+		 	Exit Do
+		End If
+	Loop
+	If first ="" Then
+		dlg.heatsink_name = "Heatsink"	'first name
+	Else
+		dlg.heatsink_name = first+"_1"	'default for next
+	End If
+
+	'If cancel is pressed
+		cst_result = Dialog(dlg)
+        assign "cst_result"        '  writes e.g. "cst_result = -1/0/1"     into history list
+        If (cst_result = 0) Then Exit All
+
+
+	'Assign the input values to string variables
+		sobj_x  = dlg.obj_x
+		sobj_y = dlg.obj_y
+		sobj_z = dlg.obj_z
+
+		sbase_x = dlg.base_x
+		sbase_y = dlg.base_y
+		sbase_z = dlg.base_z
+
+		spin_height = dlg.pin_height
+		sx_pin_l = dlg.x_pin_l
+		sy_pin_l = dlg.y_pin_l
+		spins_in_x = dlg.pins_in_x
+		spins_in_y = dlg.pins_in_y
+		scg_x = dlg.cg_x
+		scg_y = dlg.cg_y
+
+		cname = dlg.heatsink_name
+
+		square_or_circle = dlg.square_or_circle
+		inline_or_stag = dlg.inline_or_stag
+
+		'write to history
+		assign "sobj_x"
+		assign "sobj_y"
+		assign "sobj_z"
+
+		assign "sbase_x"
+		assign "sbase_y"
+		assign "sbase_z"
+
+		assign "spin_height"
+		assign "sx_pin_l"
+		assign "sy_pin_l"
+		assign "spins_in_x"
+		assign "spins_in_y"
+		assign "scg_x"
+		assign "scg_y"
+
+		assign "square_or_circle"
+		assign "inline_or_stag"
+
+		assign "cname"
+
+ EndHide
+
+	    If (cst_result =0) Then Exit All   ' if cancel/help is clicked, exit all
+        If (cst_result =1) Then Exit All
+
+		obj_x = Evaluate(sobj_x)
+		obj_y = Evaluate(sobj_y)
+		obj_z = Evaluate(sobj_z)
+
+		base_x = Evaluate(sbase_x)
+		base_y = Evaluate(sbase_y)
+		base_z = Evaluate(sbase_z)
+
+		pin_height = Evaluate(spin_height)
+		x_pin_l = Evaluate(sx_pin_l)
+		y_pin_l = Evaluate(sy_pin_l)
+		pins_in_x = Evaluate(spins_in_x)
+		pins_in_y = Evaluate(spins_in_y)
+		cg_x = Evaluate(scg_x)
+		cg_y = Evaluate(scg_y)
+
+		square_or_circle = Evaluate(square_or_circle)
+		inline_or_stag = Evaluate(inline_or_stag)
+
+' Gap calculations for square pins
+' x
+If (square_or_circle = 0) Then
+	If ( cg_x = 0 ) Then
+		x_pingap = (base_x-(pins_in_x*x_pin_l))/(pins_in_x-1)
+		Else
+			x_pingap = (base_x-((pins_in_x*x_pin_l)+cg_x))/(pins_in_x-2)
+	End If
+
+	' y
+	If ( cg_y = 0 ) Then
+		y_pingap = (base_y-(pins_in_y*y_pin_l))/(pins_in_y-1)
+		Else
+			y_pingap = (base_y-(pins_in_y*y_pin_l)-cg_y)/(pins_in_y-2)
+	End If
+Else
+'Circular pin case
+x_pingap = (base_x-2*x_pin_l)/(pins_in_x-1)
+y_pingap = (base_y-2*x_pin_l)/(pins_in_y-1)
+End If
+
+' ~~~~~~~~~~~~~~~~~
+' Construction part
+' ~~~~~~~~~~~~~~~~~
+
+'construct base
+With Brick
+    .Reset
+    .Name cname
+    .Component ("Heatsink")
+    .Material ("PEC")
+    .Xrange (obj_x, obj_x+(base_x)/2)
+    .Yrange (obj_y, obj_y+(base_y)/2)
+    .Zrange (obj_z, obj_z+(base_z)/2)
+    .Create
+End With
+
+'construct pins
+Dim x_location As Double
+Dim y_location As Double
+Dim y_pin As Integer
+Dim x_pin As Integer
+
+x_pin = 0
+y_pin = 0
+
+If (square_or_circle = 0) Then 'If square pins
+'y pin loop
+For y_location = obj_y To obj_y+((base_y-cg_y)/2) STEP (y_pingap+y_pin_l)
+y_pin = y_pin+1
+If (y_pin = (pins_in_y-1/2)) Then
+	y_location = y_location+cg_y-(y_pingap+y_pin_l)
+End If
+
+'x pin loop
+For x_location = obj_x To obj_x+((base_x-cg_x)/2) STEP (x_pingap+x_pin_l)
+next_pin = Solid.GetNextFreeName
+With Brick
+    .Reset
+    .Name next_pin
+    .Component ("Heatsink")
+    .Material ("PEC")
+    .Xrange (x_location, x_location+x_pin_l)
+    .Yrange (y_location, y_location+y_pin_l)
+    .Zrange (obj_z, obj_z+pin_height)
+    .Create
+End With
+	If (inline_or_stag = 1) Then ' If staggered pins
+		Solid.Add "Heatsink:"+cname, "Heatsink:"+next_pin
+		next_pin = Solid.GetNextFreeName
+		With Brick
+		    .Reset
+		    .Name next_pin
+		    .Component ("Heatsink")
+		    .Material ("PEC")
+		    .Xrange (x_location+x_pin_l+(x_pingap-x_pin_l)/2, x_location+x_pin_l+(x_pingap+x_pin_l)/2)
+		    .Yrange (y_location+y_pin_l+(y_pingap-y_pin_l)/2, y_location+y_pin_l+(y_pingap+y_pin_l)/2)
+		    .Zrange (obj_z, obj_z+pin_height)
+		    .Create
+		End With
+	End If
+
+Solid.Add "Heatsink:"+cname, "Heatsink:"+next_pin
+Next
+Next
+Else
+' ~~~~Circular Pins!~~~~
+For y_location = obj_y To obj_y+((base_y-cg_y)/2) STEP (y_pingap)
+y_pin = y_pin+1
+If (y_pin = (pins_in_y-1/2)) Then
+	y_location = y_location+cg_y-(y_pingap+y_pin_l)
+End If
+
+'x pin loop
+For x_location = obj_x To obj_x+((base_x-cg_x)/2) STEP (x_pingap)
+next_pin = Solid.GetNextFreeName
+With Cylinder
+    .Reset
+    .Name next_pin
+    .Component ("Heatsink")
+    .Material ("PEC")
+    .Axis ("z")
+    .Outerradius (x_pin_l)
+    .Innerradius (0)
+    .Xcenter (x_location+x_pin_l)
+    .Ycenter (y_location+x_pin_l)
+    .Zcenter (0)
+    .Zrange (obj_z, obj_z+pin_height)
+    .Segments (0)
+    .Create
+End With
+
+	If (inline_or_stag = 1) Then ' If staggered pins
+		Solid.Add "Heatsink:"+cname, "Heatsink:"+next_pin
+		next_pin = Solid.GetNextFreeName
+			With Cylinder
+			    .Reset
+			    .Name next_pin
+			    .Component ("Heatsink")
+			    .Material ("PEC")
+			    .Axis ("z")
+			    .Outerradius (x_pin_l)
+			    .Innerradius (0)
+			    .Xcenter (x_location+x_pin_l+x_pingap/2)
+			    .Ycenter (y_location+x_pin_l+y_pingap/2)
+			    .Zcenter (0)
+			    .Zrange (obj_z, obj_z+pin_height)
+			    .Segments (0)
+			    .Create
+			End With
+	End If
+
+Solid.Add "Heatsink:"+cname, "Heatsink:"+next_pin
+Next
+Next
+End If
+
+'Mirror for the other three parts of heatsink
+With Transform
+     .Reset
+     .Name "Heatsink:"+cname
+     .Origin "Free"
+     .Center "0", ""+CStr(obj_y+(base_y)/2), "0"
+     .PlaneNormal "0", "1", "0"
+     .MultipleObjects "True"
+     .GroupObjects "True"
+     .Repetitions "1"
+     .MultipleSelection "False"
+     .Destination ""
+     .Material ""
+     .Transform "Shape", "Mirror"
+End With
+
+With Transform
+     .Reset
+     .Name "Heatsink:"+cname
+     .Origin "Free"
+     .Center ""+CStr(obj_x+(base_x)/2), "0", "0"
+     .PlaneNormal "1", "0", "0"
+     .MultipleObjects "True"
+     .GroupObjects "True"
+     .Repetitions "1"
+     .MultipleSelection "False"
+     .Destination ""
+     .Material ""
+     .Transform "Shape", "Mirror"
+End With
+
+End Sub
+Function DialogFunc%(Item As String, Action As Integer, Value As Integer)
+	Select Case Action
+	Case 1 ' Dialog box initialization
+	Case 2 ' Value changing or button pressed
+		Select Case Item
+		Case "Help"
+			StartHelp "common_preloadedmacro_Construct_Heatsink"
+			DialogFunc = True
+		'~~~~~ERROR CHECKING~~~~~
+		Case "OK"
+			If (Evaluate(DlgText("base_x")) Or Evaluate(DlgText("base_y")) Or Evaluate(DlgText("base_z"))) = 0 Then
+			MsgBox "Base dimentions must be non-zero"
+			DialogFunc = True
+			End If
+			If (Evaluate(DlgText("pins_in_x")) <> Int(Evaluate(DlgText("pins_in_x"))) ) Then
+			MsgBox "Amount of x pins must be integer"
+			DialogFunc = True
+			End If
+			If (Evaluate(DlgText("pins_in_y")) <> Int(Evaluate(DlgText("pins_in_y"))) ) Then
+			MsgBox "Amount of y pins must be integer"
+			DialogFunc = True
+			End If
+			If (Evaluate(DlgText("pins_in_y")) <= 1 ) Then
+			MsgBox "Must have more than one pinin y direction"
+			DialogFunc = True
+			End If
+			If (Evaluate(DlgText("pins_in_x")) <= 1) Then
+			MsgBox "Must have more than one pin in x direction"
+			DialogFunc = True
+			End If
+			If ((Evaluate(DlgText("pins_in_x")) Mod 2) > 0 And (Evaluate(DlgText("cg_x")) > 0 )) Then
+			MsgBox "Center gap can only be applied with an even number of fins"
+			DialogFunc = True
+			End If
+			If ((Evaluate(DlgText("pins_in_y")) Mod 2) > 0 And (Evaluate(DlgText("cg_y")) > 0 )) Then
+			MsgBox "Center gap can only be applied with an even number of fins"
+			DialogFunc = True
+			End If
+			If ((Evaluate(DlgText("cg_x")) < 0) Or  (Evaluate(DlgText("cg_y")) < 0 )) Then
+			MsgBox "Center gap can not be negative"
+			DialogFunc = True
+			End If
+			If ((Evaluate(DlgText("x_pin_l")) <= 0.0) And (DlgValue("square_or_circle") = 1)) Then
+			MsgBox "Pin radius has to be a positive number."
+			DialogFunc = True
+			End If
+			If ((Evaluate(DlgText("pins_in_x"))*(Evaluate(DlgText("x_pin_l")))*2 > (Evaluate(DlgText("base_x")))) And (DlgValue("square_or_circle") = 1)) Then
+			MsgBox "Pin radius too large for specified x dimention"
+			DialogFunc = True
+			End If
+			If ((Evaluate(DlgText("pins_in_y"))*(Evaluate(DlgText("x_pin_l")))*2 > (Evaluate(DlgText("base_y")))) And (DlgValue("square_or_circle") = 1)) Then
+			MsgBox "Pin radius too large for specified y dimention"
+			DialogFunc = True
+			End If
+			'Change dialog if circular pins selected
+			Case "square_or_circle"
+				If (DlgValue("square_or_circle") = 1) Then
+			DlgVisible "y_pin_l",False
+			DlgVisible "Text6",False
+			DlgText "Text5","Pin Radius"
+			Else
+			DlgVisible "y_pin_l", True
+			DlgVisible "Text6",True
+			DlgText "Text5","X pin length"
+			End If
+			DialogFunc% = True 'do not exit the dialog
+		End Select
+	Case 3 ' ComboBox or TextBox Value changed
+	Case 4 ' Focus changed
+	Case 5 ' Idle
+	End Select
+End Function
+Function ShortName (lib_path As String) As String
+
+        Dim lib_dircount As Integer
+
+        lib_dircount  = InStrRev(lib_path, "\")
+        ShortName = Mid$(lib_path, lib_dircount+1, 999)
+
+End Function

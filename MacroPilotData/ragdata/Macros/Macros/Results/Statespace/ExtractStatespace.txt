@@ -1,0 +1,470 @@
+'#Language "WWB-COM"
+
+Option Explicit
+
+Public treepath_current, treepath_coenergy, treepath_flux,treepath_inductance,treepath_torque,treepath_BackEMF, treepath_motion As String, treepath_speed As String
+Public IDs() As String, IDs_flux() As String, IDs_inductance() As String, IDs_current() As String, IDs_torque() As String, IDs_BackEMF() As String
+
+Public bMQSTD_Solver, bMStatic_Solver As Boolean
+
+Public SourceNames(), MotionNames(), GapNames() As String
+Public nSources As Integer
+Public nMotions As Integer
+Public nGaps As Integer
+
+Public nSamplesProSignal As Long
+Public o_ref_signal As Object
+Public ID As Long
+
+
+Sub Main
+
+	nSources = 0
+	nMotions = 0
+	nSamplesProSignal = 1
+	Dim nWPs, lSS As Integer
+
+	Dim o_current As Object
+	Dim o_coenergy,o_flux, o_inductance, o_torque, o_BackEMF, o_motion, o_Speed As Object
+	Dim Index As Long
+	Dim value_current As Double,value_coenergy As Double,value_flux As Double,value_inductance As Double,value_torque As Double,value_motion As Double,value_BackEMF As Double,value_Speed As Double,value_Omega As Double,value_NBackEMF As Double
+	Dim resultID As String
+
+	' check from which solver the results have to be extracted
+	bMQSTD_Solver = False
+	bMStatic_Solver = False
+	bMQSTD_Solver = IsMQSTDSolver()
+	bMStatic_Solver  = IsMStaticSolver()
+	If bMQSTD_Solver = False And bMStatic_Solver = False Then
+		ReportError("No data to extract." & vbCrLf & "State space extraction stops.")
+	End If
+
+	' Initialize coils and motions
+	Dim bIsInitialized As Boolean
+	bIsInitialized = InitializeCoilsAndMotions(bMQSTD_Solver,bMStatic_Solver)
+	
+	Dim a As Boolean
+	a = DefineNTPaths(bMQSTD_Solver,bMStatic_Solver)
+
+	Dim b As Boolean
+	b = DefineUsableRunIDs(bMQSTD_Solver,bMStatic_Solver)
+
+	Dim c As Boolean
+	c = CheckResults(bMQSTD_Solver,bMStatic_Solver)
+
+	nWPs = UBound(IDs) * nSamplesProSignal
+	StateSpaceExtraction.InitInterpolationDBCreator(nWPs)
+
+	ReportInformationToWindow("Processing solver result of ID:")
+	If nWPs>0 Then
+		For ID = LBound(IDs) To UBound(IDs)-1
+			resultID = IDs(ID)
+			Dim d As Boolean
+			d = AddOutput()
+
+			If (bMQSTD_Solver) Then 'MQSTD, with motion
+				Dim nSample As Long
+				For nSample = 0 To nSamplesProSignal-1
+						ReportInformationToWindow("Sample: " + CStr( nSample) )
+
+						' report electrical arguments of the WP (i.e. coil currents having a current ID and a sample = nSample)
+						Dim nCoil As Long
+						For nCoil = 0 To nSources-1
+							Dim o_el_source As Object
+							Set o_el_source = Resulttree.GetResultFromTreeItem(treepath_current + "\" + Replace(SourceNames(nCoil),":","\"),resultID)
+							o_el_source.MakeCompatibleTo(o_ref_signal)
+							Dim yCurrent As Double
+							yCurrent = o_el_source.GetY(nSample)
+							StateSpaceExtraction.SetValue(0,yCurrent)
+						Next
+
+						' report mechanical arguments of the WP (i.e., angular positions having a current ID and a sample = nSample)
+						Dim nMotionIndex As Integer
+						For nMotionIndex = 0 To nMotions-1
+							'ReportInformationToWindow("Motion: " + CStr( nMotionIndex) )
+							Set o_motion = Resulttree.GetResultFromTreeItem(treepath_motion + "\" + MotionNames(nMotionIndex),resultID)
+							o_motion.MakeCompatibleTo(o_ref_signal)
+							Dim yMotion As Double
+							yMotion = o_motion.GetY(nSample)
+							StateSpaceExtraction.SetValue(0,yMotion)
+
+						Next
+
+						'get functional value (=coenergy), sample = nSample
+						Set o_coenergy = Resulttree.GetResultFromTreeItem(treepath_coenergy,resultID)
+						o_coenergy.MakeCompatibleTo(o_ref_signal)
+						value_coenergy = o_coenergy.GetY(nSample)
+						StateSpaceExtraction.SetValue(1,value_coenergy)
+						'get "electrical" first derivative values (=flux linkages), sample = nSample
+						Dim nCoil_i As Long
+						For nCoil_i=0 To nSources-1
+							Set o_flux = Resulttree.GetResultFromTreeItem(treepath_flux + "\" +  Replace(SourceNames(nCoil_i),":","\"),resultID)
+							o_flux.MakeCompatibleTo(o_ref_signal)
+							'ReportInformationToWindow("Number of sample points pro flux curve: " + CStr( o_flux.GetN() ) )
+							value_flux = o_flux.GetY(nSample)
+							StateSpaceExtraction.SetValue(2,value_flux)
+							'get "electrical" second derivative values (=inductance), sample = nSample
+							Dim nCoil_j As Long
+							For nCoil_j = 0 To nSources-1
+								Set o_inductance = Resulttree.GetResultFromTreeItem(treepath_inductance + "\L " + Replace(SourceNames(nCoil_i),":","_")+ ", " + Replace(SourceNames(nCoil_j),":","_"),resultID)
+								o_inductance.MakeCompatibleTo(o_ref_signal)
+								'ReportInformationToWindow("Number of sample points pro inductance curve: " + CStr( o_inductance.GetN() ) )
+								value_inductance = o_inductance.GetY(nSample)
+								StateSpaceExtraction.SetValue(3,value_inductance)
+							Next
+							'get "mechanical" second derivatives values(=Back EMF), sample = nSample. (It is done here to guarantee a symmetric matrix). Later on, it is done once more.
+							Dim nMotionIdx As Long
+							Dim nGapIdx As Long
+							For nMotionIdx=0 To nMotions-1
+								For nGapIdx = 0 To nGaps-1
+									Set o_BackEMF = Resulttree.GetResultFromTreeItem(treepath_BackEMF + "\EMF " + Replace(SourceNames(nCoil_i),":","_") + ", " + MotionNames(nMotionIdx) + ":" + GapNames(nGapIdx),resultID)
+									o_BackEMF.MakeCompatibleTo(o_ref_signal)
+									'ReportInformationToWindow("Number of sample points pro back emf curve: " + CStr( o_BackEMF.GetN() ) )
+									value_BackEMF = o_BackEMF.GetY(nSample)
+   									Set o_Speed = Resulttree.GetResultFromTreeItem(treepath_speed + "\" + MotionNames(nMotionIdx),resultID)
+									o_Speed.MakeCompatibleTo(o_ref_signal)
+									' take the last value of the speed since the first does not exists. Assumes the speed is constant!!!
+                                    value_Speed = o_Speed.GetY(nSamplesProSignal - 1)
+                                    value_Omega = value_Speed * 2.0 * Pi / 60.0
+                                    ' Paranoia: avoid division by zero. Results are however not exactly useful.
+                                    if value_Omega = 0.0 then
+                                      value_Omega = 1.0
+                                    end if
+                                    value_NBackEMF = value_BackEMF / value_Omega
+                                    'ReportInformationToWindow("BackEMF: " + CStr( value_BackEMF ) + " Speed:" + CStr( value_Speed ) + " Omega:" + CStr( value_Omega ) + " Normed BackEMF:" + CStr( value_NBackEMF ) )
+									StateSpaceExtraction.SetValue(3,value_NBackEMF)
+								Next
+							Next
+						Next
+
+						' get "mechanical" first derivative values (=torque), sample = nSample
+						For nMotionIdx=0 To nMotions-1
+							For nGapIdx = 0 To nGaps-1
+								Set o_torque = Resulttree.GetResultFromTreeItem(treepath_torque + "\Torque " + MotionNames(nMotionIdx) + ":" + GapNames(nGapIdx),resultID)
+								o_torque.MakeCompatibleTo(o_ref_signal)
+								'ReportInformationToWindow("Number of sample points pro torque curve: " + CStr( o_torque.GetN() ) )
+								value_torque = o_torque.GetY(nSample)
+								StateSpaceExtraction.SetValue(2,value_torque)
+							Next
+						Next
+
+						' get mechanical second derivatives (back EMF), sample = nSample
+						Dim nMotionIdx_i As Long
+						Dim nMotionIdx_k As Long
+						For nMotionIdx_i=0 To nMotions-1
+							For nGapIdx = 0 To nGaps-1
+								For nCoil_j=0 To nSources-1
+									Set o_BackEMF = Resulttree.GetResultFromTreeItem(treepath_BackEMF + "\EMF " + Replace(SourceNames(nCoil_j),":","_") + ", " + MotionNames(nMotionIdx_i) + ":" + GapNames(nGapIdx),resultID)
+									o_BackEMF.MakeCompatibleTo(o_ref_signal)
+									'ReportInformationToWindow("Number of sample points pro back emf curve: " + CStr( o_BackEMF.GetN() ) )
+									value_BackEMF = o_BackEMF.GetY(nSample)
+   									Set o_Speed = Resulttree.GetResultFromTreeItem(treepath_speed + "\" + MotionNames(nMotionIdx_i),resultID)
+									o_Speed.MakeCompatibleTo(o_ref_signal)
+									' take the last value of the speed since the first does not exists. Assumes the speed is constant!!!
+                                    value_Speed = o_Speed.GetY(nSamplesProSignal - 1)
+                                    value_Omega = value_Speed * 2.0 * Pi / 60.0
+                                    ' Paranoia: avoid division by zero. Results are however not exactly useful.
+                                    if value_Omega = 0.0 then
+                                      value_Omega = 1.0
+                                    end if
+                                    value_NBackEMF = value_BackEMF / value_Omega
+                                    'ReportInformationToWindow("BackEMF: " + CStr( value_BackEMF ) + " Speed:" + CStr( value_Speed ) + " Omega:" + CStr( value_Omega ) + " Normed BackEMF:" + CStr( value_NBackEMF ) )
+									StateSpaceExtraction.SetValue(3,value_NBackEMF)
+								Next
+								For nMotionIdx_k=0 To nMotions-1
+									' Attention - this is tricky: we cannot calculate up till now the rotational stiffness, that is why we force it to be zero
+									Dim dRotStiffness as Double
+									dRotStiffness = 1e-20
+									StateSpaceExtraction.SetValue(3,dRotStiffness)
+								Next
+							Next
+						Next
+					Next
+
+			ElseIf (bMStatic_Solver) Then 'MStatic, no motion
+				Dim SourceValues() As Double
+				ReDim SourceValues(nSources-1)
+				Dim nCoilIdx As Long
+				For nCoilIdx = 0 To nSources-1
+					Set o_current = Resulttree.GetResultFromTreeItem(treepath_current + "\" + Replace(SourceNames(nCoilIdx),":","\"),resultID)
+					o_current.GetData(value_current)
+					SourceValues(nCoilIdx) = value_current
+				Next
+				If IsEmpty( SourceValues ) Then
+					ReportError( "Source values of '" + resultID + "'" + "does not exist." )
+				End If
+				Dim n2 As Long
+				For n2 = 0 To nSources-1
+					'ReportInformationToWindow( SourceNames( n2 )  + ": " + CStr( SourceValues( n2 ) ) )
+					StateSpaceExtraction.SetValue(0,SourceValues(n2))
+				Next
+				'get coenergy value for the completed WP
+				Set o_coenergy = Resulttree.GetResultFromTreeItem(treepath_coenergy,resultID)
+				o_coenergy.GetData(value_coenergy)
+				StateSpaceExtraction.SetValue(1,value_coenergy)
+				' get flux linkage and inductance values
+				For nCoil_i = 0 To nSources-1
+					Set o_flux = Resulttree.GetResultFromTreeItem(treepath_flux + "\" + Replace(SourceNames(nCoil_i),":","\"),resultID)
+					o_flux.GetData(value_flux)
+					StateSpaceExtraction.SetValue(2,value_flux)
+					For nCoil_j = 0 To nSources-1
+						Set o_inductance = Resulttree.GetResultFromTreeItem(treepath_inductance + "\L " + Replace(SourceNames(nCoil_i),":","_")+ ", " + Replace(SourceNames(nCoil_j),":","_"),resultID)
+						o_inductance.GetData(value_inductance)
+						StateSpaceExtraction.SetValue(3,value_inductance)
+					Next
+				Next
+			End If ' if loop depending on the solver used
+		Next ' IDs Loop
+		StateSpaceExtraction.CheckTransferredData()
+		StateSpaceExtraction.TransportDataToSSILib()
+	End If 'Existance of the working points
+	
+	ReportInformationToWindow("Extraction performed.")
+End Sub
+
+''-------------------AUXILIARY FUNCTIONS----------------------------------------------------
+'Detect solver type (mstatic or mqstd). This is done on the assumption that coenergy result exists for every of these solvers
+Function IsMQSTDSolver() As Boolean
+
+	IsMQSTDSolver = False
+	Dim treepath_coenergy_mqstd As String
+    treepath_coenergy_mqstd = "1D Results\LT Solver\Co-Energy\Total"
+	Dim sTree, sChildName As String
+    sTree = "1D Results\LT Solver\Co-Energy"
+	sChildName = Resulttree.GetFirstChildName ( sTree )
+	If (sChildName <> "") Then
+		While sChildName <> ""
+			sChildName = Resulttree.GetNextItemName( sChildName )
+			If (sChildName = treepath_coenergy_mqstd) Then
+					IsMQSTDSolver = True
+			End If
+		Wend
+	End If
+End Function
+
+Function IsMStaticSolver() As Boolean
+	IsMStaticSolver = False
+	Dim treepath_coenergy_mstatic As String
+    treepath_coenergy_mstatic = "1D Results\Ms Solver\Co-Energy\Total"
+	Dim sTree, sChildName As String
+    sTree = "1D Results\Ms Solver\Co-Energy"
+	sChildName = Resulttree.GetFirstChildName ( sTree )
+	If (sChildName <> "") Then
+		While sChildName <> ""
+			sChildName = Resulttree.GetNextItemName( sChildName )
+			If (sChildName = treepath_coenergy_mstatic) Then
+					IsMStaticSolver = True
+			End If
+		Wend
+	End If
+End Function
+
+Function ExtractUsableRunIDs(sAllRunIDs() As String) As String()
+	Dim arr() As String
+	Dim Length, Index As Long
+	Length = 0
+	Dim i As Long
+	For i = LBound(sAllRunIDs) To UBound(sAllRunIDs)
+		If (StateSpaceExtraction.IsUsableRunID(sAllRunIDs(i))) Then
+			Length = Length + 1
+		End If
+	Next i
+	ReDim arr(Length)
+	Index = 0
+	For i = LBound(sAllRunIDs) To UBound(sAllRunIDs)
+		If (StateSpaceExtraction.IsUsableRunID(sAllRunIDs(i))) Then
+			arr(Index) = sAllRunIDs(i)
+			Index = Index + 1
+		End If
+	Next i
+	ExtractUsableRunIDs = arr
+End Function
+
+Function DefineNTPaths(TD_Solver As Boolean, Static_Solver As Boolean) As Boolean
+
+	Dim sSolverName As String
+	If (TD_Solver = True) Then
+		sSolverName  = "LT Solver"
+	ElseIf (Static_Solver = True) Then
+		sSolverName = "Ms Solver"
+	End If
+
+		'current tree path
+    	treepath_current = "1D Results\" +  sSolverName + "\Coil\Current"
+
+		'Total co-energy tree path
+    	treepath_coenergy = "1D Results\" + sSolverName + "\Co-Energy\Total"
+
+		'Flux tree path
+    	treepath_flux = "1D Results\" + sSolverName + "\Flux Linkages"
+
+		'Inductance tree path
+    	treepath_inductance = "1D Results\" + sSolverName + "\Incremental Inductance Matrix"
+
+		If (TD_Solver = True) Then
+
+			'torque tree path
+			treepath_torque = "1D Results\" + sSolverName + "\Torque"
+
+			'BackEMF tree path
+			treepath_BackEMF = "1D Results\" + sSolverName +"\Motion Induced Voltage"
+
+			'Motion tree path
+    		treepath_motion = "1D Results\" + sSolverName + "\Motion" + "\Angle"
+
+			'Motion tree path
+    		treepath_speed = "1D Results\" + sSolverName + "\Motion" + "\Speed"
+
+		End If
+
+		DefineNTPaths = True
+
+
+End Function
+
+Function DefineUsableRunIDs(TD_Solver As Boolean, Static_Solver As Boolean) As Boolean
+
+	Dim IDs_all_coenergy() As String
+	Dim IDs_all_flux() As String
+	Dim IDs_all_inductance() As String
+	Dim IDs_all_current() As String
+	Dim IDs_all_torque() As String
+	Dim IDs_all_BackEMF() As String
+
+	'' Extraction of the usable IDs
+	IDs_all_coenergy = Resulttree.GetResultIDsFromTreeItem( treepath_coenergy )
+	IDs = ExtractUsableRunIDs(IDs_all_coenergy)
+
+	If (nSources > 0) Then
+		IDs_all_flux = Resulttree.GetResultIDsFromTreeItem( treepath_flux + "\" + Replace(SourceNames(0),":","\") )
+		IDs_flux = ExtractUsableRunIDs(IDs_all_flux)
+
+		IDs_all_inductance = Resulttree.GetResultIDsFromTreeItem( treepath_inductance + "\L " + Replace(SourceNames(0),":","\") + ", " + Replace(SourceNames(0),":","_") )
+		IDs_inductance = ExtractUsableRunIDs(IDs_all_inductance)
+
+		IDs_all_current = Resulttree.GetResultIDsFromTreeItem( treepath_current + "\" + Replace(SourceNames(0),":","\") )
+		IDs_current = ExtractUsableRunIDs(IDs_all_current)
+	End If
+
+	If (TD_Solver = True) Then
+		If (nMotions > 0) Then
+			IDs_all_torque =  Resulttree.GetResultIDsFromTreeItem( treepath_torque + "\Torque " + MotionNames(0) +":" + GapNames(0))
+			IDs_torque = ExtractUsableRunIDs(IDs_all_torque)
+		End If
+
+		If (nSources > 0) Then
+			IDs_all_BackEMF =  Resulttree.GetResultIDsFromTreeItem( treepath_BackEMF + "\EMF " + Replace(SourceNames(0),":","\") + ", " +  MotionNames(0) + ":" + GapNames(0))
+			IDs_BackEMF = ExtractUsableRunIDs(IDs_all_BackEMF)
+		End If
+	End If
+
+	If (TD_Solver = True) Then
+		If (nSources > 0) Then
+			If (UBound(IDs)-UBound(IDs_flux) <> 0) Or (UBound(IDs)-UBound(IDs_inductance) <> 0) Or (UBound(IDs)-UBound(IDs_current) <> 0) Or (UBound(IDs)-UBound(IDs_BackEMF) <> 0) Then
+				ReportError( "Mismatch in the number of the data to be used for the state space model." )
+			End If
+		End If	
+		If (nMotions > 0) Then
+			If (UBound(IDs)-UBound(IDs_torque) <> 0)  Then
+				ReportError( "Mismatch in the number of the data to be used for the state space model." )
+			End If
+		End If
+	ElseIf (Static_Solver = True) Then
+			If (UBound(IDs)-UBound(IDs_flux) <> 0) Or (UBound(IDs)-UBound(IDs_inductance) <> 0) Or (UBound(IDs)-UBound(IDs_current) <> 0) Then
+				ReportError( "Mismatch in the number of the data to be used for the state space model." )
+			End If
+	Else
+		ReportError( "Wrong sover is used." )
+	End If
+
+End Function
+
+Function InitializeCoilsAndMotions(TD_Solver As Boolean, Static_Solver As Boolean) As Boolean
+
+	' define the names/quantity of the coils & motions
+	StateSpaceExtraction.Init(bMStatic_Solver,bMQSTD_Solver)
+	nSources = StateSpaceExtraction.GetNumberOfSources()
+	nMotions = StateSpaceExtraction.GetNumberOfMotions()
+	Dim nSourceID, nMotionID As Long
+	If (nSources > 0) Then
+		ReDim SourceNames(nSources-1)
+		For nSourceID = 0 To nSources-1
+			SourceNames(nSourceID)= StateSpaceExtraction.GetSourceNameFromIndex(nSourceID)
+		Next
+	End If
+
+	If (TD_Solver = True) Then
+		If (nMotions > 0) Then
+			nGaps = 1
+			ReDim MotionNames(nMotions-1)
+			ReDim GapNames(nMotions-1)
+			For nMotionID = 0 To nMotions-1
+				MotionNames(nMotionID)= StateSpaceExtraction.GetMotionNameFromIndex(nMotionID)
+				GapNames(nMotionID) = StateSpaceExtraction.GetGapNameFromIndex(nMotionID)
+			Next
+		End If	
+	End If
+
+	InitializeCoilsAndMotions = True
+
+End Function
+Function  CheckResults(TD_Solver As Boolean, Static_Solver As Boolean) As Boolean
+
+	' check result type
+	Dim sResultDim As String
+	Dim sSolver As String
+	If (TD_Solver = True) Then
+		sResultDim  = "1D"
+		sSolver = "time domain"
+	ElseIf (Static_Solver = True) Then
+		sResultDim = "0D"
+		sSolver = "magnetostatic"
+	End If
+	Dim o_checkObj_solver
+	Set o_checkObj_solver = Resulttree.GetResultFromTreeItem(treepath_coenergy,IDs(0))
+	If ( o_checkObj_solver.GetResultObjectType() <> sResultDim) Then
+		Dim sErrorMessage As String
+		sErrorMessage = "Wrong result type for the " + sSolver + " solver."
+		ReportError( sErrorMessage)
+	End If
+
+	'Defintion of a reference signal (inductance) for the time domain solver
+	If (TD_Solver = True) Then
+		Dim sChildName As String
+		sChildName = Resulttree.GetFirstChildName ( treepath_inductance )
+		Set o_ref_signal = Resulttree.GetResultFromTreeItem(sChildName,IDs(0))
+		Dim sSignalType As String
+		If (o_ref_signal.GetResultObjectType = sResultDim) Then
+			ReportInformationToWindow("Number of sample points pro 1D curve: " + CStr( o_ref_signal.GetN() ) )
+			nSamplesProSignal = o_ref_signal.GetN()
+		Else
+			ReportError( "Wrong result type " )
+		End If
+	End If
+
+	' In a static case, it is not possible to create a state space model having only one working point. Check this sutuation!
+	If (Static_Solver = True) Then
+		If UBound(IDs) = 1 Then
+			ReportError( "Only one working point is defined. This information is not enough to build a state space model of a nonlinear static field part. Define at least two working points in each direction or use a linear model." )
+		End If
+	End If
+
+End Function
+Function AddOutput() As Boolean
+
+		If UBound(IDs)-1 - LBound(IDs) > 10 Then
+				If  (ID*10)\(UBound(IDs)-1 - LBound(IDs)) <> ((ID-1)*10)\(UBound(IDs)-1 - LBound(IDs)) Then
+					If (((ID-1)*10)\(UBound(IDs)-1 - LBound(IDs)))*(UBound(IDs)-1 - LBound(IDs))\10+LBound(IDs)+1 <> ((ID*10)\(UBound(IDs)-1 - LBound(IDs)))*(UBound(IDs)-1 - LBound(IDs))\10+LBound(IDs) Then
+						ReportInformationToWindow( CStr((((ID-1)*10)\(UBound(IDs)-1 - LBound(IDs)))*(UBound(IDs)-1 - LBound(IDs))\10+LBound(IDs)+1) + " to " + CStr(((ID*10)\(UBound(IDs)-1 - LBound(IDs)))*(UBound(IDs)-1 - LBound(IDs))\10+LBound(IDs)) )
+					Else
+						ReportInformationToWindow( CStr((((ID-1)*10)\(UBound(IDs)-1 - LBound(IDs)))*(UBound(IDs)-1 - LBound(IDs))\10+LBound(IDs)+1) )
+					End If
+					If ID = UBound(IDs)-1 Then
+						ReportInformationToWindow( CStr(UBound(IDs)) )
+					End If
+				End If
+			Else
+				ReportInformationToWindow( CStr(ID+1) )
+			End If
+	AddOutput = True
+End Function

@@ -1,0 +1,1684 @@
+' Construct / Online / Combline 2post Filter
+' !!! Do not change the line above !!!
+' ================================================================================================
+' Copyright 2014-2023 Dassault Systemes Deutschland GmbH
+' ================================================================================================
+' History of Changes
+' ------------------------------------------------------------------------------------------------
+' 21-Feb-2014  ube: adapted to V2014 new mesh settings
+' ================================================================================================
+
+Sub Main ()
+
+ 
+BeginHide
+
+	Dim bDiscretePorts As Boolean
+
+	If (MsgBox "Include 4 discrete ports for tuning in DS?", vbYesNo+vbDefaultButton2)=vbYes Then
+		bDiscretePorts = True
+	Else
+		bDiscretePorts = False
+	End If
+
+	StoreDoubleParameter "Input_coupling_1", 6.3 
+	StoreDoubleParameter "Input_coupling_2", 6.3 
+	StoreDoubleParameter "Res_tuner_1", 0 
+	StoreDoubleParameter "Res_tuner_2", 0 
+	StoreDoubleParameter "aperture", -52 
+	'StoreDoubleParameter "short_out_1", 15  '110-95 
+	'StoreDoubleParameter "short_out_2", 15  '110-95 
+
+	SetParameterDescription ("Input_coupling_1", "6.3" )
+	SetParameterDescription  ("Input_coupling_2", "6.3" )
+	SetParameterDescription  ("Res_tuner_1", "0,  Varying post-hight ") 
+	SetParameterDescription  ("Res_tuner_2", "0") 
+	SetParameterDescription  ("aperture", "-52") 
+	'SetParameterDescription  ("short_out_1", "15  =110-95") 
+	'SetParameterDescription  ("short_out_2", "15  =110-95") 
+
+	 
+	 
+EndHide
+BeginHide
+Dim sCommand As String
+'@ use template: Waveguide Filter
+
+' Template for Waveguide Filter
+' =============================
+' set units to mm, ghz
+sCommand = ""
+sCommand = sCommand + "With Units" + vbLf
+sCommand = sCommand + ".Geometry ""mm""" + vbLf
+sCommand = sCommand + ".Frequency ""ghz""" + vbLf
+sCommand = sCommand + ".Time ""ns""" + vbLf
+sCommand = sCommand + "End With" 
+AddToHistory "define units", sCommand
+' set background material to pec
+sCommand = ""
+sCommand = sCommand + "With Background " + vbLf
+sCommand = sCommand + ".Type ""pec""" + vbLf
+sCommand = sCommand + ".XminSpace ""0.0""" + vbLf
+sCommand = sCommand + ".XmaxSpace ""0.0""" + vbLf
+sCommand = sCommand + ".YminSpace ""0.0""" + vbLf
+sCommand = sCommand + ".YmaxSpace ""0.0""" + vbLf
+sCommand = sCommand + ".ZminSpace ""0.0""" + vbLf
+sCommand = sCommand + ".ZmaxSpace ""0.0""" + vbLf
+sCommand = sCommand + "End With" 
+AddToHistory "define background", sCommand
+' set boundary conditions to electric
+sCommand = ""
+sCommand = sCommand + "With Boundary" + vbLf
+sCommand = sCommand + ".Xmin ""electric""" + vbLf
+sCommand = sCommand + ".Xmax ""electric""" + vbLf
+sCommand = sCommand + ".Ymin ""electric""" + vbLf
+sCommand = sCommand + ".Ymax ""electric""" + vbLf
+sCommand = sCommand + ".Zmin ""electric""" + vbLf
+sCommand = sCommand + ".Zmax ""electric""" + vbLf
+sCommand = sCommand + ".Xsymmetry ""none""" + vbLf
+sCommand = sCommand + ".Ysymmetry ""none""" + vbLf
+sCommand = sCommand + ".Zsymmetry ""none""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define boundaries", sCommand
+' increase maximum number of pulses to simulation (resonant structure)
+sCommand = ""
+sCommand = sCommand + "With Solver " + vbLf
+sCommand = sCommand + ".NumberOfPulseWidths ""50""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define solver parameters", sCommand
+'@ set workplane properties
+
+sCommand = ""
+sCommand = sCommand + "With WCS" + vbLf
+sCommand = sCommand + ".SetWorkplaneSize ""300""" + vbLf
+sCommand = sCommand + ".SetWorkplaneRaster ""10""" + vbLf
+sCommand = sCommand + ".SetWorkplaneSnap ""TRUE""" + vbLf
+sCommand = sCommand + ".SetWorkplaneSnapRaster ""5""" + vbLf
+sCommand = sCommand + ".SetWorkplaneAutoadjust ""TRUE""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "set workplane properties", sCommand
+'@ define brick: Vacuum:housing
+
+sCommand = ""
+sCommand = sCommand + "With Brick" + vbLf
+sCommand = sCommand + ".Reset " + vbLf
+sCommand = sCommand + ".Name ""housing""" + vbLf
+sCommand = sCommand + ".Component ""Vacuum""" + vbLf
+sCommand = sCommand + ".Material ""Vacuum""" + vbLf
+sCommand = sCommand + ".Xrange ""-50"", ""50""" + vbLf
+sCommand = sCommand + ".Yrange ""-100"", ""100""" + vbLf
+sCommand = sCommand + ".Zrange ""0"", ""110""" + vbLf
+sCommand = sCommand + ".Create " + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define brick: Vacuum:housing", sCommand
+'@ define cylinder: PEC:cylinder1
+
+sCommand = ""
+sCommand = sCommand + "With Cylinder " + vbLf
+sCommand = sCommand + ".Reset " + vbLf
+sCommand = sCommand + ".Name ""cylinder1""" + vbLf
+sCommand = sCommand + ".Component ""PEC""" + vbLf
+sCommand = sCommand + ".Material ""PEC""" + vbLf
+sCommand = sCommand + ".OuterRadius ""17""" + vbLf
+sCommand = sCommand + ".InnerRadius ""0""" + vbLf
+sCommand = sCommand + ".Axis ""z""" + vbLf
+sCommand = sCommand + ".Zrange ""0"", ""95""" + vbLf
+sCommand = sCommand + ".Xcenter ""0""" + vbLf
+sCommand = sCommand + ".Ycenter ""-50""" + vbLf
+sCommand = sCommand + ".Create " + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define cylinder: PEC:cylinder1", sCommand
+'@ define cylinder: PEC:cylinder2
+
+sCommand = ""
+sCommand = sCommand + "With Cylinder " + vbLf
+sCommand = sCommand + ".Reset " + vbLf
+sCommand = sCommand + ".Name ""cylinder2""" + vbLf
+sCommand = sCommand + ".Component ""PEC""" + vbLf
+sCommand = sCommand + ".Material ""PEC""" + vbLf
+sCommand = sCommand + ".OuterRadius ""17""" + vbLf
+sCommand = sCommand + ".InnerRadius ""0""" + vbLf
+sCommand = sCommand + ".Axis ""z""" + vbLf
+sCommand = sCommand + ".Zrange ""0"", ""95""" + vbLf
+sCommand = sCommand + ".Xcenter ""0""" + vbLf
+sCommand = sCommand + ".Ycenter ""50""" + vbLf
+sCommand = sCommand + ".Create " + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define cylinder: PEC:cylinder2", sCommand
+
+'@ store picked point: 1
+sCommand = ""
+sCommand = sCommand + "With Pick" + vbLf
+sCommand = sCommand + ".NextPickToDatabase ""1""" + vbLf
+sCommand = sCommand + ".PickMidpointFromId ""Vacuum:housing"", ""7""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "store picked point: 1", sCommand
+
+
+'@ store picked point: 2
+sCommand = ""
+sCommand = sCommand + "With Pick" + vbLf
+sCommand = sCommand + ".NextPickToDatabase ""2""" + vbLf
+sCommand = sCommand + ".PickMidpointFromId ""Vacuum:housing"", ""5""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "store picked point: 2", sCommand
+
+
+'@ define brick: PEC:iris
+
+sCommand = ""
+sCommand = sCommand + "With Brick" + vbLf
+sCommand = sCommand + ".Reset " + vbLf
+sCommand = sCommand + ".Name ""iris""" + vbLf
+sCommand = sCommand + ".Component ""PEC""" + vbLf
+sCommand = sCommand + ".Material ""PEC""" + vbLf
+sCommand = sCommand + ".Xrange ""xp(1)"", ""xp(2)""" + vbLf
+sCommand = sCommand + ".Yrange ""yp(1) - 0.5*(2)"", ""yp(1) + 0.5*(2)""" + vbLf
+sCommand = sCommand + ".Zrange ""0"", ""105""" + vbLf
+sCommand = sCommand + ".Create " + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define brick: PEC:iris", sCommand
+
+'@ pick face
+sCommand = ""
+sCommand = sCommand + "With Pick" + vbLf
+sCommand = sCommand + ".PickFaceFromId ""Vacuum:housing"", ""5""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "pick face", sCommand
+
+'@ align wcs with face
+sCommand = ""
+sCommand = sCommand + "With WCS" + vbLf
+sCommand = sCommand + ".AlignWCSWithSelectedFace" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "align wcs with face", sCommand
+
+
+'@ pick center point
+sCommand = ""
+sCommand = sCommand + "With Pick" + vbLf
+sCommand = sCommand + ".PickCenterpointFromId ""Vacuum:housing"", ""5""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "pick center point", sCommand
+
+
+'@ align wcs with point
+sCommand = ""
+sCommand = sCommand + "With WCS" + vbLf
+sCommand = sCommand + ".AlignWCSWithSelectedPoint" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "align wcs with point", sCommand
+
+
+'@ pick mid point
+sCommand = ""
+sCommand = sCommand + "With Pick" + vbLf
+sCommand = sCommand + ".PickMidpointFromId ""Vacuum:housing"", ""2""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "pick mid point", sCommand
+
+'@ align wcs with point
+sCommand = ""
+sCommand = sCommand + "With WCS" + vbLf
+sCommand = sCommand + ".AlignWCSWithSelectedPoint" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "align wcs with point", sCommand
+
+'@ define material: coaxial cable
+
+sCommand = ""
+sCommand = sCommand + "With Material" + vbLf
+sCommand = sCommand + ".Reset " + vbLf
+sCommand = sCommand + ".Name ""coaxial cable""" + vbLf
+sCommand = sCommand + ".FrqType ""hf""" + vbLf
+sCommand = sCommand + ".Type ""Normal""" + vbLf
+sCommand = sCommand + ".Epsilon ""2.2""" + vbLf
+sCommand = sCommand + ".Mu ""1.0""" + vbLf
+sCommand = sCommand + ".Kappa ""0.0""" + vbLf
+sCommand = sCommand + ".TanD ""0.0""" + vbLf
+sCommand = sCommand + ".TanDFreq ""0.0""" + vbLf
+sCommand = sCommand + ".TanDGiven ""False""" + vbLf
+sCommand = sCommand + ".TanDModel ""ConstTanD""" + vbLf
+sCommand = sCommand + ".KappaM ""0.0""" + vbLf
+sCommand = sCommand + ".TanDM ""0.0""" + vbLf
+sCommand = sCommand + ".TanDMFreq ""0.0""" + vbLf
+sCommand = sCommand + ".TanDMGiven ""False""" + vbLf
+sCommand = sCommand + ".DispModelEps ""None""" + vbLf
+sCommand = sCommand + ".DispModelMu ""None""" + vbLf
+sCommand = sCommand + ".Rho ""0.0""" + vbLf
+sCommand = sCommand + ".Colour ""1"", ""0.501961"", ""0.25098""" + vbLf
+sCommand = sCommand + ".Wireframe ""False""" + vbLf
+sCommand = sCommand + ".Transparency ""0""" + vbLf
+sCommand = sCommand + ".Create " + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define material: coaxial cable", sCommand
+'@ define cylinder: coaxial cable:coaxial substrate
+
+sCommand = ""
+sCommand = sCommand + "With Cylinder " + vbLf
+sCommand = sCommand + ".Reset " + vbLf
+sCommand = sCommand + ".Name ""coaxial substrate""" + vbLf
+sCommand = sCommand + ".Component ""coaxial cable""" + vbLf
+sCommand = sCommand + ".Material ""coaxial cable""" + vbLf
+sCommand = sCommand + ".OuterRadius ""10""" + vbLf
+sCommand = sCommand + ".InnerRadius ""0""" + vbLf
+sCommand = sCommand + ".Axis ""z""" + vbLf
+sCommand = sCommand + ".Zrange ""0"", ""15""" + vbLf
+sCommand = sCommand + ".Xcenter ""0""" + vbLf
+sCommand = sCommand + ".Ycenter ""17.9""" + vbLf
+sCommand = sCommand + ".Create " + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define cylinder: coaxial cable:coaxial substrate", sCommand
+
+'@ pick circle center point
+sCommand = ""
+sCommand = sCommand + "With Pick" + vbLf
+sCommand = sCommand + ".PickCirclecenterFromId ""coaxial cable:coaxial substrate"", ""2""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "pick circle center point", sCommand
+
+'@ align wcs with point
+sCommand = ""
+sCommand = sCommand + "With WCS" + vbLf
+sCommand = sCommand + ".AlignWCSWithSelectedPoint" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "align wcs with point", sCommand
+
+'@ define cylinder: PEC:coaxial inner conductor
+
+sCommand = ""
+sCommand = sCommand + "With Cylinder " + vbLf
+sCommand = sCommand + ".Reset " + vbLf
+sCommand = sCommand + ".Name ""coaxial inner conductor""" + vbLf
+sCommand = sCommand + ".Component ""PEC""" + vbLf
+sCommand = sCommand + ".Material ""PEC""" + vbLf
+sCommand = sCommand + ".OuterRadius ""2.9""" + vbLf
+sCommand = sCommand + ".InnerRadius ""0""" + vbLf
+sCommand = sCommand + ".Axis ""z""" + vbLf
+sCommand = sCommand + ".Zrange ""-40"", ""0""" + vbLf
+sCommand = sCommand + ".Xcenter ""0""" + vbLf
+sCommand = sCommand + ".Ycenter ""0""" + vbLf
+sCommand = sCommand + ".Create " + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define layer: coaxial cable", sCommand
+
+'@ activate global coordinates
+sCommand = ""
+sCommand = sCommand + "With WCS" + vbLf
+sCommand = sCommand + ".ActivateWCS ""global""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "align wcs with point", sCommand
+
+
+'@ transform: mirror coaxial cable:coaxial substrate
+
+sCommand = ""
+sCommand = sCommand + "With Transform " + vbLf
+sCommand = sCommand + ".Reset " + vbLf
+sCommand = sCommand + ".Name ""coaxial cable:coaxial substrate""" + vbLf
+sCommand = sCommand + ".Origin ""Free""" + vbLf
+sCommand = sCommand + ".Center ""0"", ""0"", ""0""" + vbLf
+sCommand = sCommand + ".PlaneNormal ""0"", ""1"", ""0""" + vbLf
+sCommand = sCommand + ".MultipleObjects ""True""" + vbLf
+sCommand = sCommand + ".GroupObjects ""False""" + vbLf
+sCommand = sCommand + ".Repetitions ""1""" + vbLf
+sCommand = sCommand + ".MirrorAdvanced " + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "transform: mirror coaxial cable:coaxial substrate", sCommand
+'@ transform: mirror PEC:coaxial inner conductor
+
+sCommand = ""
+sCommand = sCommand + "With Transform " + vbLf
+sCommand = sCommand + ".Reset " + vbLf
+sCommand = sCommand + ".Name ""PEC:coaxial inner conductor""" + vbLf
+sCommand = sCommand + ".Origin ""Free""" + vbLf
+sCommand = sCommand + ".Center ""0"", ""0"", ""0""" + vbLf
+sCommand = sCommand + ".PlaneNormal ""0"", ""1"", ""0""" + vbLf
+sCommand = sCommand + ".MultipleObjects ""True""" + vbLf
+sCommand = sCommand + ".GroupObjects ""False""" + vbLf
+sCommand = sCommand + ".Repetitions ""1""" + vbLf
+sCommand = sCommand + ".MirrorAdvanced " + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "transform: mirror PEC:coaxial inner conductor", sCommand
+
+'@ pick face
+sCommand = ""
+sCommand = sCommand + "With Pick" + vbLf
+sCommand = sCommand + ".PickFaceFromId ""coaxial cable:coaxial substrate"", ""3""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "pick face", sCommand
+
+'@ define port: 1
+
+sCommand = ""
+sCommand = sCommand + "With Port " + vbLf
+sCommand = sCommand + ".Reset " + vbLf
+sCommand = sCommand + ".PortNumber ""1""" + vbLf
+sCommand = sCommand + ".NumberOfModes ""1""" + vbLf
+sCommand = sCommand + ".AdjustPolarization False " + vbLf
+sCommand = sCommand + ".PolarizationAngle ""0.0""" + vbLf
+sCommand = sCommand + ".ReferencePlaneDistance ""-32""" + vbLf
+sCommand = sCommand + ".TextSize ""50""" + vbLf
+sCommand = sCommand + ".Coordinates ""Picks""" + vbLf
+sCommand = sCommand + ".Location ""ymax""" + vbLf
+sCommand = sCommand + ".Xrange ""-10"", ""10""" + vbLf
+sCommand = sCommand + ".Zrange ""82.1"", ""102.1""" + vbLf
+sCommand = sCommand + ".Create " + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define port: 1", sCommand
+
+'@ pick face
+sCommand = ""
+sCommand = sCommand + "With Pick" + vbLf
+sCommand = sCommand + ".PickFaceFromId ""coaxial cable:coaxial substrate_1"", ""3""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "pick face", sCommand
+
+'@ define port: 2
+
+sCommand = ""
+sCommand = sCommand + "With Port " + vbLf
+sCommand = sCommand + ".Reset " + vbLf
+sCommand = sCommand + ".PortNumber ""2""" + vbLf
+sCommand = sCommand + ".NumberOfModes ""1""" + vbLf
+sCommand = sCommand + ".AdjustPolarization False " + vbLf
+sCommand = sCommand + ".PolarizationAngle ""0.0""" + vbLf
+sCommand = sCommand + ".ReferencePlaneDistance ""0""" + vbLf
+sCommand = sCommand + ".TextSize ""50""" + vbLf
+sCommand = sCommand + ".Coordinates ""Picks""" + vbLf
+sCommand = sCommand + ".Location ""ymin""" + vbLf
+sCommand = sCommand + ".Xrange ""-10"", ""10""" + vbLf
+sCommand = sCommand + ".Zrange ""82.1"", ""102.1""" + vbLf
+sCommand = sCommand + ".Create " + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define port: 2", sCommand
+'@ define boundaries
+
+sCommand = ""
+sCommand = sCommand + "With Boundary" + vbLf
+sCommand = sCommand + ".Xmin ""electric""" + vbLf
+sCommand = sCommand + ".Xmax ""electric""" + vbLf
+sCommand = sCommand + ".Ymin ""electric""" + vbLf
+sCommand = sCommand + ".Ymax ""electric""" + vbLf
+sCommand = sCommand + ".Zmin ""electric""" + vbLf
+sCommand = sCommand + ".Zmax ""electric""" + vbLf
+sCommand = sCommand + ".Xsymmetry ""magnetic""" + vbLf
+sCommand = sCommand + ".Ysymmetry ""none""" + vbLf
+sCommand = sCommand + ".Zsymmetry ""none""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define boundaries", sCommand
+
+'@ define automesh state
+sCommand = ""
+sCommand = sCommand + "With Mesh" + vbLf
+sCommand = sCommand + ".Automesh ""True""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define automesh state", sCommand
+
+
+'@ define frequency range
+sCommand = ""
+sCommand = sCommand + "With Solver" + vbLf
+sCommand = sCommand + "Solver.FrequencyRange ""0.58"", ""0.62""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define frequency range", sCommand
+
+'@ define aks solver parameters
+
+sCommand = ""
+sCommand = sCommand + "With Solver" + vbLf
+sCommand = sCommand + ".CalculationType ""Modal-S""" + vbLf
+sCommand = sCommand + ".AKSReset " + vbLf
+sCommand = sCommand + ".AKSModes ""20""" + vbLf
+sCommand = sCommand + ".AKSPenaltyFactor ""1""" + vbLf
+sCommand = sCommand + ".AKSEstimation ""3.479""" + vbLf
+sCommand = sCommand + ".AKSAutomaticEstimation ""True""" + vbLf
+sCommand = sCommand + ".AKSEstimationCycles ""5""" + vbLf
+sCommand = sCommand + ".AKSIterations ""5""" + vbLf
+sCommand = sCommand + ".AKSAccuracy ""1e-012""" + vbLf
+sCommand = sCommand + ".AKSModalAnalysis ""True""" + vbLf
+sCommand = sCommand + ".AKSSpecDensitySamples ""1""" + vbLf
+sCommand = sCommand + ".AKSNfsteps ""1000""" + vbLf
+sCommand = sCommand + ".AKSMaximumNumberOfProcessors ""1""" + vbLf
+sCommand = sCommand + ".StoreEigenmodeResultsInCache ""False""" + vbLf
+sCommand = sCommand + ".AKSAdaptionActive ""True""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define aks solver parameters", sCommand
+'@ set 3d mesh adaption results
+
+sCommand = ""
+sCommand = sCommand + "With Mesh" + vbLf
+sCommand = sCommand + ".LinesPerWavelength ""25""" + vbLf
+sCommand = sCommand + ".MinimumLineNumber ""25""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "set 3d mesh adaption results", sCommand
+
+'@ deactivate eigenmode solver mesh adaption
+sCommand = ""
+sCommand = sCommand + "With Solver" + vbLf
+sCommand = sCommand + ".AKSAdaptionActive ""False""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "deactivate eigenmode solver mesh adaption", sCommand
+
+'@ define solver parameters
+sCommand = ""
+sCommand = sCommand + "With Solver " + vbLf
+sCommand = sCommand + ".CalculationType ""TD-S""" + vbLf
+sCommand = sCommand + ".StimulationPort ""All""" + vbLf
+sCommand = sCommand + ".StimulationMode ""All""" + vbLf
+sCommand = sCommand + ".SteadyStateLimit ""-30""" + vbLf
+sCommand = sCommand + ".MeshAdaption ""False""" + vbLf
+sCommand = sCommand + ".AutoNormImpedance ""False""" + vbLf
+sCommand = sCommand + ".NormingImpedance ""50""" + vbLf
+sCommand = sCommand + ".CalculateModesOnly ""False""" + vbLf
+sCommand = sCommand + ".SParaSymmetry ""False""" + vbLf
+sCommand = sCommand + ".StimulationType ""Gaussian""" + vbLf
+sCommand = sCommand + ".StoreTDResultsInCache ""False""" + vbLf
+sCommand = sCommand + ".FullDeembedding ""False""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define solver parameters", sCommand
+
+'@ define automesh state
+sCommand = ""
+sCommand = sCommand + "With Mesh" + vbLf
+sCommand = sCommand + ".Automesh ""True""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define automesh state", sCommand
+
+'@ define frequency range
+sCommand = ""
+sCommand = sCommand + "With Solver" + vbLf
+sCommand = sCommand + ".FrequencyRange "".5"", ""1""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define frequency range", sCommand
+
+'@ define special solver parameters
+
+sCommand = ""
+sCommand = sCommand + "With Solver " + vbLf
+sCommand = sCommand + ".TimeBetweenUpdates ""20""" + vbLf
+sCommand = sCommand + ".NumberOfPulseWidths ""50""" + vbLf
+sCommand = sCommand + ".EnergyBalanceLimit ""0.03""" + vbLf
+sCommand = sCommand + ".UseArfilter ""False""" + vbLf
+sCommand = sCommand + ".ArMaxEnergyDeviation ""0.1""" + vbLf
+sCommand = sCommand + ".ArPulseSkip ""1""" + vbLf
+sCommand = sCommand + ".WaveguideBroadband ""False""" + vbLf
+sCommand = sCommand + ".SetBBPSamples ""5""" + vbLf
+sCommand = sCommand + ".SetSamplesFullDeembedding ""20""" + vbLf
+sCommand = sCommand + ".MatrixDump ""False""" + vbLf
+sCommand = sCommand + ".TimestepReduction ""0.45""" + vbLf
+sCommand = sCommand + ".NumberOfSubcycles ""4""" + vbLf
+sCommand = sCommand + ".SubcycleFillLimit ""70""" + vbLf
+sCommand = sCommand + ".UseParallelization ""False""" + vbLf
+sCommand = sCommand + ".MaximumNumberOfProcessors ""2""" + vbLf
+sCommand = sCommand + ".TimeStepStabilityFactor ""1.0""" + vbLf
+sCommand = sCommand + ".UseOpenBoundaryForHigherModes ""True""" + vbLf
+sCommand = sCommand + ".SetModeFreqFactor ""0.5""" + vbLf
+sCommand = sCommand + ".SurfaceImpedanceOrder ""10""" + vbLf
+sCommand = sCommand + ".SetPortShielding ""False""" + vbLf
+sCommand = sCommand + ".UseCurrentBasedMultipinPorts ""False""" + vbLf
+sCommand = sCommand + ".SetTimeStepMethod ""Automatic""" + vbLf
+sCommand = sCommand + ".FrequencySamples ""5001""" + vbLf
+sCommand = sCommand + ".ConsiderTwoPortReciprocity ""True""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define special solver parameters", sCommand
+'@ define solver parameters
+
+sCommand = ""
+sCommand = sCommand + "With Solver " + vbLf
+sCommand = sCommand + ".CalculationType ""TD-S""" + vbLf
+sCommand = sCommand + ".StimulationPort ""1""" + vbLf
+sCommand = sCommand + ".StimulationMode ""1""" + vbLf
+sCommand = sCommand + ".SteadyStateLimit ""-30""" + vbLf
+sCommand = sCommand + ".MeshAdaption ""False""" + vbLf
+sCommand = sCommand + ".CalculateModesOnly ""False""" + vbLf
+sCommand = sCommand + ".SParaSymmetry ""False""" + vbLf
+sCommand = sCommand + ".StimulationType ""Gaussian""" + vbLf
+sCommand = sCommand + ".StoreTDResultsInCache ""False""" + vbLf
+sCommand = sCommand + ".FullDeembedding ""False""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define solver parameters", sCommand
+'@ arfilter settings
+
+sCommand = ""
+sCommand = sCommand + "With Arfilter" + vbLf
+sCommand = sCommand + ".SetFirstTime ""9.9927146639675""" + vbLf
+sCommand = sCommand + ".SetSkip ""10""" + vbLf
+sCommand = sCommand + ".SetMaxFrq ""1.575""" + vbLf
+sCommand = sCommand + ".SetMaxOrder ""50""" + vbLf
+sCommand = sCommand + ".SetWindowLength ""5""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "arfilter settings", sCommand
+
+'@ pick face
+sCommand = ""
+sCommand = sCommand + "With Pick" + vbLf
+sCommand = sCommand + ".PickFaceFromId ""PEC:cylinder2"", ""3""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "pick face", sCommand
+
+
+'@ move planar face of object: PEC:cylinder2
+sCommand = ""
+sCommand = sCommand + "With Solid" + vbLf
+sCommand = sCommand + ".MoveSelectedPlanarFace ""Res_tuner_1""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "move planar face of object: PEC:cylinder2", sCommand
+
+'@ pick face
+sCommand = ""
+sCommand = sCommand + "With Pick" + vbLf
+sCommand = sCommand + ".PickFaceFromId ""PEC:cylinder1"", ""3""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "pick face", sCommand
+
+'@ move planar face of object: PEC:cylinder1
+sCommand = ""
+sCommand = sCommand + "With Solid" + vbLf
+sCommand = sCommand + ".MoveSelectedPlanarFace ""Res_tuner_2""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "move planar face of object: PEC:cylinder1", sCommand
+
+'@ pick face
+sCommand = ""
+sCommand = sCommand + "With Pick" + vbLf
+sCommand = sCommand + ".PickFaceFromId ""PEC:iris"", ""1""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "pick face", sCommand
+
+'@ move planar face of object: PEC:iris
+sCommand = ""
+sCommand = sCommand + "With Solid" + vbLf
+sCommand = sCommand + ".MoveSelectedPlanarFace ""aperture""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "move planar face of object: PEC:iris", sCommand
+
+'@ pick face
+sCommand = ""
+sCommand = sCommand + "With Pick" + vbLf
+sCommand = sCommand + ".PickFaceFromId ""PEC:coaxial inner conductor"", ""1""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "pick face", sCommand
+
+'@ move planar face of object: PEC:coaxial inner conductor
+sCommand = ""
+sCommand = sCommand + "With Solid" + vbLf
+sCommand = sCommand + ".MoveSelectedPlanarFace ""Input_coupling_1""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "move planar face of object: PEC:coaxial inner conductor", sCommand
+
+'@ pick face
+sCommand = ""
+sCommand = sCommand + "With Pick" + vbLf
+sCommand = sCommand + ".PickFaceFromId ""PEC:coaxial inner conductor_1"", ""1""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "pick face", sCommand
+
+'@ move planar face of object: PEC:coaxial inner conductor_1
+sCommand = ""
+sCommand = sCommand + "With Solid" + vbLf
+sCommand = sCommand + ".MoveSelectedPlanarFace ""Input_coupling_2""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "move planar face of object: PEC:coaxial inner conductor_1", sCommand
+
+'@ clear picks
+sCommand = ""
+sCommand = sCommand + "With Pick" + vbLf
+sCommand = sCommand + ".ClearAllPicks" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "clear picks", sCommand
+
+
+'@ define solver parameters
+
+sCommand = ""
+sCommand = sCommand + "With Solver " + vbLf
+sCommand = sCommand + ".CalculationType ""TD-S""" + vbLf
+sCommand = sCommand + ".StimulationPort ""1""" + vbLf
+sCommand = sCommand + ".StimulationMode ""1""" + vbLf
+sCommand = sCommand + ".SteadyStateLimit ""-30""" + vbLf
+sCommand = sCommand + ".MeshAdaption ""False""" + vbLf
+sCommand = sCommand + ".CalculateModesOnly ""False""" + vbLf
+sCommand = sCommand + ".SParaSymmetry ""False""" + vbLf
+sCommand = sCommand + ".StimulationType ""Gaussian""" + vbLf
+sCommand = sCommand + ".StoreTDResultsInCache ""False""" + vbLf
+sCommand = sCommand + ".FullDeembedding ""False""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define solver parameters", sCommand
+'@ arfilter settings
+
+sCommand = ""
+sCommand = sCommand + "With Arfilter" + vbLf
+sCommand = sCommand + ".SetFirstTime ""10.003170755692""" + vbLf
+sCommand = sCommand + ".SetSkip ""10""" + vbLf
+sCommand = sCommand + ".SetMaxFrq ""1.575""" + vbLf
+sCommand = sCommand + ".SetMaxOrder ""40""" + vbLf
+sCommand = sCommand + ".SetWindowLength ""2.0""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "arfilter settings", sCommand
+'@ define special solver parameters
+
+sCommand = ""
+sCommand = sCommand + "With Solver " + vbLf
+sCommand = sCommand + ".TimeBetweenUpdates ""20""" + vbLf
+sCommand = sCommand + ".NumberOfPulseWidths ""50""" + vbLf
+sCommand = sCommand + ".EnergyBalanceLimit ""0.03""" + vbLf
+sCommand = sCommand + ".UseArfilter ""True""" + vbLf
+sCommand = sCommand + ".ArMaxEnergyDeviation ""0.1""" + vbLf
+sCommand = sCommand + ".ArPulseSkip ""1""" + vbLf
+sCommand = sCommand + ".WaveguideBroadband ""False""" + vbLf
+sCommand = sCommand + ".SetBBPSamples ""5""" + vbLf
+sCommand = sCommand + ".SetSamplesFullDeembedding ""20""" + vbLf
+sCommand = sCommand + ".MatrixDump ""False""" + vbLf
+sCommand = sCommand + ".TimestepReduction ""0.45""" + vbLf
+sCommand = sCommand + ".NumberOfSubcycles ""4""" + vbLf
+sCommand = sCommand + ".SubcycleFillLimit ""70""" + vbLf
+sCommand = sCommand + ".UseParallelization ""False""" + vbLf
+sCommand = sCommand + ".MaximumNumberOfProcessors ""2""" + vbLf
+sCommand = sCommand + ".TimeStepStabilityFactor ""1.0""" + vbLf
+sCommand = sCommand + ".UseOpenBoundaryForHigherModes ""True""" + vbLf
+sCommand = sCommand + ".SetModeFreqFactor ""0.5""" + vbLf
+sCommand = sCommand + ".SurfaceImpedanceOrder ""10""" + vbLf
+sCommand = sCommand + ".SetPortShielding ""False""" + vbLf
+sCommand = sCommand + ".UseCurrentBasedMultipinPorts ""False""" + vbLf
+sCommand = sCommand + ".SetTimeStepMethod ""Automatic""" + vbLf
+sCommand = sCommand + ".FrequencySamples ""5001""" + vbLf
+sCommand = sCommand + ".ConsiderTwoPortReciprocity ""True""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define special solver parameters", sCommand
+'@ define solver parameters
+
+sCommand = ""
+sCommand = sCommand + "With Solver " + vbLf
+sCommand = sCommand + ".CalculationType ""TD-S""" + vbLf
+sCommand = sCommand + ".StimulationPort ""1""" + vbLf
+sCommand = sCommand + ".StimulationMode ""1""" + vbLf
+sCommand = sCommand + ".SteadyStateLimit ""-30""" + vbLf
+sCommand = sCommand + ".MeshAdaption ""False""" + vbLf
+sCommand = sCommand + ".CalculateModesOnly ""False""" + vbLf
+sCommand = sCommand + ".SParaSymmetry ""False""" + vbLf
+sCommand = sCommand + ".StimulationType ""Gaussian""" + vbLf
+sCommand = sCommand + ".StoreTDResultsInCache ""False""" + vbLf
+sCommand = sCommand + ".FullDeembedding ""False""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define solver parameters", sCommand
+
+'@ delete port: port2
+sCommand = ""
+sCommand = sCommand + "With Port" + vbLf
+sCommand = sCommand + ".Delete ""2""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "delete port: port2", sCommand
+
+'@ define solver parameters
+sCommand = ""
+sCommand = sCommand + "With Solver " + vbLf
+sCommand = sCommand + ".CalculationType ""TD-S""" + vbLf
+sCommand = sCommand + ".StimulationPort ""1""" + vbLf
+sCommand = sCommand + ".StimulationMode ""1""" + vbLf
+sCommand = sCommand + ".SteadyStateLimit ""-30""" + vbLf
+sCommand = sCommand + ".MeshAdaption ""False""" + vbLf
+sCommand = sCommand + ".CalculateModesOnly ""False""" + vbLf
+sCommand = sCommand + ".SParaSymmetry ""False""" + vbLf
+sCommand = sCommand + ".StimulationType ""Gaussian""" + vbLf
+sCommand = sCommand + ".StoreTDResultsInCache ""False""" + vbLf
+sCommand = sCommand + ".FullDeembedding ""False""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define solver parameters", sCommand
+'@ arfilter settings
+
+sCommand = ""
+sCommand = sCommand + "With Arfilter" + vbLf
+sCommand = sCommand + ".SetFirstTime ""9.9993169102818""" + vbLf
+sCommand = sCommand + ".SetSkip ""10""" + vbLf
+sCommand = sCommand + ".SetMaxFrq ""1.575""" + vbLf
+sCommand = sCommand + ".SetMaxOrder ""40""" + vbLf
+sCommand = sCommand + ".SetWindowLength ""4""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "arfilter settings", sCommand
+'@ define solver parameters
+
+sCommand = ""
+sCommand = sCommand + "With Solver " + vbLf
+sCommand = sCommand + ".CalculationType ""TD-S""" + vbLf
+sCommand = sCommand + ".StimulationPort ""1""" + vbLf
+sCommand = sCommand + ".StimulationMode ""1""" + vbLf
+sCommand = sCommand + ".SteadyStateLimit ""-30""" + vbLf
+sCommand = sCommand + ".MeshAdaption ""False""" + vbLf
+sCommand = sCommand + ".CalculateModesOnly ""False""" + vbLf
+sCommand = sCommand + ".SParaSymmetry ""False""" + vbLf
+sCommand = sCommand + ".StimulationType ""Gaussian""" + vbLf
+sCommand = sCommand + ".StoreTDResultsInCache ""False""" + vbLf
+sCommand = sCommand + ".FullDeembedding ""False""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define solver parameters", sCommand
+
+'@ pick face
+sCommand = ""
+sCommand = sCommand + "With Pick" + vbLf
+sCommand = sCommand + ".PickFaceFromId ""coaxial cable:coaxial substrate_1"", ""3""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "pick face", sCommand
+
+
+'@ define port: 2
+
+sCommand = ""
+sCommand = sCommand + "With Port " + vbLf
+sCommand = sCommand + ".Reset " + vbLf
+sCommand = sCommand + ".PortNumber ""2""" + vbLf
+sCommand = sCommand + ".NumberOfModes ""1""" + vbLf
+sCommand = sCommand + ".AdjustPolarization False " + vbLf
+sCommand = sCommand + ".PolarizationAngle ""0.0""" + vbLf
+sCommand = sCommand + ".ReferencePlaneDistance ""0""" + vbLf
+sCommand = sCommand + ".TextSize ""50""" + vbLf
+sCommand = sCommand + ".Coordinates ""Picks""" + vbLf
+sCommand = sCommand + ".Orientation ""ymin""" + vbLf
+sCommand = sCommand + ".PortOnBound ""True""" + vbLf
+sCommand = sCommand + ".ClipPickedPortToBound ""False""" + vbLf
+sCommand = sCommand + ".Xrange ""-10"", ""10""" + vbLf
+sCommand = sCommand + ".Yrange ""-115"", ""-115""" + vbLf
+sCommand = sCommand + ".Zrange ""82.1"", ""102.1""" + vbLf
+sCommand = sCommand + ".Create " + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define port: 2", sCommand
+'@ define solver parameters
+
+sCommand = ""
+sCommand = sCommand + "With Solver"  + vbLf
+sCommand = sCommand + ".CalculationType ""TD-S""" + vbLf
+sCommand = sCommand + ".StimulationPort ""1""" + vbLf
+sCommand = sCommand + ".StimulationMode ""1""" + vbLf
+sCommand = sCommand + ".SteadyStateLimit ""-30""" + vbLf
+sCommand = sCommand + ".MeshAdaption ""False""" + vbLf
+sCommand = sCommand + ".CalculateModesOnly ""False""" + vbLf
+sCommand = sCommand + ".SParaSymmetry ""False""" + vbLf
+sCommand = sCommand + ".StimulationType ""Gaussian""" + vbLf
+sCommand = sCommand + ".StoreTDResultsInCache ""False""" + vbLf
+sCommand = sCommand + ".FullDeembedding ""False""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define solver parameters", sCommand
+
+'@ clear picks
+sCommand = ""
+sCommand = sCommand + "With Pick" + vbLf
+sCommand = sCommand + ".ClearAllPicks" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "clear picks", sCommand
+
+
+'@ arfilter settings
+
+sCommand = ""
+sCommand = sCommand + "With Arfilter" + vbLf
+sCommand = sCommand + ".SetFirstTime ""9.9993169102818""" + vbLf
+sCommand = sCommand + ".SetSkip ""10""" + vbLf
+sCommand = sCommand + ".SetMaxFrq ""1.575""" + vbLf
+sCommand = sCommand + ".SetMaxOrder ""30""" + vbLf
+sCommand = sCommand + ".SetWindowLength ""5""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "arfilter settings", sCommand
+'@ define special solver parameters
+
+sCommand = ""
+sCommand = sCommand + "With Solver " + vbLf
+sCommand = sCommand + ".TimeBetweenUpdates ""20""" + vbLf
+sCommand = sCommand + ".NumberOfPulseWidths ""50""" + vbLf
+sCommand = sCommand + ".EnergyBalanceLimit ""0.03""" + vbLf
+sCommand = sCommand + ".UseArfilter ""False""" + vbLf
+sCommand = sCommand + ".ArMaxEnergyDeviation ""0.1""" + vbLf
+sCommand = sCommand + ".ArPulseSkip ""1""" + vbLf
+sCommand = sCommand + ".WaveguideBroadband ""False""" + vbLf
+sCommand = sCommand + ".SetBBPSamples ""5""" + vbLf
+sCommand = sCommand + ".SetSamplesFullDeembedding ""20""" + vbLf
+sCommand = sCommand + ".MatrixDump ""False""" + vbLf
+sCommand = sCommand + ".TimestepReduction ""0.45""" + vbLf
+sCommand = sCommand + ".NumberOfSubcycles ""4""" + vbLf
+sCommand = sCommand + ".SubcycleFillLimit ""70""" + vbLf
+sCommand = sCommand + ".UseParallelization ""False""" + vbLf
+sCommand = sCommand + ".MaximumNumberOfProcessors ""2""" + vbLf
+sCommand = sCommand + ".TimeStepStabilityFactor ""1.0""" + vbLf
+sCommand = sCommand + ".UseOpenBoundaryForHigherModes ""True""" + vbLf
+sCommand = sCommand + ".SetModeFreqFactor ""0.5""" + vbLf
+sCommand = sCommand + ".SurfaceImpedanceOrder ""10""" + vbLf
+sCommand = sCommand + ".SetPortShielding ""False""" + vbLf
+sCommand = sCommand + ".UseCurrentBasedMultipinPorts ""False""" + vbLf
+sCommand = sCommand + ".SetTimeStepMethod ""Automatic""" + vbLf
+sCommand = sCommand + ".FrequencySamples ""5001""" + vbLf
+sCommand = sCommand + ".ConsiderTwoPortReciprocity ""True""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define special solver parameters", sCommand
+'@ define solver parameters
+
+sCommand = ""
+sCommand = sCommand + "With Solver " + vbLf
+sCommand = sCommand + ".CalculationType ""TD-S""" + vbLf
+sCommand = sCommand + ".StimulationPort ""1""" + vbLf
+sCommand = sCommand + ".StimulationMode ""1""" + vbLf
+sCommand = sCommand + ".SteadyStateLimit ""-50""" + vbLf
+sCommand = sCommand + ".MeshAdaption ""False""" + vbLf
+sCommand = sCommand + ".CalculateModesOnly ""False""" + vbLf
+sCommand = sCommand + ".SParaSymmetry ""False""" + vbLf
+sCommand = sCommand + ".StimulationType ""Gaussian""" + vbLf
+sCommand = sCommand + ".StoreTDResultsInCache ""False""" + vbLf
+sCommand = sCommand + ".FullDeembedding ""False""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define solver parameters", sCommand
+'@ arfilter settings
+
+sCommand = ""
+sCommand = sCommand + "With Arfilter" + vbLf
+sCommand = sCommand + ".SetFirstTime ""10.000723090023""" + vbLf
+sCommand = sCommand + ".SetSkip ""10""" + vbLf
+sCommand = sCommand + ".SetMaxFrq ""1.575""" + vbLf
+sCommand = sCommand + ".SetMaxOrder ""60""" + vbLf
+sCommand = sCommand + ".SetWindowLength ""5""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "arfilter settings", sCommand
+'@ define aks solver parameters
+
+sCommand = ""
+sCommand = sCommand + "With Solver" + vbLf
+sCommand = sCommand + ".CalculationType ""Modal-S""" + vbLf
+sCommand = sCommand + ".AKSReset " + vbLf
+sCommand = sCommand + ".AKSModes ""20""" + vbLf
+sCommand = sCommand + ".AKSPenaltyFactor ""1""" + vbLf
+sCommand = sCommand + ".AKSEstimation ""5""" + vbLf
+sCommand = sCommand + ".AKSAutomaticEstimation ""True""" + vbLf
+sCommand = sCommand + ".AKSEstimationCycles ""5""" + vbLf
+sCommand = sCommand + ".AKSIterations ""5""" + vbLf
+sCommand = sCommand + ".AKSAccuracy ""1e-012""" + vbLf
+sCommand = sCommand + ".AKSModalAnalysis ""True""" + vbLf
+sCommand = sCommand + ".AKSSpecDensitySamples ""1""" + vbLf
+sCommand = sCommand + ".AKSNFsamples ""10000""" + vbLf
+sCommand = sCommand + ".AKSMaximumNumberOfProcessors ""1""" + vbLf
+sCommand = sCommand + ".StoreEigenmodeResultsInCache ""False""" + vbLf
+sCommand = sCommand + ".AKSAdaptionActive ""False""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define aks solver parameters", sCommand
+
+'@ define automesh state
+sCommand = ""
+sCommand = sCommand + "With Mesh" + vbLf
+sCommand = sCommand + ".Automesh ""True""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define automesh state", sCommand
+
+'@ define frequency range
+sCommand = ""
+sCommand = sCommand + "With Solver" + vbLf
+sCommand = sCommand + ".FrequencyRange "".5"", "".65""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define frequency range", sCommand
+
+
+'@ define aks solver parameters
+
+sCommand = ""
+sCommand = sCommand + "With Solver" + vbLf
+sCommand = sCommand + ".CalculationType ""Modal-S""" + vbLf
+sCommand = sCommand + ".AKSReset " + vbLf
+sCommand = sCommand + ".AKSModes ""20""" + vbLf
+sCommand = sCommand + ".AKSPenaltyFactor ""1""" + vbLf
+sCommand = sCommand + ".AKSEstimation ""3.5""" + vbLf
+sCommand = sCommand + ".AKSAutomaticEstimation ""True""" + vbLf
+sCommand = sCommand + ".AKSEstimationCycles ""5""" + vbLf
+sCommand = sCommand + ".AKSIterations ""5""" + vbLf
+sCommand = sCommand + ".AKSAccuracy ""1e-012""" + vbLf
+sCommand = sCommand + ".AKSModalAnalysis ""True""" + vbLf
+sCommand = sCommand + ".AKSSpecDensitySamples ""1""" + vbLf
+sCommand = sCommand + ".AKSNFsamples ""10000""" + vbLf
+sCommand = sCommand + ".AKSMaximumNumberOfProcessors ""1""" + vbLf
+sCommand = sCommand + ".StoreEigenmodeResultsInCache ""False""" + vbLf
+sCommand = sCommand + ".AKSAdaptionActive ""False""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define aks solver parameters", sCommand
+
+'@ define automesh state
+sCommand = ""
+sCommand = sCommand + "With Mesh" + vbLf
+sCommand = sCommand + ".Automesh ""True""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define automesh state", sCommand
+
+'@ define frequency range
+sCommand = ""
+sCommand = sCommand + "With Solver" + vbLf
+sCommand = sCommand + ".FrequencyRange "".5"", ""1""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define frequency range", sCommand
+
+'@ define aks solver parameters
+
+sCommand = ""
+sCommand = sCommand + "With Solver" + vbLf
+sCommand = sCommand + ".CalculationType ""Modal-S""" + vbLf
+sCommand = sCommand + ".AKSReset " + vbLf
+sCommand = sCommand + ".AKSModes ""20""" + vbLf
+sCommand = sCommand + ".AKSPenaltyFactor ""1""" + vbLf
+sCommand = sCommand + ".AKSEstimation ""3.55""" + vbLf
+sCommand = sCommand + ".AKSAutomaticEstimation ""True""" + vbLf
+sCommand = sCommand + ".AKSEstimationCycles ""5""" + vbLf
+sCommand = sCommand + ".AKSIterations ""5""" + vbLf
+sCommand = sCommand + ".AKSAccuracy ""1e-012""" + vbLf
+sCommand = sCommand + ".AKSModalAnalysis ""True""" + vbLf
+sCommand = sCommand + ".AKSSpecDensitySamples ""10""" + vbLf
+sCommand = sCommand + ".AKSNFsamples ""10001""" + vbLf
+sCommand = sCommand + ".AKSMaximumNumberOfProcessors ""1""" + vbLf
+sCommand = sCommand + ".StoreEigenmodeResultsInCache ""False""" + vbLf
+sCommand = sCommand + ".AKSAdaptionActive ""False""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define aks solver parameters", sCommand
+
+'@ define automesh state
+sCommand = ""
+sCommand = sCommand + "With Mesh" + vbLf
+sCommand = sCommand + ".Automesh ""True""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define automesh state", sCommand
+
+'@ define frequency range
+sCommand = ""
+sCommand = sCommand + "With Solver" + vbLf
+sCommand = sCommand + ".FrequencyRange "".5"", "".7""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define frequency range", sCommand
+
+'@ define aks solver parameters
+
+sCommand = ""
+sCommand = sCommand + "With Solver" + vbLf
+sCommand = sCommand + ".CalculationType ""Modal-S""" + vbLf
+sCommand = sCommand + ".AKSReset " + vbLf
+sCommand = sCommand + ".AKSModes ""20""" + vbLf
+sCommand = sCommand + ".AKSPenaltyFactor ""1""" + vbLf
+sCommand = sCommand + ".AKSEstimation ""3.6""" + vbLf
+sCommand = sCommand + ".AKSAutomaticEstimation ""True""" + vbLf
+sCommand = sCommand + ".AKSEstimationCycles ""5""" + vbLf
+sCommand = sCommand + ".AKSIterations ""5""" + vbLf
+sCommand = sCommand + ".AKSAccuracy ""1e-012""" + vbLf
+sCommand = sCommand + ".AKSModalAnalysis ""True""" + vbLf
+sCommand = sCommand + ".AKSSpecDensitySamples ""10""" + vbLf
+sCommand = sCommand + ".AKSNFsamples ""10001""" + vbLf
+sCommand = sCommand + ".AKSMaximumNumberOfProcessors ""1""" + vbLf
+sCommand = sCommand + ".StoreEigenmodeResultsInCache ""False""" + vbLf
+sCommand = sCommand + ".AKSAdaptionActive ""False""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define aks solver parameters", sCommand
+
+'@ clear picks
+sCommand = ""
+sCommand = sCommand + "With Pick" + vbLf
+sCommand = sCommand + ".ClearAllPicks" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "clear picks", sCommand
+
+'@ define solver parameters
+
+sCommand = ""
+sCommand = sCommand + "With Solver " + vbLf
+sCommand = sCommand + ".CalculationType ""TD-S""" + vbLf
+sCommand = sCommand + ".StimulationPort ""1""" + vbLf
+sCommand = sCommand + ".StimulationMode ""1""" + vbLf
+sCommand = sCommand + ".SteadyStateLimit ""-50""" + vbLf
+sCommand = sCommand + ".MeshAdaption ""False""" + vbLf
+sCommand = sCommand + ".CalculateModesOnly ""False""" + vbLf
+sCommand = sCommand + ".SParaSymmetry ""False""" + vbLf
+sCommand = sCommand + ".StimulationType ""Gaussian""" + vbLf
+sCommand = sCommand + ".StoreTDResultsInCache ""False""" + vbLf
+sCommand = sCommand + ".FullDeembedding ""False""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define solver parameters", sCommand
+'@ arfilter settings
+
+sCommand = ""
+sCommand = sCommand + "With Arfilter" + vbLf
+sCommand = sCommand + ".SetFirstTime ""25.001642066054""" + vbLf
+sCommand = sCommand + ".SetSkip ""10""" + vbLf
+sCommand = sCommand + ".SetMaxFrq ""1.0799999803305""" + vbLf
+sCommand = sCommand + ".SetMaxOrder ""40""" + vbLf
+sCommand = sCommand + ".SetWindowLength ""2.0""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "arfilter settings", sCommand
+'@ define special solver parameters
+
+sCommand = ""
+sCommand = sCommand + "With Solver " + vbLf
+sCommand = sCommand + ".TimeBetweenUpdates ""20""" + vbLf
+sCommand = sCommand + ".NumberOfPulseWidths ""50""" + vbLf
+sCommand = sCommand + ".EnergyBalanceLimit ""0.03""" + vbLf
+sCommand = sCommand + ".UseArfilter ""True""" + vbLf
+sCommand = sCommand + ".ArMaxEnergyDeviation ""0.1""" + vbLf
+sCommand = sCommand + ".ArPulseSkip ""1""" + vbLf
+sCommand = sCommand + ".WaveguideBroadband ""False""" + vbLf
+sCommand = sCommand + ".SetBBPSamples ""5""" + vbLf
+sCommand = sCommand + ".SetSamplesFullDeembedding ""20""" + vbLf
+sCommand = sCommand + ".MatrixDump ""False""" + vbLf
+sCommand = sCommand + ".TimestepReduction ""0.45""" + vbLf
+sCommand = sCommand + ".NumberOfSubcycles ""4""" + vbLf
+sCommand = sCommand + ".SubcycleFillLimit ""70""" + vbLf
+sCommand = sCommand + ".UseParallelization ""False""" + vbLf
+sCommand = sCommand + ".MaximumNumberOfProcessors ""2""" + vbLf
+sCommand = sCommand + ".TimeStepStabilityFactor ""1.0""" + vbLf
+sCommand = sCommand + ".UseOpenBoundaryForHigherModes ""True""" + vbLf
+sCommand = sCommand + ".SetModeFreqFactor ""0.5""" + vbLf
+sCommand = sCommand + ".SurfaceImpedanceOrder ""10""" + vbLf
+sCommand = sCommand + ".SetPortShielding ""False""" + vbLf
+sCommand = sCommand + ".UseCurrentBasedMultipinPorts ""False""" + vbLf
+sCommand = sCommand + ".SetTimeStepMethod ""Automatic""" + vbLf
+sCommand = sCommand + ".FrequencySamples ""5001""" + vbLf
+sCommand = sCommand + ".ConsiderTwoPortReciprocity ""True""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define special solver parameters", sCommand
+'@ define solver parameters
+
+sCommand = ""
+sCommand = sCommand + "With Solver " + vbLf
+sCommand = sCommand + ".CalculationType ""TD-S""" + vbLf
+sCommand = sCommand + ".StimulationPort ""1""" + vbLf
+sCommand = sCommand + ".StimulationMode ""1""" + vbLf
+sCommand = sCommand + ".SteadyStateLimit ""-50""" + vbLf
+sCommand = sCommand + ".MeshAdaption ""False""" + vbLf
+sCommand = sCommand + ".CalculateModesOnly ""False""" + vbLf
+sCommand = sCommand + ".SParaSymmetry ""False""" + vbLf
+sCommand = sCommand + ".StimulationType ""Gaussian""" + vbLf
+sCommand = sCommand + ".StoreTDResultsInCache ""False""" + vbLf
+sCommand = sCommand + ".FullDeembedding ""False""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define solver parameters", sCommand
+'@ define aks solver parameters
+
+sCommand = ""
+sCommand = sCommand + "With Solver" + vbLf
+sCommand = sCommand + ".CalculationType ""Modal-S""" + vbLf
+sCommand = sCommand + ".AKSReset " + vbLf
+sCommand = sCommand + ".AKSModes ""20""" + vbLf
+sCommand = sCommand + ".AKSPenaltyFactor ""1""" + vbLf
+sCommand = sCommand + ".AKSEstimation ""3.6""" + vbLf
+sCommand = sCommand + ".AKSAutomaticEstimation ""False""" + vbLf
+sCommand = sCommand + ".AKSEstimationCycles ""5""" + vbLf
+sCommand = sCommand + ".AKSIterations ""2""" + vbLf
+sCommand = sCommand + ".AKSAccuracy ""1e-012""" + vbLf
+sCommand = sCommand + ".AKSModalAnalysis ""True""" + vbLf
+sCommand = sCommand + ".AKSSpecDensitySamples ""5""" + vbLf
+sCommand = sCommand + ".AKSNFsamples ""10001""" + vbLf
+sCommand = sCommand + ".AKSMaximumNumberOfProcessors ""1""" + vbLf
+sCommand = sCommand + ".StoreEigenmodeResultsInCache ""False""" + vbLf
+sCommand = sCommand + ".AKSAdaptionActive ""False""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define aks solver parameters", sCommand
+
+'@ delete port: port2
+sCommand = ""
+sCommand = sCommand + "With Port" + vbLf
+sCommand = sCommand + ".Delete ""2""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "delete port: port2", sCommand
+
+'@ define aks solver parameters
+
+sCommand = ""
+sCommand = sCommand + "With Solver" + vbLf
+sCommand = sCommand + ".CalculationType ""Modal-S""" + vbLf
+sCommand = sCommand + ".AKSReset " + vbLf
+sCommand = sCommand + ".AKSModes ""20""" + vbLf
+sCommand = sCommand + ".AKSPenaltyFactor ""1""" + vbLf
+sCommand = sCommand + ".AKSEstimation ""3.6""" + vbLf
+sCommand = sCommand + ".AKSAutomaticEstimation ""False""" + vbLf
+sCommand = sCommand + ".AKSEstimationCycles ""5""" + vbLf
+sCommand = sCommand + ".AKSIterations ""2""" + vbLf
+sCommand = sCommand + ".AKSAccuracy ""1e-012""" + vbLf
+sCommand = sCommand + ".AKSModalAnalysis ""True""" + vbLf
+sCommand = sCommand + ".AKSSpecDensitySamples ""5""" + vbLf
+sCommand = sCommand + ".AKSNFsamples ""10001""" + vbLf
+sCommand = sCommand + ".AKSMaximumNumberOfProcessors ""1""" + vbLf
+sCommand = sCommand + ".StoreEigenmodeResultsInCache ""False""" + vbLf
+sCommand = sCommand + ".AKSAdaptionActive ""False""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define aks solver parameters", sCommand
+
+'@ pick face
+sCommand = ""
+sCommand = sCommand + "With Pick" + vbLf
+sCommand = sCommand + ".PickFaceFromId ""coaxial cable:coaxial substrate_1"", ""3""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "pick face", sCommand
+
+'@ define port: 2
+
+sCommand = ""
+sCommand = sCommand + "With Port " + vbLf
+sCommand = sCommand + ".Reset " + vbLf
+sCommand = sCommand + ".PortNumber ""2""" + vbLf
+sCommand = sCommand + ".NumberOfModes ""1""" + vbLf
+sCommand = sCommand + ".AdjustPolarization False " + vbLf
+sCommand = sCommand + ".PolarizationAngle ""0.0""" + vbLf
+sCommand = sCommand + ".ReferencePlaneDistance ""0""" + vbLf
+sCommand = sCommand + ".TextSize ""50""" + vbLf
+sCommand = sCommand + ".Coordinates ""Picks""" + vbLf
+sCommand = sCommand + ".Orientation ""ymin""" + vbLf
+sCommand = sCommand + ".PortOnBound ""True""" + vbLf
+sCommand = sCommand + ".ClipPickedPortToBound ""False""" + vbLf
+sCommand = sCommand + ".Xrange ""-10"", ""10""" + vbLf
+sCommand = sCommand + ".Yrange ""-115"", ""-115""" + vbLf
+sCommand = sCommand + ".Zrange ""82.1"", ""102.1""" + vbLf
+sCommand = sCommand + ".Create " + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define port: 2", sCommand
+'@ define aks solver parameters
+
+sCommand = ""
+sCommand = sCommand + "With Solver" + vbLf
+sCommand = sCommand + ".CalculationType ""Modal-S""" + vbLf
+sCommand = sCommand + ".AKSReset " + vbLf
+sCommand = sCommand + ".AKSModes ""20""" + vbLf
+sCommand = sCommand + ".AKSPenaltyFactor ""1""" + vbLf
+sCommand = sCommand + ".AKSEstimation ""3.6""" + vbLf
+sCommand = sCommand + ".AKSAutomaticEstimation ""False""" + vbLf
+sCommand = sCommand + ".AKSEstimationCycles ""5""" + vbLf
+sCommand = sCommand + ".AKSIterations ""2""" + vbLf
+sCommand = sCommand + ".AKSAccuracy ""1e-012""" + vbLf
+sCommand = sCommand + ".AKSModalAnalysis ""True""" + vbLf
+sCommand = sCommand + ".AKSSpecDensitySamples ""5""" + vbLf
+sCommand = sCommand + ".AKSNFsamples ""10001""" + vbLf
+sCommand = sCommand + ".AKSMaximumNumberOfProcessors ""1""" + vbLf
+sCommand = sCommand + ".StoreEigenmodeResultsInCache ""False""" + vbLf
+sCommand = sCommand + ".AKSAdaptionActive ""False""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define aks solver parameters", sCommand
+'@ set mesh properties
+
+sCommand = ""
+sCommand = sCommand + "With Mesh " + vbLf
+sCommand = sCommand + ".UseRatioLimit ""True""" + vbLf
+sCommand = sCommand + ".RatioLimit ""10.0""" + vbLf
+sCommand = sCommand + ".LinesPerWavelength ""10""" + vbLf
+sCommand = sCommand + ".MinimumLineNumber ""10""" + vbLf
+sCommand = sCommand + ".Automesh ""True""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "set mesh properties", sCommand
+'@ define aks solver parameters
+
+sCommand = ""
+sCommand = sCommand + "With Solver" + vbLf
+sCommand = sCommand + ".CalculationType ""Modal-S""" + vbLf
+sCommand = sCommand + ".EigenmodeSolverType ""AKS""" + vbLf
+sCommand = sCommand + ".AKSReset " + vbLf
+sCommand = sCommand + ".AKSModes ""20""" + vbLf
+sCommand = sCommand + ".AKSPenaltyFactor ""1""" + vbLf
+sCommand = sCommand + ".AKSEstimation ""3.6""" + vbLf
+sCommand = sCommand + ".AKSAutomaticEstimation ""False""" + vbLf
+sCommand = sCommand + ".AKSEstimationCycles ""5""" + vbLf
+sCommand = sCommand + ".AKSIterations ""2""" + vbLf
+sCommand = sCommand + ".AKSAccuracy ""1e-012""" + vbLf
+sCommand = sCommand + ".AKSModalAnalysis ""True""" + vbLf
+sCommand = sCommand + ".AKSSpecDensitySamples ""5""" + vbLf
+sCommand = sCommand + ".AKSNFsamples ""10001""" + vbLf
+sCommand = sCommand + ".AKSMaximumNumberOfProcessors ""1""" + vbLf
+sCommand = sCommand + ".StoreEigenmodeResultsInCache ""False""" + vbLf
+sCommand = sCommand + ".AKSAdaptionActive ""True""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define aks solver parameters", sCommand
+'@ set 3d mesh adaptation results
+
+sCommand = ""
+sCommand = sCommand + "With Mesh" + vbLf
+sCommand = sCommand + ".LinesPerWavelength ""30""" + vbLf
+sCommand = sCommand + ".MinimumLineNumber ""30""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "set 3d mesh adaptation results", sCommand
+
+'@ set mesh properties (Hexahedral)
+
+sCommand = ""
+sCommand = sCommand + "With Mesh " + vbLf
+sCommand = sCommand + ".MeshType ""PBA""" + vbLf
+sCommand = sCommand + ".SetCreator ""High Frequency""" + vbLf
+sCommand = sCommand + "End With"+ vbLf
+sCommand = sCommand + "With MeshSettings " + vbLf
+sCommand = sCommand + ".SetMeshType ""Hex""" + vbLf
+sCommand = sCommand + ".Set  ""Version"", 1%" + vbLf
+sCommand = sCommand + ".Set ""StepsPerWaveNear"", ""25""" + vbLf
+sCommand = sCommand + ".Set ""StepsPerWaveFar"", ""25""" + vbLf
+sCommand = sCommand + ".Set ""WavelengthRefinementSameAsNear"", ""1""" + vbLf
+sCommand = sCommand + ".Set ""StepsPerBoxNear"", ""25""" + vbLf
+sCommand = sCommand + ".Set ""StepsPerBoxFar"", ""25""" + vbLf
+sCommand = sCommand + ".Set ""MaxStepNear"", ""0""" + vbLf
+sCommand = sCommand + ".Set ""MaxStepFar"", ""0""" + vbLf
+sCommand = sCommand + ".Set ""ModelBoxDescrNear"", ""maxedge""" + vbLf
+sCommand = sCommand + ".Set ""ModelBoxDescrFar"", ""maxedge""" + vbLf
+sCommand = sCommand + ".Set ""UseMaxStepAbsolute"", ""0""" + vbLf
+sCommand = sCommand + ".Set ""GeometryRefinementSameAsNear"", ""1""" + vbLf
+sCommand = sCommand + ".Set ""UseRatioLimitGeometry"", ""1""" + vbLf
+sCommand = sCommand + ".Set ""RatioLimitGeometry"", ""10""" + vbLf
+sCommand = sCommand + ".Set ""MinStepGeometryX"", ""0""" + vbLf
+sCommand = sCommand + ".Set ""MinStepGeometryY"", ""0""" + vbLf
+sCommand = sCommand + ".Set ""MinStepGeometryZ"", ""0""" + vbLf
+sCommand = sCommand + ".Set ""UseSameMinStepGeometryXYZ"", ""1""" + vbLf
+sCommand = sCommand + "End With"+ vbLf
+
+sCommand = sCommand + "With MeshSettings " + vbLf
+sCommand = sCommand + ".SetMeshType ""Hex""" + vbLf
+sCommand = sCommand + ".Set ""FaceRefinementOn"", ""0""" + vbLf
+sCommand = sCommand + ".Set ""FaceRefinementPolicy"", ""2""" + vbLf
+sCommand = sCommand + ".Set ""FaceRefinementRatio"", ""2""" + vbLf
+sCommand = sCommand + ".Set ""FaceRefinementStep"", ""0""" + vbLf
+sCommand = sCommand + ".Set ""FaceRefinementNSteps"", ""2""" + vbLf
+sCommand = sCommand + ".Set ""EllipseRefinementOn"", ""0""" + vbLf
+sCommand = sCommand + ".Set ""EllipseRefinementPolicy"", ""2""" + vbLf
+sCommand = sCommand + ".Set ""EllipseRefinementRatio"", ""2""" + vbLf
+sCommand = sCommand + ".Set ""EllipseRefinementStep"", ""0""" + vbLf
+sCommand = sCommand + ".Set ""EllipseRefinementNSteps"", ""2""" + vbLf
+sCommand = sCommand + ".Set ""FaceRefinementBufferLines"", ""3""" + vbLf
+sCommand = sCommand + ".Set ""EdgeRefinementOn"", ""1""" + vbLf
+sCommand = sCommand + ".Set ""EdgeRefinementPolicy"", ""1""" + vbLf
+sCommand = sCommand + ".Set ""EdgeRefinementRatio"", ""2""" + vbLf
+sCommand = sCommand + ".Set ""EdgeRefinementStep"", ""0""" + vbLf
+sCommand = sCommand + ".Set ""EdgeRefinementBufferLines"", ""3""" + vbLf
+sCommand = sCommand + ".Set ""RefineEdgeMaterialGlobal"", ""0""" + vbLf
+sCommand = sCommand + ".Set ""RefineAxialEdgeGlobal"", ""0""" + vbLf
+sCommand = sCommand + ".Set ""BufferLinesNear"", ""3""" + vbLf
+sCommand = sCommand + ".Set ""UseDielectrics"", ""1""" + vbLf
+sCommand = sCommand + ".Set ""EquilibrateOn"", ""1""" + vbLf
+sCommand = sCommand + ".Set ""Equilibrate"", ""1.5""" + vbLf
+sCommand = sCommand + ".Set ""IgnoreThinPanelMaterial"", ""0""" + vbLf
+sCommand = sCommand + "End With"+vbLf
+
+sCommand = sCommand + "With MeshSettings " + vbLf
+sCommand = sCommand + ".SetMeshType ""Hex""" + vbLf
+sCommand = sCommand + ".Set ""SnapToAxialEdges"", ""1""" + vbLf
+sCommand = sCommand + ".Set ""SnapToPlanes"", ""1""" + vbLf
+sCommand = sCommand + ".Set ""SnapToSpheres"", ""1""" + vbLf
+sCommand = sCommand + ".Set ""SnapToEllipses"", ""1""" + vbLf
+sCommand = sCommand + ".Set ""SnapToCylinders"", ""1""" + vbLf
+sCommand = sCommand + ".Set ""SnapToCylinderCenters"", ""1""" + vbLf
+sCommand = sCommand + ".Set ""SnapToEllipseCenters"", ""1""" + vbLf
+sCommand = sCommand + "End With"+vbLf
+sCommand = sCommand + "With Discretizer " + vbLf
+sCommand = sCommand + ".MeshType ""PBA""" + vbLf
+sCommand = sCommand + ".AutomaticPBAType ""False""" + vbLf
+sCommand = sCommand + ".FPBAAccuracyEnhancement ""default""" + vbLf
+sCommand = sCommand + ".ConnectivityCheck  ""False""" + vbLf
+sCommand = sCommand + ".ConvertGeometryDataAfterMeshing   ""True""" + vbLf
+sCommand = sCommand + ".UsePecEdgeModel   ""True""" + vbLf
+sCommand = sCommand + ".GapDetection   ""False""" + vbLf
+sCommand = sCommand + ".FPBAGapTolerance   ""1e-3""" + vbLf
+sCommand = sCommand + ".SetMaxParallelMesherThreads   ""Hex"", ""12""" + vbLf
+sCommand = sCommand + ".SetParallelMesherMode   ""Hex"", ""Maximum""" + vbLf
+sCommand = sCommand + ".PointAccEnhancement   ""0""" + vbLf
+sCommand = sCommand + ".UseSplitComponents   ""True""" + vbLf
+sCommand = sCommand + ".EnableSubgridding   ""False""" + vbLf
+sCommand = sCommand + ".PBAFillLimit   ""99""" + vbLf
+sCommand = sCommand + ".AlwaysExcludePec   ""False""" + vbLf
+sCommand = sCommand + "End With"
+
+AddToHistory "set mesh properties (Hexahedral)", sCommand
+
+
+
+'@ define aks solver parameters
+
+sCommand = ""
+sCommand = sCommand + "With Solver" + vbLf
+sCommand = sCommand + ".CalculationType ""Eigenmode""" + vbLf
+sCommand = sCommand + ".EigenmodeSolverType ""AKS""" + vbLf
+sCommand = sCommand + ".AKSReset " + vbLf
+sCommand = sCommand + ".AKSModes ""20""" + vbLf
+sCommand = sCommand + ".AKSPenaltyFactor ""1""" + vbLf
+sCommand = sCommand + ".AKSEstimation ""0""" + vbLf
+sCommand = sCommand + ".AKSAutomaticEstimation ""True""" + vbLf
+sCommand = sCommand + ".AKSEstimationCycles ""5""" + vbLf
+sCommand = sCommand + ".AKSIterations ""5""" + vbLf
+sCommand = sCommand + ".AKSAccuracy ""1e-012""" + vbLf
+sCommand = sCommand + ".AKSMaximumNumberOfProcessors ""1""" + vbLf
+sCommand = sCommand + ".StoreEigenmodeResultsInCache ""False""" + vbLf
+sCommand = sCommand + ".AKSAdaptionActive ""False""" + vbLf
+sCommand = sCommand + ".CalculateExternalQFactor ""False""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define aks solver parameters", sCommand
+'@ set 3d mesh adaptation properties
+
+sCommand = ""
+sCommand = sCommand + "With MeshAdaption3D" + vbLf
+sCommand = sCommand + ".SetType ""HighFrequencyHex""" + vbLf
+sCommand = sCommand + ".SetAdaptionStrategy ""ExpertSystem""" + vbLf
+sCommand = sCommand + ".MinPasses ""2""" + vbLf
+sCommand = sCommand + ".MaxPasses ""6""" + vbLf
+sCommand = sCommand + ".MeshIncrement ""5""" + vbLf
+sCommand = sCommand + ".MaxDeltaS ""0.02""" + vbLf
+sCommand = sCommand + ".NumberOfDeltaSChecks ""1""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "set 3d mesh adaptation properties", sCommand
+'@ define frequency domain solver parameters
+
+sCommand = ""
+sCommand = sCommand + "With Solver" + vbLf
+sCommand = sCommand + ".CalculationType ""FD-S""" + vbLf
+sCommand = sCommand + ".FDSolverReset " + vbLf
+sCommand = sCommand + ".FDSolverMethod ""Hexahedral Mesh (MOR Fields)""" + vbLf
+sCommand = sCommand + ".FDSolverOrder ""Second""" + vbLf
+sCommand = sCommand + ".FDSolverStimulation ""1"", ""1""" + vbLf
+sCommand = sCommand + ".FDSolverResetExcitationList " + vbLf
+sCommand = sCommand + ".FDSolverAutoNormImpedance ""False""" + vbLf
+sCommand = sCommand + ".FDSolverNormingImpedance ""50""" + vbLf
+sCommand = sCommand + ".FDSolverModesOnly ""False""" + vbLf
+sCommand = sCommand + ".FDSolverAccuracyHex ""1e-6""" + vbLf
+sCommand = sCommand + ".FDSolverAccuracyTet ""1e-4""" + vbLf
+sCommand = sCommand + ".FDSolverLimitIterations ""False""" + vbLf
+sCommand = sCommand + ".FDSolverMaxIterations ""0""" + vbLf
+sCommand = sCommand + ".FDSolverLimitCPUs ""False""" + vbLf
+sCommand = sCommand + ".FDSolverMaxCPUs ""2""" + vbLf
+sCommand = sCommand + ".FDSolverStoreAllResults ""False""" + vbLf
+sCommand = sCommand + ".StoreFDResultsInCache ""False""" + vbLf
+sCommand = sCommand + ".FDSolverUseHelmholtzEquation ""True""" + vbLf
+sCommand = sCommand + ".FDSolverLowFrequencyStabilization ""False""" + vbLf
+sCommand = sCommand + ".FDSolverType ""Auto""" + vbLf
+sCommand = sCommand + ".FDSolverMeshAdaptionHex ""True""" + vbLf
+sCommand = sCommand + ".FDSolverMeshAdaptionTet ""True""" + vbLf
+sCommand = sCommand + ".FDSolverAcceleratedRestart ""True""" + vbLf
+sCommand = sCommand + ".FDSolverHexMORSettings """", ""1001""" + vbLf
+sCommand = sCommand + ".FDSolverNewIterativeSolver ""True""" + vbLf
+sCommand = sCommand + ".FDSolverTDCompatibleMaterials ""False""" + vbLf
+sCommand = sCommand + ".FDSolverExtrudeOpenBC ""True""" + vbLf
+sCommand = sCommand + ".FDSolverAddMonitorSamples ""True""" + vbLf
+sCommand = sCommand + ".FDSolverSParaFit ""True""" + vbLf
+sCommand = sCommand + ".FDSolverFitThreshold ""True"", ""0.001""" + vbLf
+sCommand = sCommand + ".FDSolverSweepErrorChecks ""2""" + vbLf
+sCommand = sCommand + ".FDSolverSweepMinimumSamples ""3""" + vbLf
+sCommand = sCommand + ".FDSolverSweepConsiderAll ""True""" + vbLf
+sCommand = sCommand + ".FDSolverSweepConsiderReset " + vbLf
+sCommand = sCommand + ".FDSolverInterpolationSamples ""1001""" + vbLf
+sCommand = sCommand + ".FDSolverSweepWeightEvanescent ""1.0""" + vbLf
+sCommand = sCommand + ".FDSolverAddFrequencyIntervall """", """", ""1"", ""Adaptation""" + vbLf
+sCommand = sCommand + ".FDSolverAddFrequencyIntervall """", """", """", ""Automatic""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define frequency domain solver parameters", sCommand
+'@ set 3d mesh adaptation results
+
+sCommand = ""
+sCommand = sCommand + "With Mesh " + vbLf
+sCommand = sCommand + ".LinesPerWavelength ""10""" + vbLf
+sCommand = sCommand + ".MinimumLineNumber ""10""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "set 3d mesh adaptation results", sCommand
+'@ define frequency domain solver parameters
+
+sCommand = ""
+sCommand = sCommand + "With Solver" + vbLf
+sCommand = sCommand + ".CalculationType ""FD-S""" + vbLf
+sCommand = sCommand + ".FDSolverReset " + vbLf
+sCommand = sCommand + ".FDSolverMethod ""Hexahedral Mesh (MOR Fields)""" + vbLf
+sCommand = sCommand + ".FDSolverOrder ""Second""" + vbLf
+sCommand = sCommand + ".FDSolverStimulation ""1"", ""1""" + vbLf
+sCommand = sCommand + ".FDSolverResetExcitationList " + vbLf
+sCommand = sCommand + ".FDSolverAutoNormImpedance ""False""" + vbLf
+sCommand = sCommand + ".FDSolverNormingImpedance ""50""" + vbLf
+sCommand = sCommand + ".FDSolverModesOnly ""False""" + vbLf
+sCommand = sCommand + ".FDSolverAccuracyHex ""1e-6""" + vbLf
+sCommand = sCommand + ".FDSolverAccuracyTet ""1e-4""" + vbLf
+sCommand = sCommand + ".FDSolverLimitIterations ""False""" + vbLf
+sCommand = sCommand + ".FDSolverMaxIterations ""0""" + vbLf
+sCommand = sCommand + ".FDSolverLimitCPUs ""False""" + vbLf
+sCommand = sCommand + ".FDSolverMaxCPUs ""2""" + vbLf
+sCommand = sCommand + ".FDSolverStoreAllResults ""False""" + vbLf
+sCommand = sCommand + ".StoreFDResultsInCache ""False""" + vbLf
+sCommand = sCommand + ".FDSolverUseHelmholtzEquation ""True""" + vbLf
+sCommand = sCommand + ".FDSolverLowFrequencyStabilization ""False""" + vbLf
+sCommand = sCommand + ".FDSolverType ""Auto""" + vbLf
+sCommand = sCommand + ".FDSolverMeshAdaptionHex ""True""" + vbLf
+sCommand = sCommand + ".FDSolverMeshAdaptionTet ""True""" + vbLf
+sCommand = sCommand + ".FDSolverAcceleratedRestart ""True""" + vbLf
+sCommand = sCommand + ".FDSolverHexMORSettings """", ""1001""" + vbLf
+sCommand = sCommand + ".FDSolverNewIterativeSolver ""True""" + vbLf
+sCommand = sCommand + ".FDSolverTDCompatibleMaterials ""False""" + vbLf
+sCommand = sCommand + ".FDSolverExtrudeOpenBC ""True""" + vbLf
+sCommand = sCommand + ".FDSolverAddMonitorSamples ""True""" + vbLf
+sCommand = sCommand + ".FDSolverSParaFit ""True""" + vbLf
+sCommand = sCommand + ".FDSolverFitThreshold ""True"", ""0.001""" + vbLf
+sCommand = sCommand + ".FDSolverSweepErrorChecks ""2""" + vbLf
+sCommand = sCommand + ".FDSolverSweepMinimumSamples ""3""" + vbLf
+sCommand = sCommand + ".FDSolverSweepConsiderAll ""True""" + vbLf
+sCommand = sCommand + ".FDSolverSweepConsiderReset " + vbLf
+sCommand = sCommand + ".FDSolverInterpolationSamples ""1001""" + vbLf
+sCommand = sCommand + ".FDSolverSweepWeightEvanescent ""1.0""" + vbLf
+sCommand = sCommand + ".FDSolverAddFrequencyIntervall """", """", ""1"", ""Adaptation""" + vbLf
+sCommand = sCommand + ".FDSolverAddFrequencyIntervall """", """", """", ""Automatic""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define frequency domain solver parameters", sCommand
+'@ set 3d mesh adaptation results
+
+sCommand = ""
+sCommand = sCommand + "With Mesh " + vbLf
+sCommand = sCommand + ".LinesPerWavelength ""25""" + vbLf
+sCommand = sCommand + ".MinimumLineNumber ""25""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "set 3d mesh adaptation results", sCommand
+
+'@ deactivate high frequency solver mesh adaptation
+sCommand = ""
+sCommand = sCommand + "With Solver" + vbLf
+sCommand = sCommand + ".FDSolverMeshAdaptionHex ""False""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "deactivate high frequency solver mesh adaptation", sCommand
+
+If bDiscretePorts Then
+
+	'@ pick center point
+	sCommand = ""
+	sCommand = sCommand + "With Pick" + vbLf
+	sCommand = sCommand + ".PickCenterpointFromId ""PEC:cylinder1"", ""3""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "pick center point", sCommand
+
+	'@ pick face
+	sCommand = ""
+	sCommand = sCommand + "With Pick" + vbLf
+	sCommand = sCommand + ".PickFaceFromId ""Vacuum:housing"", ""1""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "pick face", sCommand
+
+
+	'@ define discrete port: 3
+
+	sCommand = ""
+	sCommand = sCommand + "With DiscretePort " + vbLf
+	sCommand = sCommand + ".Reset " + vbLf
+	sCommand = sCommand + ".PortNumber ""3""" + vbLf
+	sCommand = sCommand + ".Type ""SParameter""" + vbLf
+	sCommand = sCommand + ".Impedance ""50.0""" + vbLf
+	sCommand = sCommand + ".Voltage ""1.0""" + vbLf
+	sCommand = sCommand + ".Current ""1.0""" + vbLf
+	sCommand = sCommand + ".Point1 ""-9.5457731250378e-016"", ""-50"", ""95""" + vbLf
+	sCommand = sCommand + ".Point2 ""-9.5457731250378e-016"", ""-50"", ""110""" + vbLf
+	sCommand = sCommand + ".UsePickedPoints ""True""" + vbLf
+	sCommand = sCommand + ".LocalCoordinates ""False""" + vbLf
+	sCommand = sCommand + ".Monitor ""False""" + vbLf
+	sCommand = sCommand + ".Create " + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define discrete port: 3", sCommand
+
+	'@ pick center point
+	sCommand = ""
+	sCommand = sCommand + "With Pick" + vbLf
+	sCommand = sCommand + ".PickCenterpointFromId ""PEC:cylinder2"", ""3""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "pick center point", sCommand
+
+	'@ pick face
+	sCommand = ""
+	sCommand = sCommand + "With Pick" + vbLf
+	sCommand = sCommand + ".PickFaceFromId ""Vacuum:housing"", ""1""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "pick face", sCommand
+
+
+	'@ define discrete port: 4
+
+	sCommand = ""
+	sCommand = sCommand + "With DiscretePort " + vbLf
+	sCommand = sCommand + ".Reset " + vbLf
+	sCommand = sCommand + ".PortNumber ""4""" + vbLf
+	sCommand = sCommand + ".Type ""SParameter""" + vbLf
+	sCommand = sCommand + ".Impedance ""50.0""" + vbLf
+	sCommand = sCommand + ".Voltage ""1.0""" + vbLf
+	sCommand = sCommand + ".Current ""1.0""" + vbLf
+	sCommand = sCommand + ".Point1 ""-3.7075733845373e-016"", ""50"", ""95""" + vbLf
+	sCommand = sCommand + ".Point2 ""-3.7075733845373e-016"", ""50"", ""110""" + vbLf
+	sCommand = sCommand + ".UsePickedPoints ""True""" + vbLf
+	sCommand = sCommand + ".LocalCoordinates ""False""" + vbLf
+	sCommand = sCommand + ".Monitor ""False""" + vbLf
+	sCommand = sCommand + ".Create " + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define discrete port: 4", sCommand
+
+	'@ pick center point
+	sCommand = ""
+	sCommand = sCommand + "With Pick" + vbLf
+	sCommand = sCommand + ".PickCenterpointFromId ""PEC:coaxial inner conductor_1"", ""1""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "pick center point", sCommand
+
+	'@ pick face
+	sCommand = ""
+	sCommand = sCommand + "With Pick" + vbLf
+	sCommand = sCommand + ".PickFaceFromId ""PEC:cylinder1"", ""2""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "pick face", sCommand
+
+	'@ define discrete port: 5
+
+	sCommand = ""
+	sCommand = sCommand + "With DiscretePort " + vbLf
+	sCommand = sCommand + ".Reset " + vbLf
+	sCommand = sCommand + ".PortNumber ""5""" + vbLf
+	sCommand = sCommand + ".Type ""SParameter""" + vbLf
+	sCommand = sCommand + ".Impedance ""50.0""" + vbLf
+	sCommand = sCommand + ".Voltage ""1.0""" + vbLf
+	sCommand = sCommand + ".Current ""1.0""" + vbLf
+	sCommand = sCommand + ".Point1 ""-1.1304324964049e-016"", ""-68.7"", ""92.1""" + vbLf
+	sCommand = sCommand + ".Point2 ""-1.0276659058227e-016"", ""-67"", ""92.1""" + vbLf
+	sCommand = sCommand + ".UsePickedPoints ""True""" + vbLf
+	sCommand = sCommand + ".LocalCoordinates ""False""" + vbLf
+	sCommand = sCommand + ".Monitor ""False""" + vbLf
+	sCommand = sCommand + ".Create " + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define discrete port: 5", sCommand
+
+	'@ pick center point
+	sCommand = ""
+	sCommand = sCommand + "With Pick" + vbLf
+	sCommand = sCommand + ".PickCenterpointFromId ""PEC:coaxial inner conductor"", ""1""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "pick center point", sCommand
+
+	'@ pick face
+	sCommand = ""
+	sCommand = sCommand + "With Pick" + vbLf
+	sCommand = sCommand + ".PickFaceFromId ""PEC:cylinder2"", ""2""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "pick face", sCommand
+
+	'@ define discrete port: 6
+	sCommand = ""
+	sCommand = sCommand + "With DiscretePort " + vbLf
+	sCommand = sCommand + ".Reset " + vbLf
+	sCommand = sCommand + ".PortNumber ""6""" + vbLf
+	sCommand = sCommand + ".Type ""SParameter""" + vbLf
+	sCommand = sCommand + ".Impedance ""50.0""" + vbLf
+	sCommand = sCommand + ".Voltage ""1.0""" + vbLf
+	sCommand = sCommand + ".Current ""1.0""" + vbLf
+	sCommand = sCommand + ".Point1 ""-1.1304324964049e-016"", ""68.7"", ""92.1""" + vbLf
+	sCommand = sCommand + ".Point2 ""-1.0276659058227e-016"", ""67"", ""92.1""" + vbLf
+	sCommand = sCommand + ".UsePickedPoints ""True""" + vbLf
+	sCommand = sCommand + ".LocalCoordinates ""False""" + vbLf
+	sCommand = sCommand + ".Monitor ""False""" + vbLf
+	sCommand = sCommand + ".Create " + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define discrete port: 6", sCommand
+
+End If
+
+'@ define frequency domain solver parameters
+
+sCommand = ""
+sCommand = sCommand + "With FDSolver" + vbLf
+sCommand = sCommand + ".Reset " + vbLf
+sCommand = sCommand + ".Method ""Hexahedral Mesh (MOR)""" + vbLf
+sCommand = sCommand + ".OrderTet ""Second""" + vbLf
+sCommand = sCommand + ".OrderSrf ""Second""" + vbLf
+sCommand = sCommand + ".UseDistributedComputing ""False""" + vbLf
+sCommand = sCommand + ".NetworkComputingStrategy ""RunRemote""" + vbLf
+sCommand = sCommand + ".Stimulation ""1"", ""1""" + vbLf
+sCommand = sCommand + ".ResetExcitationList " + vbLf
+sCommand = sCommand + ".AutoNormImpedance ""False""" + vbLf
+sCommand = sCommand + ".NormingImpedance ""50""" + vbLf
+sCommand = sCommand + ".ModesOnly ""False""" + vbLf
+sCommand = sCommand + ".AccuracyHex ""1e-6""" + vbLf
+sCommand = sCommand + ".AccuracyTet ""1e-4""" + vbLf
+sCommand = sCommand + ".AccuracySrf ""1e-3""" + vbLf
+sCommand = sCommand + ".LimitIterations ""False""" + vbLf
+sCommand = sCommand + ".MaxIterations ""0""" + vbLf
+sCommand = sCommand + ".LimitCPUs ""False""" + vbLf
+sCommand = sCommand + ".MaxCPUs ""2""" + vbLf
+sCommand = sCommand + ".StoreAllResults ""False""" + vbLf
+sCommand = sCommand + ".StoreResultsInCache ""False""" + vbLf
+sCommand = sCommand + ".UseHelmholtzEquation ""True""" + vbLf
+sCommand = sCommand + ".LowFrequencyStabilization ""False""" + vbLf
+sCommand = sCommand + ".Type ""Auto""" + vbLf
+sCommand = sCommand + ".MeshAdaptionHex ""False""" + vbLf
+sCommand = sCommand + ".MeshAdaptionTet ""True""" + vbLf
+sCommand = sCommand + ".AcceleratedRestart ""True""" + vbLf
+sCommand = sCommand + ".HexMORSettings """", ""1001""" + vbLf
+sCommand = sCommand + ".NewIterativeSolver ""True""" + vbLf
+sCommand = sCommand + ".TDCompatibleMaterials ""False""" + vbLf
+sCommand = sCommand + ".ExtrudeOpenBC ""True""" + vbLf
+sCommand = sCommand + ".AddMonitorSamples ""True""" + vbLf
+sCommand = sCommand + ".SParameterSweep ""True""" + vbLf
+sCommand = sCommand + ".CalcStatBField ""False""" + vbLf
+sCommand = sCommand + ".UseDoublePrecision ""True""" + vbLf
+sCommand = sCommand + ".MixedOrder ""False""" + vbLf
+sCommand = sCommand + ".UsePreconditionerIntEq ""False""" + vbLf
+sCommand = sCommand + ".PreconditionerAccuracyIntEq ""0.15""" + vbLf
+sCommand = sCommand + ".MLFMMAccuracy ""2.5e-3""" + vbLf
+sCommand = sCommand + ".MinMLFMMBoxSize ""0.20""" + vbLf
+sCommand = sCommand + ".SweepErrorThreshold ""True"", ""0.001""" + vbLf
+sCommand = sCommand + ".SweepErrorChecks ""2""" + vbLf
+sCommand = sCommand + ".SweepMinimumSamples ""3""" + vbLf
+sCommand = sCommand + ".SweepConsiderAll ""True""" + vbLf
+sCommand = sCommand + ".SweepConsiderReset " + vbLf
+sCommand = sCommand + ".InterpolationSamples ""1001""" + vbLf
+sCommand = sCommand + ".SweepWeightEvanescent ""1.0""" + vbLf
+sCommand = sCommand + ".AddSampleInterval """", """", ""1"", ""Automatic"", ""True""" + vbLf
+sCommand = sCommand + ".AddSampleInterval """", """", """", ""Automatic"", ""False""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define frequency domain solver parameters", sCommand
+
+sCommand = ""
+sCommand = sCommand + "With Solver" + vbLf
+sCommand = sCommand + ".AdaptivePortMeshing ""False""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define solver parameters", sCommand
+
+sCommand = ""
+sCommand = sCommand + "ChangeSolverType ""HF Frequency Domain""" + vbLf
+AddToHistory "Change Solver Type to Hex-fast resonance", sCommand
+
+ResetViewToStructure()
+
+EndHide
+
+With Material
+     .Name "Vacuum"
+     .Folder ""
+     .Colour "0.5", "0.8", "1"
+     .Wireframe "False"
+     .Reflection "False"
+     .Allowoutline "True"
+     .Transparentoutline "False"
+     .Transparency "46"
+     .ChangeColour
+End With
+
+Plot.DrawWorkplane "false"
+
+End Sub

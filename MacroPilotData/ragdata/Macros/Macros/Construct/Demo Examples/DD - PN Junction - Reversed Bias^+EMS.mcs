@@ -1,0 +1,484 @@
+' PN Junction
+
+' ================================================================================================
+' Copyright 2009-2023 Dassault Systemes Deutschland GmbH
+' ================================================================================================
+' History of Changes
+' ------------------------------------------------------------------------------------------------
+' 23-Jun-2022 pon: Initial version
+' ================================================================================================
+Sub Main ()
+
+'@ switch working plane
+Plot.DrawWorkplane "false"
+
+BeginHide
+	StoreParameterWithDescription  "width", "0.1", "extension in x and y direction"
+	StoreParameter  "zmin", "-0.2"
+	StoreParameter  "zmax", "0.2"
+	StoreParameter  "oxidelayer", "0.025"
+	StoreParameter  "Voltage", "0.4"
+EndHide
+
+BeginHide
+	Dim sCommand As String
+
+	'@ change problem type
+	sCommand = ""	
+	sCommand = sCommand + "ChangeSolverType ""Stationary Drift-Diffusion"""
+	AddToHistory "change problem type", sCommand
+EndHide
+
+'@ define units
+With Units 
+     .SetUnit "Length", "um"
+     .SetUnit "Temperature", "degC"
+     .SetUnit "Voltage", "V"
+     .SetUnit "Current", "A"
+     .SetUnit "Resistance", "Ohm"
+     .SetUnit "Conductance", "S"
+     .SetUnit "Capacitance", "F"
+     .SetUnit "Inductance", "H"
+     .SetUnit "Frequency", "Hz"
+     .SetUnit "Time", "ns"
+     .SetResultUnit "frequency", "frequency", "" 
+End With
+
+'@ define material: silicon
+With Material 
+     .Reset 
+     .Name "silicon"
+     .Folder ""
+     .Rho "0.0"
+     .ThermalType "Normal"
+     .ThermalConductivity "0"
+     .SpecificHeat "0", "J/K/kg"
+     .DynamicViscosity "0"
+     .UseEmissivity "True"
+     .Emissivity "0"
+     .MetabolicRate "0.0"
+     .VoxelConvection "0.0"
+     .BloodFlow "0"
+     .MechanicsType "Unused"
+     .IntrinsicCarrierDensityModel "advanced"
+     .IntrinsicCarrierDensity "1e10"
+	 .BandGap "1.17", "7e-4", "1100"
+     .BandGapNarrowingSlotboom "0", "1e-4", "1e17", "0.5"
+     .EffMassDOS "Electron", "1.04", "4.4e-4", "0.0"
+     .EffMassDOS "Hole", "0.5", "1.3e-4", "-1.3e-6"
+	 .LatticeScattering "Electron", "1400", "2.5"
+     .ImpurityScatteringLowDensity "Electron", "False", "60", "1e17", "0.7"
+     .ImpurityScatteringHighDensity "Electron", "False", "60", "60", "0.", "0.", "1e17", "0.", "0.7", "0."
+     .VelocitySaturationSI "Electron", "False", "Projection", "1.05e7", "0.", "2.0", "0."
+     .VelocitySaturationGAAS "Electron", "False", "Projection", "9e6", "0.", "4.0", "0.", "4.e3"
+     .LatticeScattering "Hole", "500", "2.5"
+     .ImpurityScatteringLowDensity "Hole", "False", "48", "2e17", "0.7"
+     .ImpurityScatteringHighDensity "Hole", "False", "48", "48", "0.", "0.", "2e17", "0.", "0.7", "0."
+     .VelocitySaturationSI "Hole", "False", "Projection", "9e6", "0.", "1.0", "0."
+     .VelocitySaturationGAAS "Hole", "False", "Projection", "9e6", "0.", "4.0", "0.", "4.e3"
+	 .AugerRecombination "False", "2.5e-31", "7.5e-31"
+     .BandToBandRecombination "False", "0.1"
+     .ImpactIonization "False", "1e6", "1.", "1.6e6", "2e6", "1.", "2.e6"
+     .OpticallyInducedCarrierGeneration "False", "0.9"
+     .SRHRecombination "False", "0.0", "1e-5", "0.", "1e-5", "0."
+     .EffectiveMassForConductivity "Electron", "0.26"
+     .EffectiveMassForConductivity "Hole", "0.386"
+     .FrqType "all"
+     .Type "Normal"
+     .MaterialUnit "Frequency", "Hz"
+     .MaterialUnit "Geometry", "mm"
+     .MaterialUnit "Time", "s"
+     .MaterialUnit "Temperature", "Celsius"
+     .Epsilon "11.9"
+     .Mu "1"
+     .Sigma "0"
+     .TanD "0.0"
+     .TanDFreq "0.0"
+     .TanDGiven "False"
+     .TanDModel "ConstTanD"
+     .SetConstTanDStrategyEps "AutomaticOrder"
+     .ConstTanDModelOrderEps "3"
+     .DjordjevicSarkarUpperFreqEps "0"
+     .SetElParametricConductivity "False"
+     .ReferenceCoordSystem "Global"
+     .CoordSystemType "Cartesian"
+     .SigmaM "0"
+     .TanDM "0.0"
+     .TanDMFreq "0.0"
+     .TanDMGiven "False"
+     .TanDMModel "ConstTanD"
+     .SetConstTanDStrategyMu "AutomaticOrder"
+     .ConstTanDModelOrderMu "3"
+     .DjordjevicSarkarUpperFreqMu "0"
+     .SetMagParametricConductivity "False"
+     .DispModelEps  "None"
+     .DispModelMu "None"
+     .DispersiveFittingSchemeEps "Nth Order"
+     .MaximalOrderNthModelFitEps "10"
+     .ErrorLimitNthModelFitEps "0.1"
+     .UseOnlyDataInSimFreqRangeNthModelEps "False"
+     .DispersiveFittingSchemeMu "Nth Order"
+     .MaximalOrderNthModelFitMu "10"
+     .ErrorLimitNthModelFitMu "0.1"
+     .UseOnlyDataInSimFreqRangeNthModelMu "False"
+     .UseGeneralDispersionEps "False"
+     .UseGeneralDispersionMu "False"
+     .NLAnisotropy "False"
+     .NLAStackingFactor "1"
+     .NLADirectionX "1"
+     .NLADirectionY "0"
+     .NLADirectionZ "0"
+     .Colour "1", "0.501961", "0.25098" 
+     .Wireframe "False" 
+     .Reflection "False" 
+     .Allowoutline "True" 
+     .Transparentoutline "False" 
+     .Transparency "0" 
+     .Create
+End With
+
+'@ define material: oxide
+With Material 
+     .Reset 
+     .Name "oxide"
+     .Folder ""
+     .Rho "0.0"
+     .ThermalType "Normal"
+     .ThermalConductivity "0"
+     .SpecificHeat "0", "J/K/kg"
+     .DynamicViscosity "0"
+     .UseEmissivity "True"
+     .Emissivity "0"
+     .MetabolicRate "0.0"
+     .VoxelConvection "0.0"
+     .BloodFlow "0"
+     .MechanicsType "Unused"
+     .IntrinsicCarrierDensity "0"
+     .FrqType "all"
+     .Type "Normal"
+     .MaterialUnit "Frequency", "Hz"
+     .MaterialUnit "Geometry", "mm"
+     .MaterialUnit "Time", "s"
+     .MaterialUnit "Temperature", "Celsius"
+     .Epsilon "3.9"
+     .Mu "1"
+     .Sigma "0"
+     .TanD "0.0"
+     .TanDFreq "0.0"
+     .TanDGiven "False"
+     .TanDModel "ConstTanD"
+     .SetConstTanDStrategyEps "AutomaticOrder"
+     .ConstTanDModelOrderEps "3"
+     .DjordjevicSarkarUpperFreqEps "0"
+     .SetElParametricConductivity "False"
+     .ReferenceCoordSystem "Global"
+     .CoordSystemType "Cartesian"
+     .SigmaM "0"
+     .TanDM "0.0"
+     .TanDMFreq "0.0"
+     .TanDMGiven "False"
+     .TanDMModel "ConstTanD"
+     .SetConstTanDStrategyMu "AutomaticOrder"
+     .ConstTanDModelOrderMu "3"
+     .DjordjevicSarkarUpperFreqMu "0"
+     .SetMagParametricConductivity "False"
+     .DispModelEps  "None"
+     .DispModelMu "None"
+     .DispersiveFittingSchemeEps "Nth Order"
+     .MaximalOrderNthModelFitEps "10"
+     .ErrorLimitNthModelFitEps "0.1"
+     .UseOnlyDataInSimFreqRangeNthModelEps "False"
+     .DispersiveFittingSchemeMu "Nth Order"
+     .MaximalOrderNthModelFitMu "10"
+     .ErrorLimitNthModelFitMu "0.1"
+     .UseOnlyDataInSimFreqRangeNthModelMu "False"
+     .UseGeneralDispersionEps "False"
+     .UseGeneralDispersionMu "False"
+     .NLAnisotropy "False"
+     .NLAStackingFactor "1"
+     .NLADirectionX "1"
+     .NLADirectionY "0"
+     .NLADirectionZ "0"
+     .Colour "1", "1", "0" 
+     .Wireframe "False" 
+     .Reflection "False" 
+     .Allowoutline "True" 
+     .Transparentoutline "False" 
+     .Transparency "0" 
+     .Create
+End With
+
+'@ delete materials 
+Material.Delete "Air"
+Material.Delete "Copper (annealed)"
+
+'@ new component: silicon 
+Component.New "silicon"
+
+'@ define brick: silicon:solid1 
+With Brick
+     .Reset 
+     .Name "solid1" 
+     .Component "silicon" 
+     .Material "silicon" 
+     .Xrange "0", "width" 
+     .Yrange "0", "width" 
+     .Zrange "zmin", "0" 
+     .Create
+End With
+
+'@ define brick: silicon:solid2
+With Brick
+     .Reset 
+     .Name "solid2" 
+     .Component "silicon" 
+     .Material "silicon" 
+     .Xrange "0", "width" 
+     .Yrange "0", "width" 
+     .Zrange "0", "zmax" 
+     .Create
+End With
+
+'@ new component: PEC 
+Component.New "PEC"
+
+'@ define brick: PEC:solid3
+With Brick
+     .Reset 
+     .Name "solid3" 
+     .Component "PEC" 
+     .Material "PEC" 
+     .Xrange "0", "width" 
+     .Yrange "0", "width" 
+     .Zrange "zmin-0.005", "zmin" 
+     .Create
+End With
+
+'@ define brick: PEC:solid4
+With Brick
+     .Reset 
+     .Name "solid4" 
+     .Component "PEC" 
+     .Material "PEC" 
+     .Xrange "0", "width" 
+     .Yrange "0", "width" 
+     .Zrange "zmax", "zmax+0.005" 
+     .Create
+End With
+
+'@ new component: oxide
+Component.New "oxide"
+
+'@ define brick: oxide:negative 
+With Brick
+     .Reset 
+     .Name "negative" 
+     .Component "oxide" 
+     .Material "oxide" 
+     .Xrange "0", "width" 
+     .Yrange "0", "width" 
+     .Zrange "zmin", "zmax" 
+     .Create
+End With
+
+'@ define brick: oxide:solid5
+With Brick
+     .Reset 
+     .Name "solid5" 
+     .Component "oxide" 
+     .Material "oxide" 
+     .Xrange "-oxidelayer", "width+oxidelayer" 
+     .Yrange "-oxidelayer", "width+oxidelayer" 
+     .Zrange "zmin", "zmax" 
+     .Create
+End With
+
+'@ boolean subtract shapes: oxide:solid5, oxide:negative
+Solid.Subtract "oxide:solid5", "oxide:negative"
+
+'@ define doping density: Acceptor
+With DopingDensity
+     .Reset
+     .Name "Acceptor"
+     .Folder ""
+     .Enable "True"
+     .Acceptor "2e16"
+     .Donator "0"
+     .AddFace "silicon:solid2", "6"
+     .Create
+End With
+
+'@ define doping density: Donator 
+With DopingDensity
+     .Reset
+     .Name "Donator"
+     .Folder ""
+     .Enable "True"
+     .Acceptor "0"
+     .Donator "5e17"
+     .AddFace "silicon:solid1", "6"
+     .Create
+End With
+
+'@ define potential: Ground
+With Potential
+     .Reset
+     .Name "Ground"
+     .Folder ""
+     .Value "0"
+     .Phase "0"
+     .AddFace "PEC:solid3", "1"
+     .Type "Fixed"
+     .Create
+End With
+
+'@ define potential: External
+With Potential
+     .Reset
+     .Name "External"
+     .Folder ""
+     .Value "Voltage"
+     .Phase "0"
+     .AddFace "PEC:solid4", "1"
+     .Type "Fixed"
+     .Create
+End With
+
+'@ define boundaries
+With Boundary
+     .Xmin "magnetic"
+     .Xmax "magnetic"
+     .Ymin "magnetic"
+     .Ymax "magnetic"
+     .Zmin "electric"
+     .Zmax "electric"
+     .Xsymmetry "none"
+     .Ysymmetry "none"
+     .Zsymmetry "none"
+     .ApplyInAllDirections "False"
+     .ZminPotential ""
+     .ZminPotentialType "None"
+     .ZmaxPotential ""
+     .ZmaxPotentialType "None"
+End With
+
+'@ create group: meshgroup1
+Group.Add "meshgroup1", "mesh"
+
+'@ set local mesh properties for: meshgroup1
+With MeshSettings
+     With .ItemMeshSettings ("group$meshgroup1")
+          .SetMeshType "Tet"
+          .Set "LayerStackup", "Automatic"
+          .Set "LocalAutomaticEdgeRefinement", "0"
+          .Set "LocalAutomaticEdgeRefinementOverwrite", 0
+          .Set "MaterialIndependent", 0
+          .Set "OctreeSizeFaces", "0"
+          .Set "PatchIndependent", 0
+          .Set "Size", "0.005831"
+     End With
+End With
+
+'@ set mesh properties (Tetrahedral)
+With Mesh 
+     .MeshType "Tetrahedral" 
+     .SetCreator "Low Frequency"
+End With 
+With MeshSettings 
+     .SetMeshType "Tet" 
+     .Set "Version", 1%
+     'MAX CELL - WAVELENGTH REFINEMENT 
+     .Set "StepsPerWaveNear", "4" 
+     .Set "StepsPerWaveFar", "4" 
+     .Set "PhaseErrorNear", "0.02" 
+     .Set "PhaseErrorFar", "0.02" 
+     .Set "CellsPerWavelengthPolicy", "automatic" 
+     'MAX CELL - GEOMETRY REFINEMENT 
+     .Set "StepsPerBoxNear", "25" 
+     .Set "StepsPerBoxFar", "1" 
+     .Set "ModelBoxDescrNear", "maxedge" 
+     .Set "ModelBoxDescrFar", "maxedge" 
+     'MIN CELL 
+     .Set "UseRatioLimit", "0" 
+     .Set "RatioLimit", "100" 
+     .Set "MinStep", "0" 
+     'MESHING METHOD 
+     .SetMeshType "Unstr" 
+     .Set "Method", "0" 
+End With 
+With MeshSettings 
+     .SetMeshType "Tet" 
+     .Set "CurvatureOrder", "1" 
+     .Set "CurvatureOrderPolicy", "automatic" 
+     .Set "CurvRefinementControl", "NormalTolerance" 
+     .Set "NormalTolerance", "22.5" 
+     .Set "SrfMeshGradation", "1.5" 
+     .Set "SrfMeshOptimization", "1" 
+End With 
+With MeshSettings 
+     .SetMeshType "Unstr" 
+     .Set "UseMaterials",  "0" 
+     .Set "MoveMesh", "0" 
+End With 
+With MeshSettings 
+     .SetMeshType "All" 
+     .Set "AutomaticEdgeRefinement",  "0" 
+End With 
+With MeshSettings 
+     .SetMeshType "Tet" 
+     .Set "UseAnisoCurveRefinement", "1" 
+     .Set "UseSameSrfAndVolMeshGradation", "1" 
+     .Set "VolMeshGradation", "1.5" 
+     .Set "VolMeshOptimization", "1" 
+End With 
+With MeshSettings 
+     .SetMeshType "Unstr" 
+     .Set "SmallFeatureSize", "0" 
+     .Set "CoincidenceTolerance", "1e-06" 
+     .Set "SelfIntersectionCheck", "1" 
+     .Set "OptimizeForPlanarStructures", "0" 
+End With 
+With Mesh 
+     .SetParallelMesherMode "Tet", "maximum" 
+     .SetMaxParallelMesherThreads "Tet", "1" 
+End With
+
+'@ add items to group: "meshgroup1"
+Group.AddItem "solid$silicon:solid1", "meshgroup1"
+
+'@ define drift-diffusion solver parameters
+Mesh.SetCreator "Low Frequency" 
+
+'@define curve 3dpolygon: curve1:3dpolygon1
+With Polygon3D
+     .Reset
+     .Version 10
+     .Name "3dpolygon1"
+     .Curve "curve1"
+     .Point "0.5*width", "0.5*width", "zmin"
+     .Point "0.5*width", "0.5*width", "zmax"
+     .Create
+End With
+
+With DriftDiffusionSolver
+     .Reset
+     .SetSolverMode "Gummel-Map"
+     .AmbientTemperature "300"
+     .NewtonAccuracy "1e-9"
+     .Accuracy "1e-5"
+     .MaxIteration "30"
+     .EnableNormalization "True"
+     .TetMeshAdaption "False"
+     .TetCellSizeToDebyeLengthRatio "0"
+     .MonitorJunctionCapacitance "False"
+     .MonitorPlasmaFrequency "False"
+     .UseMaxNumberOfThreads "True"
+     .MaxNumberOfThreads "1024"
+     .MaximumNumberOfCPUDevices "2"
+     .UseDistributedComputing "False"
+End With
+StopVersionStringOverrideMode 
+
+ResetViewToStructure()
+
+End Sub

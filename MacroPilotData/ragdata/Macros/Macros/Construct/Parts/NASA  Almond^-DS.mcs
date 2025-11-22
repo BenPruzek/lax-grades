@@ -1,0 +1,194 @@
+' Nasa Almond
+'-----------------------------------------------------------------------------------------------------------------------------
+' Constructs the NASA almond
+'-----------------------------------------------------------------------------------------------------------------------------
+' Copyright 2013-2023 Dassault Systemes Deutschland GmbH
+' ================================================================================================
+' History of Changes
+'-----------------------------------------------------------------------------------------------------------------------------
+' 02-Dec-2015 osk: provided correct implementation using exact coefficients, removed the "healing"
+' 29-Oct-2013 jeb: added open boundaries, added non-verbose healing command
+' 19-Aug-2013 jeb,slo: First version
+'
+' Article: Alex C. Woo et al. "Benchmark Radar Targets for the Validation of Computational Electromagnetic Programs"
+'		   IEEE Antennas and Propagation Magazine, Vol. 35, No. 1 Feb 1993
+'		   The formulas from the article are taken, truncated floating-point numbers were replaced as follows:
+'		   
+'		   Let A = 0.193333 (can be represented as 29/150, but truncated number is used in the following implementation)
+'		   then:
+'		   0.064444 = A/3
+'		   4.83345  = A*25
+'		   1.61115  = 25*A/3
+'		   
+'		   and furthermore:
+'		   0.416667 = 5/12
+'		   0.58333  = 7/12
+'		   2.08335  = 25/12
+'		   0.96     = 24/25
+'
+' 02-Dec-2015 osk: re-parametrized the first analytic face. It seems to produce a better quality mesh and faceting.
+' 02-Dec-2015 osk: yet another tweak of face parametrization, use sin and cos for the u-parameter
+'-------------------------------------------------------------------------------
+
+Option Explicit
+
+Sub Main ()
+
+	BeginHide
+		StoreDoubleParameter "d", 9.936
+		SetParameterDescription  ( "d", "length" )
+	EndHide
+
+'@ define units
+
+With Units 
+     .SetUnit("Length", "in" )
+     .SetUnit("Frequency", "GHz")
+     .SetUnit("Time", "ns")
+     .SetUnit("Temperature", "K" )
+     .SetUnit("Voltage", "V")
+     .SetUnit("Current", "A" )
+     .SetUnit("Resistance", "Ohm" )
+     .SetUnit("Conductance", "S" )
+     .SetUnit("Capacitance","pF" )
+     .SetUnit("Inductance", "nH" )
+End With
+
+'@ define background
+
+With Background 
+     .ResetBackground 
+     .XminSpace "0.0" 
+     .XmaxSpace "0.0" 
+     .YminSpace "0.0" 
+     .YmaxSpace "0.0" 
+     .ZminSpace "0.0" 
+     .ZmaxSpace "0.0" 
+     .ApplyInAllDirections "False" 
+End With 
+With Material 
+     .Reset 
+     .FrqType "all"
+     .Type "Normal"
+     .SetMaterialUnit "Hz", "m"
+     .Epsilon "1.0"
+     .Mu "1.0"
+     .Sigma "0.0"
+     .TanD "0.0"
+     .TanDFreq "0.0"
+     .TanDGiven "False"
+     .TanDModel "ConstSigma"
+     .ConstTanDModelOrderEps "1"
+     .ReferenceCoordSystem "Global"
+     .CoordSystemType "Cartesian"
+     .SigmaM "0"
+     .TanDM "0.0"
+     .TanDMFreq "0.0"
+     .TanDMGiven "False"
+     .TanDMModel "ConstSigma"
+     .ConstTanDModelOrderMu "1"
+     .DispModelEps  "None"
+     .DispModelMu "None"
+     .DispersiveFittingSchemeEps "1st Order"
+     .DispersiveFittingSchemeMu "1st Order"
+     .UseGeneralDispersionEps "False"
+     .UseGeneralDispersionMu "False"
+     .NLAnisotropy "False"
+     .NLAStackingFactor "1"
+     .NLADirectionX "1"
+     .NLADirectionY "0"
+     .NLADirectionZ "0"
+     .Rho "0.0"
+     .ThermalType "Normal"
+     .ThermalConductivity "0.0"
+     .SpecificHeat "0.0", "J/K/kg"
+     .MetabolicRate "0"
+     .BloodFlow "0"
+     .VoxelConvection "0"
+     .MechanicsType "Unused"
+     .Colour "0.6", "0.6", "0.6" 
+     .Wireframe "False" 
+     .Reflection "False" 
+     .Allowoutline "True" 
+     .Transparentoutline "False" 
+     .Transparency "0" 
+     .ChangeBackgroundMaterial
+End With
+
+'@ new component: component1
+
+Component.New "component1"
+
+'@ define analytical face: component1:solid1
+
+With AnalyticalFace
+     .Reset
+     .Name "solid1"
+     .Component "component1"
+     .Material "PEC"
+     .LawX "-d*cos(u)*5/12"
+     .LawY "0.193333*d*sin(u)*cos(v)"
+     .LawZ "(0.193333/3)*d*sin(u)*sin(v)"
+     .ParameterRangeU "0", "Pi/2"
+     .ParameterRangeV "-Pi", "Pi"
+     .Create
+End With
+
+'  define analytical face: component1:solid2
+
+With AnalyticalFace
+     .Reset
+     .Name "solid2"
+     .Component "component1"
+     .Material "PEC"
+     .LawX "(25/12)*d*sin(u)"
+     .LawY "25*0.193333*d*(cos(u)-0.96)*cos(v)"
+     .LawZ "25*(0.193333/3)*d*(cos(u)-0.96)*sin(v)"
+     .ParameterRangeU "0", "acos(0.96)"
+     .ParameterRangeV "-Pi", "Pi"
+     .Create
+End With
+
+
+
+'@ boolean add shapes: component1:solid1, component1:solid2
+
+Solid.Add "component1:solid1", "component1:solid2"
+
+
+With Boundary
+     .Xmin "expanded open" 
+     .Xmax "expanded open" 
+     .Ymin "expanded open" 
+     .Ymax "expanded open" 
+     .Zmin "expanded open" 
+     .Zmax "expanded open" 
+     .Xsymmetry "none" 
+     .Ysymmetry "none" 
+     .Zsymmetry "none" 
+     .XminThermal "isothermal" 
+     .XmaxThermal "isothermal" 
+     .YminThermal "isothermal" 
+     .YmaxThermal "isothermal" 
+     .ZminThermal "isothermal" 
+     .ZmaxThermal "isothermal" 
+     .XsymmetryThermal "none" 
+     .YsymmetryThermal "none" 
+     .ZsymmetryThermal "none" 
+     .ApplyInAllDirections "True" 
+     .ApplyInAllDirectionsThermal "False" 
+     .XminTemperature "" 
+     .XminTemperatureType "None" 
+     .XmaxTemperature "" 
+     .XmaxTemperatureType "None" 
+     .YminTemperature "" 
+     .YminTemperatureType "None" 
+     .YmaxTemperature "" 
+     .YmaxTemperatureType "None" 
+     .ZminTemperature "" 
+     .ZminTemperatureType "None" 
+     .ZmaxTemperature "" 
+     .ZmaxTemperatureType "None" 
+End With
+
+End Sub

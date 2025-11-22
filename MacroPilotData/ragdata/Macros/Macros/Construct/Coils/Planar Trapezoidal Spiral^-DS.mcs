@@ -1,0 +1,375 @@
+' Construct / Coils / Trapezoidal-Spiral
+' !!! Do not change the line above !!!
+' macro.521
+' ================================================================================================
+' Copyright 2005-2023 Dassault Systemes Deutschland GmbH
+' ================================================================================================
+' History of Changes
+'--------------------------------------------------------------------------------------------
+' 21-Jul-2016 ube: typos corrected
+' 13-Oct-2015 ube: Help button did not work
+' 27-Jan-2014 tgl: check plausability of spacing and width
+' 24-Jul-2009 ube: GetMacroPath replaced by GetInstallPath + "\Library\Macros" (previously only first macropath was searched)
+' 29-Oct-2008 fhi: added parameters and coil-name
+' 18-Apr-2007 fhi: corrected bmp-path
+' 21-Oct-2005 imu: Included into Online Help
+' 18-Oct-2005 fhi: trapezoidal spiral coil: initial version
+'--------------------------------------------------------------------------------------------
+Option Explicit
+Public macropath As String
+Public filename As String
+
+Sub Main ()
+
+	Dim a As Double,  c As Double, h As Double, s As Double, alpha As Double
+	Dim dx As Double, dxs As Double, p1x As Double, p1y As Double, p2x As Double, p2y As Double
+	Dim p3x As Double, p3y As Double, p4x As Double, p4y As Double
+	Dim p5x As Double, p5y As Double, p6x As Double, p6y As Double, nr_of_turns As Integer, i As Integer
+	Dim blend_radius As Double, index As Integer, cst_result  As Integer
+	Dim cst_a As Double, cst_h As Double, cst_c As Double, cst_s As Double
+	Dim cst_blendradius As Double, cst_met_w As Double, cst_met_thick As Double, cst_nr_of_turns As Double
+	Dim met_width As Double, met_thick As Double, cst_blend As Integer, blend_yes_no As Integer
+	Dim first As String,  seconditem As String,cName As String
+
+	BeginHide
+
+		macropath = GetInstallPath + "\Library\Macros"
+		filename = macropath+"\Construct\coils\macro_522_pict.bmp"
+
+		Begin Dialog UserDialog 660,329,"Trapezoidal Spiral Coil",.DialogFunc ' %GRID:10,7,1,1
+			Text 10,7,100,21,"Height",.Text1
+			TextBox 120,7,80,21,.h
+			Text 10,35,100,21,"Broadside ",.Text2
+			TextBox 120,35,80,21,.a
+			Text 10,63,70,21,"Shortside",.Text3
+			TextBox 120,63,80,21,.c
+			Text 10,91,60,21,"Spacing ",.Text4
+			TextBox 120,91,80,21,.s
+			Text 10,119,50,21,"Turns",.Text5
+			TextBox 120,119,80,21,.nr_of_turns
+			Picture 220,7,430,259,filename,0,.Picture1
+			GroupBox 0,203,210,63,"Metallization",.GroupBox1
+			Text 10,224,70,14,"Width",.Text9
+			Text 10,245,80,14,"Thickness",.Text10
+			TextBox 120,238,80,21,.met_thickness
+			TextBox 120,217,80,21,.met_width
+			GroupBox 0,147,210,49,"Blending",.GroupBox2
+			CheckBox 10,168,100,21,"On   Radius",.blend
+			TextBox 120,168,80,21,.blend_radius
+			OKButton 20,301,110,21
+			CancelButton 150,301,100,21
+			PushButton 270,301,90,21,"Help",.Help
+			Text 10,273,110,14,"Coil-Name",.Text6
+			TextBox 120,266,320,21,.name
+		End Dialog
+		Dim dlg As UserDialog
+
+		'Default values
+		dlg.a="30"
+		dlg.h="30"
+		dlg.c="20"
+		dlg.s="2."
+		dlg.blend_radius="1."
+		dlg.met_width="1"
+		dlg.met_thickness=".03"
+		dlg.nr_of_turns = "4"
+		dlg.blend = 1
+
+		'find proper default-name for coils
+		first=  ShortName (Resulttree.GetFirstChildName ("Components\Trapezoidal_Spiral" ))
+		Do While first <> ""
+			seconditem  = ShortName (Resulttree.GetNextItemName (  "Components\Trapezoidal_Spiral\"+ first ))
+			If seconditem <> "" Then
+				first = seconditem
+			Else
+				Exit Do
+			End If
+		Loop
+		If first ="" Then
+			dlg.name = "Trapez_coil"	'first coil's name
+		Else
+			dlg.name = first+"_1"			' default for next coils
+		End If
+
+		cst_result = Dialog(dlg)
+		assign "cst_result"        '  writes e.g. "cst_result = -1/0/1"     into history list
+		If (cst_result = 0) Then Exit All
+
+		cName = dlg.name
+		cst_a = cdbl(dlg.a)
+		cst_h = cdbl(dlg.h)
+		cst_c = cdbl(dlg.c)
+		cst_s = cdbl(dlg.s)
+		cst_blendradius = cdbl(dlg.blend_radius)
+		cst_met_w = cdbl(dlg.met_width)
+		cst_met_thick   = cdbl(dlg.met_thickness)
+		cst_nr_of_turns = cdbl(dlg.nr_of_turns)
+
+		cst_blend = dlg.blend
+
+		StoreDoubleParameter cName+"_broadside", cst_a
+		SetParameterDescription (cName+"_broadside", "Length of broadside")
+		StoreDoubleParameter cName+"_height", cst_h
+		SetParameterDescription (cName+"_height", "Height of coil")
+		StoreDoubleParameter cName+"_shortside", cst_c
+		SetParameterDescription (cName+"_shortside", "Length of shortside")
+		StoreDoubleParameter cName+"_spacing", cst_s
+		SetParameterDescription (cName+"_spacing", "Spacing")
+		StoreDoubleParameter cName+"_blend", cst_s
+		SetParameterDescription (cName+"_blend", "Blend Radius")
+		StoreDoubleParameter cName+"_met_width", cst_met_w
+		SetParameterDescription (cName+"_met_width", "Width of Metal")
+		StoreDoubleParameter cName+"_met_thick", cst_met_thick
+		SetParameterDescription (cName+"_met_thick", "Thickness of Metal")
+		StoreDoubleParameter cName+"_turns", cst_nr_of_turns
+		SetParameterDescription (cName+"_turns", "Number of turns")
+
+		assign "cName"
+		assign "cst_blend"
+
+		' check for proper dimensions and give a hint how to solve this
+		If (cst_s <= cst_met_w) Then 
+			MsgBox "spacing <= width -> coil is not created. Please adjust parameters and update history list", vbOkOnly
+			Exit All
+		End If
+
+	EndHide
+
+	If (cst_result =0) Then Exit All   ' if cancel/help is clicked, exit all
+
+	With Brick
+		.Reset
+		.Name "dummy_solid_trapez"
+		.Component "Trapezoidal_Spiral"
+		.Material "PEC"
+		.Xrange cName+"_height", cName+"_broadside"
+		.Yrange cName+"_blend", cName+"_shortside"
+		.Zrange cName+"_turns", cName+"_spacing"
+		.Create
+	End With
+	Solid.Delete "Trapezoidal_Spiral:dummy_solid_trapez"
+
+	a = restoredoubleparameter (cName+ "_broadside")
+	h = restoredoubleparameter (cName+ "_height")
+	c = restoredoubleparameter (cName+ "_shortside")
+	s = restoredoubleparameter (cName+ "_spacing")
+	blend_radius = restoredoubleparameter (cName+ "_blend")
+	met_width  = restoredoubleparameter (cName+ "_met_width")
+	met_thick  = restoredoubleparameter (cName+ "_met_thick")
+	nr_of_turns  = cint(restoredoubleparameter (cName+ "_turns"))
+
+	blend_yes_no = CInt(cst_blend)
+
+	'start modeling the coil
+
+	alpha =  Atn((a-c)/(2*h))		'angle of side-traces
+	dx = s/Cos (alpha)
+	dxs = s*((a-c)/(2*h))
+
+	'MsgBox CStr(alpha*180/pi)
+
+	Curve.NewCurve "curve1"
+
+	p1x= 0			'starting points
+	p1y=0
+	p2x = -c/2
+	p2y = 0
+	p3x = -a/2
+	p3y = h
+	p4x = a/2
+	p4y = h
+	p5x = c/2+dxs
+	p5y = s
+	p6x = 0
+	p6y = s
+
+	'@ define curve polygon: curve1: 1st Port-Line
+	With Polygon
+		.Reset
+		.Name "Line1"
+		.Curve "curve1"
+		.Point 0 , -c/2
+		.lineto p1x,p1y
+		.create
+	End With
+
+	i=1
+	For index = 1 To nr_of_turns
+
+		'create_polygon "curve1", "Line"+CStr(i+1), p1x,p1y,p2x,p2y
+		With Polygon
+			.Reset
+			.Curve "curve1"
+			.Name "Line"+CStr(i+1)
+			.Point p1x, p1y
+			.lineto p2x,p2y
+			.create
+		End With
+
+		If blend_yes_no = 1 Then
+			If i=1 Then
+				'create_blending "curve1","blend"+CStr(i),"Line"+CStr(i),"Line"+CStr(i+1), 1.0
+				With BlendCurve
+					.Reset
+					.Name "blend"+CStr(i)
+					.Radius blend_radius
+					.Curve "curve1"
+					.CurveItem1 "Line"+CStr(i)
+					.CurveItem2 "Line"+CStr(i+1)
+					.EdgeId1 "1"
+					.EdgeId2 "1"
+					.VertexId1 "2"
+					.VertexId2 "1"
+					.Create
+				End With
+			End If
+		End If
+		'create_polygon "curve1", "Line"+CStr(i+2), p2x,p2y,p3x,p3y
+		With Polygon
+			.Reset
+			.Curve "curve1"
+			.name "Line"+CStr(i+2)
+			.Point p2x, p2y
+			.lineto p3x,p3y
+			.create
+		End With
+		If blend_yes_no = 1 Then
+			'create_blending "curve1","blend"+CStr(i+1),"Line"+CStr(i+1),"Line"+CStr(i+2), 1.0
+			With BlendCurve
+				.Reset
+				.Name "blend"+CStr(i+1)
+				.Radius blend_radius
+				.Curve "curve1"
+				.CurveItem1 "Line"+CStr(i+1)
+				.CurveItem2 "Line"+CStr(i+2)
+				.EdgeId1 "1"
+				.EdgeId2 "1"
+				.VertexId1 "2"
+				.VertexId2 "1"
+				.Create
+			End With
+		End If
+		'create_polygon "curve1", "Line"+CStr(i+3), p3x,p3y,p4x,p4y
+		With Polygon
+			.Reset
+			.curve "curve1"
+			.name "Line"+CStr(i+3)
+			.Point p3x, p3y
+			.lineto p4x,p4y
+			.create
+		End With
+		If blend_yes_no = 1 Then
+			'create_blending "curve1","blend"+CStr(i+2),"Line"+CStr(i+2),"Line"+CStr(i+3), 1.0
+			With BlendCurve
+				.Reset
+				.Name "blend"+CStr(i+2)
+				.Radius blend_radius
+				.Curve "curve1"
+				.CurveItem1 "Line"+CStr(i+2)
+				.CurveItem2 "Line"+CStr(i+3)
+				.EdgeId1 "1"
+				.EdgeId2 "1"
+				.VertexId1 "2"
+				.VertexId2 "1"
+				.Create
+			End With
+		End If
+		'create_polygon "curve1", "Line"+CStr(i+4), p4x,p4y,p5x,p5y
+		With Polygon
+			.Reset
+			.curve "curve1"
+			.name "Line"+CStr(i+4)
+			.Point p4x, p4y
+			.lineto p5x,p5y
+			.create
+		End With
+		If blend_yes_no = 1 Then
+			'create_blending "curve1","blend"+CStr(i+3),"Line"+CStr(i+3),"Line"+CStr(i+4), 1.0
+			With BlendCurve
+				.Reset
+				.Name "blend"+CStr(i+3)
+				.Radius blend_radius
+				.Curve "curve1"
+				.CurveItem1 "Line"+CStr(i+3)
+				.CurveItem2 "Line"+CStr(i+4)
+				.EdgeId1 "1"
+				.EdgeId2 "1"
+				.VertexId1 "2"
+				.VertexId2 "1"
+				.Create
+			End With
+		End If
+		'create_polygon "curve1", "Line"+CStr(i+5), p5x,p5y,p6x,p6y
+		With Polygon
+			.Reset
+			.curve "curve1"
+			.name "Line"+CStr(i+5)
+			.Point p5x, p5y
+			.lineto p6x,p6y
+			.create
+		End With
+		If blend_yes_no = 1 Then
+			'create_blending "curve1","blend"+CStr(i+4),"Line"+CStr(i+4),"Line"+CStr(i+5), 1.0
+			With BlendCurve
+				.Reset
+				.Name "blend"+CStr(i+4)
+				.Radius blend_radius
+				.Curve "curve1"
+				.CurveItem1 "Line"+CStr(i+4)
+				.CurveItem2 "Line"+CStr(i+5)
+				.EdgeId1 "1"
+				.EdgeId2 "1"
+				.VertexId1 "2"
+				.VertexId2 "1"
+				.Create
+			End With
+		End If
+		'create point-offsets for next loop
+		p1y =p1y+s
+		p2x = p2x +dx-dxs
+		p2y = p2y +s
+		p3x = p3x +dx+dxs
+		p3y = p3y -s
+		p4x = p4x -dx-dxs
+		p4y = p4y -s
+		p5x = p5x -dx+dxs
+		p5y = p5y +s
+		p6y = p6y+s
+		i=i+5
+	Next
+	'create Solid
+	With TraceFromCurve
+		.Reset
+		.Name cName 'Solid.GetNextFreeName
+		.Component "Trapezoidal_Spiral"
+		.Material "PEC"
+		.Curve "curve1:Line1"
+		.Thickness cName+ "_met_thick"' met_thick
+		.Width cName+ "_met_width"' met_width
+		.RoundStart "False"
+		.RoundEnd "False"
+		.GapType "2"
+		.Create
+	End With
+End Sub
+
+Function DialogFunc%(Item As String, Action As Integer, Value As Integer)
+	Select Case Action
+		Case 1 ' Dialog box initialization
+		Case 2 ' Value changing or button pressed
+		Select Case Item
+		Case "Help"
+		StartHelp "common_preloadedmacro_Construct_Coils"
+		DialogFunc = True
+		End Select
+		Case 3 ' ComboBox or TextBox Value changed
+		Case 4 ' Focus changed
+		Case 5 ' Idle
+	End Select
+End Function
+
+Function ShortName (lib_path As String) As String
+	Dim lib_dircount As Integer
+	lib_dircount  = InStrRev(lib_path, "\")
+	ShortName = Mid$(lib_path, lib_dircount+1, 999)
+End Function

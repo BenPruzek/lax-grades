@@ -1,0 +1,39 @@
+Option Explicit
+
+' ================================================================================================
+' Copyright 2015-2023 Dassault Systemes Deutschland GmbH
+' ================================================================================================
+' History of Changes
+' ---------------------------------------------------------------------------------------------------------------------------------------------
+' 05-Jul-2016 ube: define all am+ph parameters as mesh independent
+' 10-Oct-2015 ube: first version
+' ---------------------------------------------------------------------------------------------------------------------------------------------
+
+Sub Main
+
+Const iPortNo = Solver.GetNumberOfPorts
+
+Dim iii As Integer, iModeNo As Integer
+iModeNo = 1
+
+With CombineResults
+	.Reset
+	For iii=1 To iPortNo
+		MakeSureParameterExists("am_"&Cstr(iii),1)
+		MakeSureParameterExists("ph_"&Cstr(iii),0)
+		KeepMeshOnParameterChange "am_"&Cstr(iii), True
+		KeepMeshOnParameterChange "ph_"&Cstr(iii), True
+		.SetExcitationValues "port", Cstr(iii), Cstr(iModeNo), "am_"&Cstr(iii), "ph_"&Cstr(iii)
+	Next iii
+	.SetLabel "my-amph"
+	.SetOffsetType "phase"
+	.AddToExcitationList
+End With
+
+With Solver
+	.StimulationPort "Selected"
+	.ResetExcitationModes
+	.ActivateExcitation "Simultaneous", "my-amph", "1", "True"
+End With
+
+End Sub

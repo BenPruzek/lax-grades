@@ -1,0 +1,11 @@
+'=============
+'
+Sub eye_CST_Settings(CSTSolver as object, CSTResultTree as Object)
+	Set CSTSolver = Nothing
+	Set CSTResultTree = Block
+End Sub
+
+' SelectTreeItem works in DS, but not in "DS for PCBS"; therefore, define it here, so that there is no VBA error 
+Sub SelectTreeItem(ss as string)
+end Sub
+

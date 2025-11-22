@@ -1,0 +1,351 @@
+' Construct / Coils / Circular Spiral , circular wire cross section
+' !!!
+'
+'--------------------------------------------------------------------------------------------
+'Type: Archimedial Spiral  rho=a*phi+rho_0, or x=rho*cos(phi), y=rho*sin(phi)  ' equation improved by jsw
+'                          a = progression factor =p/(2*pi)
+'                          where p=width+gap
+'                          rho_0=cst_inner_radius
+'
+'-----------------------------------------------------------------------------------------------------------------------------
+' Copyright 2010-2023 Dassault Systemes Deutschland GmbH
+' ================================================================================================
+' History of Changes
+'-----------------------------------------------------------------------------------------------------------------------------
+' 24-Sep-2010 fhi: Initial version
+'-----------------------------------------------------------------------------------------------------------------------------
+Option Explicit
+
+Public macropath As String
+Public filename As String
+
+Const HelpFileName = "common_preloadedmacro_Construct_Coils"
+
+'-----------------------------------------------------------------------------------------------------------------------------
+
+Sub Main ()
+
+Dim cst_wire_rad As Double, cst_width As Double, cst_gap As Double, cst_inner_radius As Double, cst_turns As Double
+Dim scst_wire_rad As Double, scst_width As Double, scst_gap As Double, scst_inner_radius As Double, scst_turns As Double
+Dim scst_increment As Double, scst_end_angle As Double, scst_start_angle As Double, cst_phi_endextra As Double
+Dim cst_result As Integer, cst_oldcount As Integer, cst_dummyname As String, cst_newname As String, cst_index As Integer
+Dim pi180 As Double, cst_index_a As Double, cst_rad As Double, cst_radx As Double, cst_rady As Double
+Dim cst_increment As Double, cst_pi As Double, cst_phi_start As Double, cst_progress As Double, cst_start_x As Double
+Dim cst_start_y As Double, cst_start_x1 As Double, cst_start_y1 As Double, cst_start_x2 As Double
+Dim cst_start_y2 As Double, cst_end_x1 	As Double, cst_end_y1 	As Double, cst_end_x2 	As Double, cst_end_y2 	As Double
+Dim nr_of_total_segments As Double, total_angle As Double, angle_width_per_segment As Double
+Dim scst_increment_wire As Double, cst_increment_wire As Double, cst_start_angle As Double, cst_end_angle As Double
+Dim first As String,  seconditem As String,cName As String
+
+
+'-------------------------------------
+pi180= Atn(1)*4/180. 	' = pi/180
+cst_pi = Atn(1)*4.		' = PI
+
+BeginHide
+
+macropath = GetInstallPath + "\Library\Macros"
+filename = macropath+"\Construct\Coils\wire_spiral.bmp"
+
+	Begin Dialog UserDialog 370,328,"Archimedial Spiral Settings",.DialogFunc ' %GRID:10,4,1,1
+		GroupBox 10,72,350,144,"",.GroupBox1
+		Text 30,80,100,16,"Wire Radius",.HeightLabel
+		TextBox 30,100,150,20,.wire_rad
+		Text 30,124,150,16,"Winding Progress",.GapLabel
+		TextBox 30,144,150,20,.Gap
+		Text 200,80,150,16,"Inner Radius",.InnerRadiusLabel
+		TextBox 200,100,150,20,.InnerRadius
+		Text 200,124,150,16,"Number of Turns",.LabelTurns
+		TextBox 200,144,150,20,.Turns
+		OKButton 20,300,90,20
+		CancelButton 120,300,90,20,.Cancel
+		PushButton 270,300,90,20,"Help",.Help
+		Text 200,168,110,16,"Segments /Turn",.Text1
+		TextBox 200,188,140,20,.segments_turn
+		GroupBox 10,220,350,68,"Angle Offsets",.GroupBox2
+		Text 30,240,140,16,"at Start of Spiral",.Text2
+		TextBox 30,260,150,20,.start_angle
+		Text 200,240,130,16,"at End of Spiral",.Text3
+		TextBox 200,260,140,20,.end_angle
+		Text 30,168,140,16,"Segments of Wire",.Text4
+		TextBox 30,188,140,20,.segments_wire
+		Text 10,8,180,16,"Spiral Name",.Text5
+		TextBox 10,32,180,20,.name
+		Picture 200,4,160,60,filename,0,.Picture1
+	End Dialog
+
+        Dim dlg As UserDialog
+        dlg.segments_turn   = "0" 	' 0= spline, > 0 segmented
+        dlg.segments_wire   = "0"
+
+		dlg.wire_rad       = "2"
+		dlg.Gap         = "5"
+		dlg.InnerRadius = "10"
+		dlg.Turns       = "3"
+        dlg.end_angle ="0"
+        dlg.start_angle ="0"
+
+        'find proper default-name for coils
+		first=  ShortName (Resulttree.GetFirstChildName ("Components\Wire_spiral" ))
+	Do While first <> ""
+    	seconditem  = ShortName (Resulttree.GetNextItemName (  "Components\Wire_spiral\"+ first ))
+		If seconditem <> "" Then
+		 	first = seconditem
+		Else
+		 	Exit Do
+		End If
+	Loop
+	If first ="" Then
+		dlg.name = "Wire_coil"	'first coil's name
+	Else
+		dlg.name = first+"_1"			' default for next coils
+	End If
+
+ 		cst_result = Dialog(dlg)
+
+        assign "cst_result"        '  writes e.g. "cst_result = -1/0/1"     into history list
+        If (cst_result = 0) Then Exit All
+
+		cName = dlg.name
+
+		If IsSolidExisting ("Wire_spiral:"+cName) Then
+			MsgBox "Solid *"+ cName+ "* already exists! Please choose another name.",,"Warning"
+			Exit All
+		End If
+
+        scst_wire_rad        = cdbl(dlg.wire_rad)   'Width
+        scst_gap          = cdbl(dlg.Gap)
+        scst_inner_radius = cdbl(dlg.InnerRadius)
+        scst_turns        = cdbl(dlg.Turns)
+        scst_increment     = cdbl(dlg.segments_turn)
+        scst_increment_wire     = cdbl(dlg.segments_wire)
+        scst_end_angle     = cdbl(dlg.end_angle)
+        scst_start_angle     = cdbl(dlg.start_angle)
+
+        StoreDoubleParameter cName+"_wire_radius", scst_wire_rad
+		SetParameterDescription (cName+"_wire_radius", "Wire Radius")
+		StoreDoubleParameter cName+"_progress", scst_gap
+		SetParameterDescription (cName+"_progress", "Winding Progress (center-center)")
+		StoreDoubleParameter cName+"_inner_radius", scst_inner_radius
+		SetParameterDescription (cName+"_inner_radius", " Inner Radius of Spiral ")
+		StoreDoubleParameter cName+"_turns", scst_turns
+		SetParameterDescription (cName+"_turns", "Nr of Turns ")
+		StoreDoubleParameter cName+"_nr_of_segments", scst_increment
+		SetParameterDescription (cName+"_nr_of_segments", "Nr of Segments ")
+		StoreDoubleParameter cName+"_nr_of_wiresegments", scst_increment_wire
+		SetParameterDescription (cName+"_nr_of_wiresegments", " Nr of Segments for wire ")
+		StoreDoubleParameter cName+"_end_angle", scst_end_angle
+		SetParameterDescription (cName+"_end_angle", " End of Angle-Offset ")
+		StoreDoubleParameter cName+"_start_angle", scst_start_angle
+		SetParameterDescription (cName+"_start_angle", " Start of Angle-Offset ")
+
+        assign "cName"
+
+
+EndHide
+        'cst_result = Evaluate(cst_result)
+        If (cst_result =0) Then Exit All   ' if cancel/help is clicked, exit all
+        If (cst_result =1) Then Exit All
+
+		'dummy brick to activate the param. changes
+    With Brick
+     .Reset
+     .Name "dummy_solid_wire"
+     .Component "Wire_spiral"
+     .Material "PEC"
+     .Xrange -cdbl(cName+"_wire_radius"), cName+"_wire_radius"
+     .Yrange -cdbl(cName+"_wire_radius"), cName+"_wire_radius"
+     .Zrange 0,0
+     .Create
+	End With
+	Solid.Delete "Wire_spiral:dummy_solid_wire"
+
+
+		cst_wire_rad    =    restoredoubleparameter (cName+ "_wire_radius")
+        cst_gap          =  restoredoubleparameter (cName+ "_progress")
+        cst_inner_radius = restoredoubleparameter (cName+ "_inner_radius")
+        cst_turns        = restoredoubleparameter (cName+ "_turns")
+        cst_increment     = restoredoubleparameter (cName+ "_nr_of_segments")
+        cst_increment_wire  =   restoredoubleparameter (cName+ "_nr_of_wiresegments")
+        cst_end_angle     = restoredoubleparameter (cName+ "_end_angle")
+        cst_start_angle     = restoredoubleparameter (cName+ "_start_angle")
+
+' start modeling
+
+	cst_index=0
+
+		 cst_turns = cdbl(cName+ "_turns")
+        cst_increment    =cdbl(cName+ "_nr_of_segments")	'segments/turn
+		cst_phi_endextra =cdbl(cName+ "_end_angle")
+		cst_phi_start = cdbl(cName+ "_start_angle")
+
+
+		cst_progress = ((cdbl(cName+ "_progress"))+cst_width)/(2*cst_pi)
+
+		cst_start_x2 =  (cst_inner_radius+cst_width) * Cos(cst_phi_start*pi180)
+		cst_start_y2 =  (cdbl(cName+ "_inner_radius")+cst_width) * Sin(cst_phi_start*pi180)
+
+		'nr of segments
+
+		If cst_increment > 0 Then	'polygon
+			total_angle = 360*cdbl(cName+ "_turns")	+ cst_phi_endextra ' total angle
+			angle_width_per_segment = 360/cdbl(cName+ "_nr_of_segments")
+			nr_of_total_segments = total_angle/angle_width_per_segment
+ 		Else 'spline
+			total_angle = 360*cst_turns	+ cst_phi_endextra ' total angle
+			angle_width_per_segment = 5	 'default
+			nr_of_total_segments = total_angle/angle_width_per_segment
+		End If
+
+		'extra phi at the end of the spiral due to roundoffs:
+		cst_phi_endextra = total_angle - Int(nr_of_total_segments)*angle_width_per_segment
+
+
+WCS.ActivateWCS "local"
+
+
+
+
+With Circle
+     .Reset
+     .Name "circle1"
+     .Curve "curve_spiral"
+     .Radius cst_wire_rad
+     .Xcenter Sqr((cst_inner_radius * Cos(cst_phi_start*pi180))^2+(cst_inner_radius * Sin(cst_phi_start*pi180))^2)
+     .Ycenter  0 '
+     .Segments cdbl(cName+ "_nr_of_wiresegments")
+     .Create
+End With
+
+'circle upright
+
+With Transform
+     .Reset
+     .Name "curve_spiral:circle1"
+     .Origin "Free"
+     .Center "0", "0", "0"
+     .Angle "90", "0", "0"
+     .MultipleObjects "False"
+     .GroupObjects "False"
+     .Repetitions "1"
+     .MultipleSelection "False"
+     .RotateCurve
+End With
+
+'rotate by start angle
+With Transform
+     .Reset
+     .Name "curve_spiral:circle1"
+     .Origin "Free"
+     .Center "0", "0", "0"
+     .Angle "0", "0",  cst_phi_start
+     .MultipleObjects "False"
+     .GroupObjects "False"
+     .Repetitions "1"
+     .MultipleSelection "False"
+     .RotateCurve
+End With
+
+
+
+'  first sprial
+'
+ 	cst_start_x =cst_inner_radius*Cos((cst_phi_start)*pi180)
+ 	cst_start_y =cst_inner_radius*Sin((cst_phi_start)*pi180)
+ 	If cst_increment = 0 Then
+     Spline.Reset
+     Spline.Name "archimed_a_"
+     Spline.Curve "curve_spiral"
+     Spline.Point cst_start_x, cst_start_y
+ 	Else
+	 Polygon.Reset
+     Polygon.Name "archimed_a_"
+     Polygon.Curve "curve_spiral"
+     Polygon.Point cst_start_x, cst_start_y
+ 	End If
+     ' create spline-points with angle increment in degrees
+     For cst_index_a = 1  To  Int(nr_of_total_segments)
+
+          cst_end_x1=((cst_progress*cst_index_a*angle_width_per_segment )*pi180+cst_inner_radius)*Cos((cst_index_a*angle_width_per_segment+cst_phi_start)*pi180)
+          cst_end_y1=((cst_progress*cst_index_a*angle_width_per_segment )*pi180+cst_inner_radius)*Sin((cst_index_a*angle_width_per_segment+cst_phi_start)*pi180)
+          If cst_increment = 0 Then
+           	Spline.LineTo  cst_end_x1 , cst_end_y1
+		  Else
+			Polygon.LineTo  cst_end_x1 , cst_end_y1
+		  End If
+     Next
+     ' if there is still a faction of a segment, it will be appended as last point
+     cst_index_a = Int(nr_of_total_segments)
+     If cst_increment = 0 Then 'spline
+		If cst_phi_endextra > 0 Then
+     		cst_end_x1=((cst_progress*cst_index_a*angle_width_per_segment  +cst_phi_endextra*cst_progress  )*pi180+cst_inner_radius)*Cos((cst_index_a*angle_width_per_segment+cst_phi_endextra+cst_phi_start)*pi180)
+	        cst_end_y1=((cst_progress*cst_index_a*angle_width_per_segment  +cst_phi_endextra*cst_progress  )*pi180+cst_inner_radius)*Sin((cst_index_a*angle_width_per_segment+cst_phi_endextra+cst_phi_start)*pi180)
+			Spline.LineTo  cst_end_x1 , cst_end_y1
+		End If
+      	Spline.Create
+     Else 'segmented
+     	If cst_phi_endextra > 0 Then
+     		cst_end_x1=((cst_progress*cst_index_a*angle_width_per_segment  +cst_phi_endextra*cst_progress  )*pi180+cst_inner_radius)*Cos((cst_index_a*angle_width_per_segment+cst_phi_endextra+cst_phi_start)*pi180)
+	        cst_end_y1=((cst_progress*cst_index_a*angle_width_per_segment  +cst_phi_endextra*cst_progress )*pi180+cst_inner_radius)*Sin((cst_index_a*angle_width_per_segment+cst_phi_endextra+cst_phi_start)*pi180)
+			Polygon.LineTo  cst_end_x1 , cst_end_y1
+		End If
+      	Polygon.create
+     End If
+
+
+
+     With SweepCurve
+     .Reset
+     .Name  cName
+     .Component "Wire_spiral"
+     .Material "PEC"
+     .Twistangle "0.0"
+     .Taperangle "0.0"
+     .ProjectProfileToPathAdvanced "True"
+     .Path "curve_spiral:archimed_a_"
+     .Curve "curve_spiral:circle1"
+     .Create
+	End With
+
+
+
+
+	Curve.DeleteCurve "curve_spiral"
+
+End Sub
+Function DialogFunc%(Item As String, Action As Integer, Value As Integer)
+	Select Case Action
+	Case 1 ' Dialog box initialization
+	Case 2 ' Value changing or button pressed
+		Select Case Item
+		Case "Help"
+			StartHelp HelpFileName
+			DialogFunc = True
+		End Select
+	Case 3 ' ComboBox or TextBox Value changed
+	Case 4 ' Focus changed
+	Case 5 ' Idle
+	End Select
+End Function
+
+Function ShortName (lib_path As String) As String
+
+        Dim lib_dircount As Integer
+
+        lib_dircount  = InStrRev(lib_path, "\")
+        ShortName = Mid$(lib_path, lib_dircount+1, 999)
+
+End Function
+
+Function IsSolidExisting (sname) As Boolean
+ Dim i As Integer
+ i=0
+ Do
+	If Solid.GetNameOfShapeFromIndex (i) = sname Then
+		IsSolidExisting= True
+		Exit Function
+	End If
+	i=i+1
+ Loop While i <= Solid.GetNumberOfShapes
+ IsSolidExisting= False
+End Function

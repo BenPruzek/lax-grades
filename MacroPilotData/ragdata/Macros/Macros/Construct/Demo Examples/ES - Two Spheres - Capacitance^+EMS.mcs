@@ -1,0 +1,223 @@
+' Construct / Online / Two Spheres - Capacitance
+' !!! Do not change the line above !!!
+' ================================================================================================
+' Copyright 2014-2023 Dassault Systemes Deutschland GmbH
+' ================================================================================================
+' History of Changes
+' ------------------------------------------------------------------------------------------------
+' 17-Sep-2014 ube: Initial version
+' ================================================================================================
+
+' Simple Capacitance Example between two coated spheres
+
+Sub Main ()
+BeginHide
+
+Dim sCommand As String
+
+'@ use template: Electrostatics
+
+' (CSTxEMSxPSxONLY)
+
+StoreDoubleParameter "distance", 2
+StoreDoubleParameter "innerRadius", 1
+StoreDoubleParameter "outerRadius", 2
+StoreDoubleParameter "scaleFactor", 2
+
+
+'@ define units
+sCommand = ""
+sCommand = sCommand + "With Units " + vbLf
+sCommand = sCommand + ".Geometry ""mm""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define units", sCommand 
+
+
+'@ define background
+sCommand = ""
+sCommand = sCommand + "With Background " + vbLf
+sCommand = sCommand + ".Type ""Normal""" + vbLf
+sCommand = sCommand + ".Epsilon ""1.0""" + vbLf
+sCommand = sCommand + ".Mu ""1.0""" + vbLf
+sCommand = sCommand + ".XminSpace ""1.0""" + vbLf
+sCommand = sCommand + ".XmaxSpace ""1.0""" + vbLf
+sCommand = sCommand + ".YminSpace ""1.0""" + vbLf
+sCommand = sCommand + ".YmaxSpace ""1.0""" + vbLf
+sCommand = sCommand + ".ZminSpace ""1.0""" + vbLf
+sCommand = sCommand + ".ZmaxSpace ""1.0""" + vbLf
+sCommand = sCommand + ".ApplyInAllDirections ""False""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define background", sCommand 
+
+
+'@ define boundaries
+sCommand = ""
+sCommand = sCommand + "With Boundary" + vbLf
+sCommand = sCommand + ".Xmin ""magnetic""" + vbLf
+sCommand = sCommand + ".Xmax ""magnetic""" + vbLf
+sCommand = sCommand + ".Ymin ""magnetic""" + vbLf
+sCommand = sCommand + ".Ymax ""magnetic""" + vbLf
+sCommand = sCommand + ".Zmin ""magnetic""" + vbLf
+sCommand = sCommand + ".Zmax ""magnetic""" + vbLf
+sCommand = sCommand + ".Xsymmetry ""none""" + vbLf
+sCommand = sCommand + ".Ysymmetry ""magnetic""" + vbLf
+sCommand = sCommand + ".Zsymmetry ""magnetic""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define boundaries", sCommand
+
+
+'@ define material: dielectricum1
+sCommand = ""
+sCommand = sCommand + "With Material " + vbLf
+sCommand = sCommand + ".Reset " + vbLf
+sCommand = sCommand + ".Name ""dielectricum1""" + vbLf
+sCommand = sCommand + ".Type ""Normal""" + vbLf
+sCommand = sCommand + ".Epsilon ""2""" + vbLf
+sCommand = sCommand + ".Mu ""1""" + vbLf
+sCommand = sCommand + ".Colour ""1"", ""0.501961"", ""0""" + vbLf
+sCommand = sCommand + ".Create" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define material: dielectricum1", sCommand 
+
+
+'@ define material: dielectricum2
+sCommand = ""
+sCommand = sCommand + "With Material " + vbLf
+sCommand = sCommand + ".Reset " + vbLf
+sCommand = sCommand + ".Name ""dielectricum2""" + vbLf
+sCommand = sCommand + ".Type ""Normal""" + vbLf
+sCommand = sCommand + ".Epsilon ""4""" + vbLf
+sCommand = sCommand + ".Mu ""1""" + vbLf
+sCommand = sCommand + ".Colour ""0.501961"", ""0.501961"", ""0""" + vbLf
+sCommand = sCommand + ".Create" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define material: dielectricum2", sCommand 
+
+
+'@ new component: component1
+sCommand = ""
+sCommand = sCommand + "With Component" + vbLf
+sCommand = sCommand + ".New ""component1""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "new component: component1", sCommand
+
+
+'@ define sphere: component1:innerSphere
+sCommand = ""
+sCommand = sCommand + "With Sphere " + vbLf
+sCommand = sCommand + ".Reset " + vbLf
+sCommand = sCommand + ".Name ""innerSphere""" + vbLf
+sCommand = sCommand + ".Component ""component1""" + vbLf
+sCommand = sCommand + ".Material ""PEC""" + vbLf
+sCommand = sCommand + ".Axis ""z""" + vbLf
+sCommand = sCommand + ".CenterRadius ""innerRadius""" + vbLf
+sCommand = sCommand + ".TopRadius ""0""" + vbLf
+sCommand = sCommand + ".BottomRadius ""0""" + vbLf
+sCommand = sCommand + ".Center ""distance/2 + outerRadius"", ""0"", ""0""" + vbLf
+sCommand = sCommand + ".Segments ""0""" + vbLf
+sCommand = sCommand + ".Create " + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define sphere: component1:innerSphere", sCommand
+
+
+'@ define sphere: component1:innerSphere_1
+sCommand = ""
+sCommand = sCommand + "With Sphere " + vbLf
+sCommand = sCommand + ".Reset " + vbLf
+sCommand = sCommand + ".Name ""innerSphere_1""" + vbLf
+sCommand = sCommand + ".Component ""component1""" + vbLf
+sCommand = sCommand + ".Material ""PEC""" + vbLf
+sCommand = sCommand + ".Axis ""z""" + vbLf
+sCommand = sCommand + ".CenterRadius ""scaleFactor * innerRadius""" + vbLf
+sCommand = sCommand + ".TopRadius ""0""" + vbLf
+sCommand = sCommand + ".BottomRadius ""0""" + vbLf
+sCommand = sCommand + ".Center ""-distance/2 - scaleFactor * outerRadius"", ""0"", ""0""" + vbLf
+sCommand = sCommand + ".Segments ""0""" + vbLf
+sCommand = sCommand + ".Create " + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define sphere: component1:innerSphere_1", sCommand
+
+
+'@ define sphere: component1:outerSphere
+sCommand = ""
+sCommand = sCommand + "With Sphere " + vbLf
+sCommand = sCommand + ".Reset " + vbLf
+sCommand = sCommand + ".Name ""outerSphere""" + vbLf
+sCommand = sCommand + ".Component ""component1""" + vbLf
+sCommand = sCommand + ".Material ""dielectricum1""" + vbLf
+sCommand = sCommand + ".Axis ""z""" + vbLf
+sCommand = sCommand + ".CenterRadius ""outerRadius""" + vbLf
+sCommand = sCommand + ".TopRadius ""0""" + vbLf
+sCommand = sCommand + ".BottomRadius ""0""" + vbLf
+sCommand = sCommand + ".Center ""distance/2 + outerRadius"", ""0"", ""0""" + vbLf
+sCommand = sCommand + ".Segments ""0""" + vbLf
+sCommand = sCommand + ".Create " + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define sphere: component1:outerSphere", sCommand
+
+
+'@ define sphere: component1:outerSphere_1
+sCommand = ""
+sCommand = sCommand + "With Sphere " + vbLf
+sCommand = sCommand + ".Reset " + vbLf
+sCommand = sCommand + ".Name ""outerSphere_1""" + vbLf
+sCommand = sCommand + ".Component ""component1""" + vbLf
+sCommand = sCommand + ".Material ""dielectricum2""" + vbLf
+sCommand = sCommand + ".Axis ""z""" + vbLf
+sCommand = sCommand + ".CenterRadius ""scaleFactor * outerRadius""" + vbLf
+sCommand = sCommand + ".TopRadius ""0""" + vbLf
+sCommand = sCommand + ".BottomRadius ""0""" + vbLf
+sCommand = sCommand + ".Center ""-distance/2 - scaleFactor * outerRadius"", ""0"", ""0""" + vbLf
+sCommand = sCommand + ".Segments ""0""" + vbLf
+sCommand = sCommand + ".Create " + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define sphere: component1:outerSphere_1", sCommand
+
+
+'@ define potential: potential1
+sCommand = ""
+sCommand = sCommand + "With Potential" + vbLf
+sCommand = sCommand + ".Reset " + vbLf
+sCommand = sCommand + ".Name ""potential1""" + vbLf
+sCommand = sCommand + ".Value ""1""" + vbLf
+sCommand = sCommand + ".Phase ""0""" + vbLf
+sCommand = sCommand + ".Face ""component1:innerSphere"", ""1""" + vbLf
+sCommand = sCommand + ".Type ""Fixed""" + vbLf
+sCommand = sCommand + ".Create" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define potential: potential1", sCommand
+
+
+'@ set mesh properties
+sCommand = ""
+sCommand = sCommand + "With MeshSettings " + vbLf
+sCommand = sCommand + ".SetMeshType ""Tet""" + vbLf
+sCommand = sCommand + ".Set ""StepsPerBoxNear"", ""10""" + vbLf
+sCommand = sCommand + ".Set ""StepsPerBoxFar"", ""5""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "set mesh properties (Tetrahedral)", sCommand
+
+
+'@ define e-static solver parameters
+sCommand = ""
+sCommand = sCommand + "With EStaticSolver" + vbLf
+sCommand = sCommand + ".Reset " + vbLf
+sCommand = sCommand + ".Method ""Tetrahedral Mesh""" + vbLf
+sCommand = sCommand + ".Accuracy ""1e-4""" + vbLf
+sCommand = sCommand + ".CalcCapacitanceMatrix ""True""" + vbLf
+sCommand = sCommand + ".StoreResultsInCache ""False""" + vbLf
+sCommand = sCommand + ".MeshAdaption ""False""" + vbLf
+sCommand = sCommand + ".SavePotentialChargeData ""False""" + vbLf
+sCommand = sCommand + ".LSESolverType ""Auto""" + vbLf
+sCommand = sCommand + ".TetSolverOrder ""2""" + vbLf
+sCommand = sCommand + ".TetAdaption ""False""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define e-static solver parameters", sCommand
+
+ResetViewToStructure()
+EndHide
+
+'set the solver type
+ChangeSolverType("LF EStatic")
+
+End Sub

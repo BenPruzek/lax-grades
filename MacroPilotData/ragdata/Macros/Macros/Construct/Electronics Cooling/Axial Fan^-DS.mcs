@@ -1,0 +1,219 @@
+' Fan
+'
+' One of the Microstripes smartparts turned into a macro in order for MS users to enjoy MWS
+'
+' ================================================================================================
+' Copyright 2009-2023 Dassault Systemes Deutschland GmbH
+' ================================================================================================
+' History of Changes
+' ------------------------------------------------------------------------------------------------
+' 01-Sep-2021 ywu: add fan's input parameters to parameter window to allow later changes
+' 20-Jan-2017 wxu,ube: added realistic distance (edgesize instead of 1e-6) for less troubles in meshing
+' 13-Jul-2016 ube,wxu: show air part as solid to use it for CHT-solver Fan definition
+'			  changed default naming, now entered name is the component name
+' 01-Jan-2010 gjh: first version
+'------------------------------------------------------------------------------------
+
+Option Explicit
+Sub Main ()
+
+	Dim cst_result As Integer
+
+	' object center
+	Dim obj_x As Double
+	Dim obj_y As Double
+	Dim obj_z As Double
+
+	' fan parameters
+	Dim cowl_l As Double
+	Dim hub_d As Double
+	Dim thickness As Double
+
+	' name parameters
+	Dim first As String
+	Dim seconditem As String
+	Dim cname As String
+	Dim edgesize As Double
+
+'----------------------------------------------
+BeginHide
+' User interface...
+	Dim bRedefine As Boolean
+	Begin Dialog UserDialog 350,305,"Create axial fan...",.DialogFunc ' %GRID:5,5,1,1
+		GroupBox 10,5,330,270,"Input parameters",.GroupBox1
+		Text 90,25,90,15,"Name",.Text2
+		TextBox 180,25,90,20,.fan_name
+
+		GroupBox 30,50,295,95,"Center Point",.GroupBox2
+		Text 125,70,20,15,"x",.Text1
+		TextBox 180,70,90,20,.obj_x
+		Text 125,95,30,15,"y",.Text4
+		TextBox 180,95,90,20,.obj_y
+		Text 125,120,30,15,"z",.Text5
+		TextBox 180,120,90,20,.obj_z
+
+		GroupBox 30,150,295,100,"Axial fan",.GroupBox3
+		Text 70,170,100,15,"Cowl Length",.Text3
+		TextBox 180,170,90,20,.cowl_l
+		Text 70,195,100,15,"Hub Diameter",.Text6
+		TextBox 180,195,90,20,.hub_d
+		Text 70,220,100,15,"Fan Thickness",.Text7
+		TextBox 180,220,90,20,.thickness
+
+		'buttons
+		OKButton 20,280,90,20
+		CancelButton 120,280,90,20
+		'PushButton 220,280,90,20,"Help",.Help
+	End Dialog
+	Dim dlg As UserDialog
+
+' Set dialogue defaults...
+	dlg.obj_x     = "0"
+	dlg.obj_y     = "0"
+	dlg.obj_z     = "0"
+	dlg.cowl_l    = "40"
+	dlg.hub_d     = "20"
+	dlg.thickness = "10"
+
+' Find proper default-name for fan component...
+	Dim i As Long
+	i = 0
+	Do
+		i=i+1
+	Loop Until Not Resulttree.DoesTreeItemExist("Components\Fan_"+Cstr(i))
+
+	dlg.fan_name = "Fan_"+Cstr(i)
+
+' Get user input from dialog...
+	cst_result = Dialog(dlg)
+    assign "cst_result"        '  writes e.g. "cst_result = -1/0/1"     into history list
+    If (cst_result = 0) Then Exit All
+
+' Set blower parameters with dialog input...
+    cname = dlg.fan_name
+	Assign "cname"
+
+	obj_x     = cdbl(dlg.obj_x)
+	obj_y     = cdbl(dlg.obj_y)
+	obj_z     = cdbl(dlg.obj_z)
+	cowl_l    = cdbl(dlg.cowl_l)
+	hub_d     = cdbl(dlg.hub_d)
+	thickness = cdbl(dlg.thickness)
+	
+	StoreDoubleParameter (cname+"_x0", obj_x)
+	SetParameterDescription (cname+"_x0", "x-coordinate of fan center")
+	StoreDoubleParameter (cname+"_y0", obj_y)
+	SetParameterDescription (cname+"_y0", "y-coordinate of fan center")
+	StoreDoubleParameter (cname+"_z0", obj_z)
+	SetParameterDescription (cname+"_z0", "z-coordinate of fan center")
+
+	StoreDoubleParameter (cname+"_cowl_l", cowl_l)
+	SetParameterDescription (cname+"_cowl_l", "cowl length of axial fan")
+	StoreDoubleParameter (cname+"_hub_d", hub_d)
+	SetParameterDescription (cname+"_hub_d", "hub diameter of axial fan")
+	StoreDoubleParameter (cname+"_thickness", thickness)
+	SetParameterDescription (cname+"_thickness", "fan thickness")
+
+EndHide
+'----------------------------------------------
+
+	If (cst_result =0) Then Exit All   ' if cancel/help is clicked, exit all
+    If (cst_result =1) Then Exit All
+
+' Restore fan parameters...
+	obj_x     = restoredoubleparameter(cname+ "_x0")
+	obj_y     = restoredoubleparameter(cname+ "_y0")
+	obj_z     = restoredoubleparameter(cname+ "_z0")
+	cowl_l    = restoredoubleparameter(cname+ "_cowl_l")
+	hub_d     = restoredoubleparameter(cname+ "_hub_d")
+	thickness = restoredoubleparameter(cname+ "_thickness")
+
+' Calculate edge size...
+	If (cowl_l*Units.GetGeometrySIToUnit()/1000) < 50 Then
+	 	edgesize = 1*Units.GetGeometrySIToUnit()/1000
+	ElseIf (cowl_l*Units.GetGeometrySIToUnit()/1000<=120) Then
+	    edgesize = 2*Units.GetGeometrySIToUnit/1000
+	Else
+	    edgesize =1/60*cowl_l*Units.GetGeometrySIToUnit/1000
+	End If
+
+' Construct part...
+	With Brick
+		.Reset
+		.Name ("Fan-Structure")
+		.Component (cname)
+		.Material ("PEC")
+		.Xrange (-(cowl_l/2)+obj_x, (cowl_l/2)+obj_x)
+		.Yrange (-(cowl_l/2)+obj_y, (cowl_l/2)+obj_y)
+		.Zrange (obj_z, thickness+obj_z)
+		.Create
+	End With
+
+
+	With Cylinder
+		.Reset
+		.Name ("Fan-Air")
+		.Component (cname)
+		.Material ("Air")
+		.Axis ("z")
+		.Outerradius ((cowl_l/2)-edgesize)
+		.Innerradius (hub_d/2)
+		.Xcenter (obj_x)
+		.Ycenter (obj_y)
+		.Zcenter (obj_z)
+		.Zrange (obj_z, thickness+obj_z)
+		.Segments (0)
+		.Create
+	End With
+
+	Solid.Insert cname+":"+"Fan-Structure", cname+":"+"Fan-Air"
+
+End Sub
+
+'----------------------------------------------
+
+Function DialogFunc%(Item As String, Action As Integer, Value As Integer)
+	Select Case Action
+	Case 1 ' Dialog box initialization
+	Case 2 ' Value changing or button pressed
+		Select Case Item
+		Case "Help"
+			StartHelp "common_preloadedmacro_Construct_Fan"
+			DialogFunc = True
+		End Select
+
+		' Error checking
+		Select Case Item
+		Case "OK"
+			If Evaluate(DlgText("cowl_l"))=0 Then
+				MsgBox "Cowl length must be non-zero"
+				DialogFunc = True
+			End If
+			If Evaluate(DlgText("hub_d"))=0 Then
+				MsgBox "Hub diameter must be non-zero"
+				DialogFunc = True
+			End If
+			If Evaluate(DlgText("hub_d"))>Evaluate(DlgText("cowl_l")) Then
+				MsgBox "Hub must be smaller than cowl diameter"
+				DialogFunc = True
+			End If
+			If Evaluate(DlgText("hub_d"))=Evaluate(DlgText("cowl_l")) Then
+				MsgBox "Hub must be smaller than cowl diameter"
+				DialogFunc = True
+			End If
+		End Select
+	Case 3 ' ComboBox or TextBox Value changed
+	Case 4 ' Focus changed
+	Case 5 ' Idle
+	End Select
+End Function
+
+
+Function ShortName (lib_path As String) As String
+
+        Dim lib_dircount As Integer
+
+        lib_dircount  = InStrRev(lib_path, "\")
+        ShortName = Mid$(lib_path, lib_dircount+1, 999)
+
+End Function

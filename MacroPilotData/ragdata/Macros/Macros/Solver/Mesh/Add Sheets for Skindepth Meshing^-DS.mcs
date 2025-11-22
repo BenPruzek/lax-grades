@@ -1,0 +1,318 @@
+' Solver / Mesh / Add Sheets for Skindepth Meshing
+' !!! Do not change the line above !!!
+' Usage: Pick the faces of a conductive solid where you have to resolve the skindepth properly in the mesh
+
+'-----------------------------------------------------------------------------------------------------------------------------
+' Copyright 2018-2023 Dassault Systemes Deutschland GmbH
+' ================================================================================================
+' History of Changes
+'-----------------------------------------------------------------------------------------------------------------------------
+' 14-Dec-2018 ckr: Report Error when applied to non-conductive materials. Add boolean operations on sheet
+' 25-Oct-2018 ckr: Enable possibility to use already available parameters in the configuration dialog
+' 27-Aug-2018 ckr: Switch off Fast Opening via FastModelLoad "False"
+' 15-Aug-2018 ckr: Initial version
+'-------------------------------------------------
+
+Option Explicit
+
+Sub Main ()
+
+Dim dFreq As Double
+Dim dNumLayer As Double
+Dim dNumSlices As Double
+Dim dOrder As Double
+Dim dTriagMeshSize As Double
+Dim sFreq As String
+Dim sNumLayer As String
+Dim sNumSlices As String
+Dim sOrder As String
+Dim sTriagMeshSize As String
+Dim cst_result As Integer
+
+BeginHide
+
+    Begin Dialog UserDialog 450,290,"Resolve skindepth with mesh" ' %GRID:10,7,1,1
+        GroupBox 10,7,430,123,"Settings",.GroupBox1
+        GroupBox 10,145,430,95,"Advanced Settings",.GroupBox2
+        Text 20,173,240,14,"Polynomial scaling order:",.text4
+        TextBox 270,30,150,21,.freq
+        TextBox 270,65,150,21,.delta
+        TextBox 270,100,150,21,.nSlices
+        Text 20,35,240,14,"Frequency of interest in "+ Units.GetUnit("Frequency") + ":",.text1
+        Text 20,70,240,14,"Depth of sliced region in skindepths:",.text2
+        Text 20,105,240,14,"Number of slices:",.text3
+        TextBox 270,168,150,21,.polyOrder
+        Text 20,208,210,28,"Meshsize in transversal direction measured in skindepths:",.text5
+        TextBox 270,210,150,21,.meshSize
+        OKButton 20,259,90,21
+        CancelButton 130,259,90,21
+    End Dialog
+    Dim dlg As UserDialog
+
+    dlg.freq = "1e3"
+    dlg.delta = "3"
+    dlg.nSlices = "6"
+    dlg.polyOrder = "1.5"
+    dlg.meshSize = "5"
+    cst_result=Dialog(dlg)
+
+    sFreq = dlg.freq
+    sNumLayer = dlg.delta
+    sNumSlices = dlg.nSlices
+    sOrder = dlg.polyOrder
+    sTriagMeshSize = dlg.meshSize
+
+    Assign "cst_result"
+    Assign "sFreq"
+    Assign "sNumLayer"
+    Assign "sNumSlices"
+    Assign "sOrder"
+    Assign "sTriagMeshSize"
+
+EndHide
+
+If (cst_result = 0) Then Exit All
+
+FastModelLoad "False"
+
+dFreq = cdbl(sFreq)
+dNumLayer = cdbl(sNumLayer)
+dNumSlices = cdbl(sNumSlices)
+dOrder = cdbl(sOrder)
+dTriagMeshSize = cdbl(sTriagMeshSize)
+
+' if material NONE does not exist, create it
+If Material.Exists( "NONE" ) = False Then
+    With Material
+        .Reset
+        .Name "NONE"
+        .Folder ""
+        .Epsilon "1"
+        .Mu "1"
+        .Sigma "0"
+        .TanD "0.0"
+        .Transparency "100"
+        .Create
+    End With
+End If
+
+' Get number of picked faces, if no face is picked macro stops with an error
+Dim iNumFaces As Integer
+iNumFaces = Pick.GetNumberOfPickedFaces()
+If iNumFaces < 1 Then
+    ReportError("No faces picked!")
+End If
+
+' Get soldi name on which the faces have been picked and check whether all faces were picked on the same solid
+' if this is not the case macro stops with an error
+Dim sSolidName As String, sSolidNameTmp As String
+Dim ii As Integer, ij As Integer
+Dim iFaceID As Long
+sSolidName = Pick.GetPickedFaceByIndex ( 0, iFaceID )
+For ii = 0 To iNumFaces-1
+    sSolidNameTmp = Pick.GetPickedFaceByIndex ( ii, iFaceID )
+    If sSolidName <> sSolidNameTmp Then
+        ReportError("Faces from different solids picked!")
+    End If
+Next ii
+
+' divide into solid name and tree path
+Dim sComponentPart As String, sSolidPart As String, sComponentPartSheets As String
+Dim tmpVar As Variant
+tmpVar = Split(sSolidName,":")
+sSolidPart = tmpVar(UBound(tmpVar))
+sComponentPart = tmpVar(0)
+For ii=1 To UBound(tmpVar)-1
+    sComponentPart = sComponentPart + "/" + tmpVar(1)
+Next ii
+
+' create new tree path in which the sheets will be created
+' example: Components/component1/solid1 --> Components/component1/sheets_solid1
+sComponentPartSheets = sComponentPart + "/sheets_" + sSolidPart
+Component.New sComponentPartSheets
+
+' -------------------------------------------------------------
+' determine the material of the solid on which the faces have been picked (1),
+' get the material properties (2) and calculate the skindepth of it (3)
+' afterwards calculate the thickness of each layer (4)
+
+' (1)
+Dim sMaterialName As String
+sMaterialName = Solid.GetMaterialNameForShape( sSolidName )
+Dim sTypeOfMaterial As String
+sTypeOfMaterial = Material.GetTypeOfMaterial(sMaterialName)
+' if material is not of type normal, macro stops with an error
+If sTypeOfMaterial <> "Normal" Then
+    ReportError("Wrong material type! Material has to be of type normal.")
+End If
+
+' (2)
+Dim dEpsilonX As Double, dEpsilonY As Double, dEpsilonZ As Double
+Dim dMueX As Double, dMueY As Double, dMueZ As Double
+Dim dSigmaX As Double, dSigmaY As Double, dSigmaZ As Double
+Material.GetEpsilon( sMaterialName, dEpsilonX, dEpsilonY, dEpsilonZ )
+Material.GetMu( sMaterialName, dMueX, dMueY, dMueZ )
+Material.GetSigma( sMaterialName, dSigmaX, dSigmaY, dSigmaZ )
+
+If dSigmaX < 1e-14 Then
+	ReportError("Conductivity is 0! Please apply the Macro only on conductive materials.")
+End If
+
+' (3)
+Dim dSkindepth As Double
+Dim dOmega As Double, dTmp As Double
+dOmega = 2*pi*dFreq*Units.GetFrequencyUnitToSi()
+dTmp = dOmega*eps0*dEpsilonX / dSigmaX
+dSkindepth = Sqr( 2 / (dOmega*mue0*dMueX*dSigmaX) ) * Sqr( Sqr(1+dTmp^2) + dTmp )
+dSkindepth = dSkindepth * Units.GetGeometrySiToUnit()
+
+' Report the material information
+Dim sTmp As String
+sTmp = "The skindepth of Material """+ sMaterialName + """ at " + CStr(dFreq) + " "+ Units.GetUnit("Frequency")  +" is " + CStr(Round(dSkindepth,3)) + " " + Units.GetUnit("Length")
+sTmp = sTmp +  " with material definition: eps="+CStr(Round(dEpsilonX,3))+", mue="+CStr(Round(dMueX,3))+" and conductivity="+CStr(Round(dSigmaX,3))+" S/m"
+ReportInformation( sTmp )
+
+' (4) create array of layer thicknesses and reporting
+Dim dLayerThicknesses() As Double
+ReDim dLayerThicknesses( dNumSlices - 1 )
+sTmp = "(Thickness of layer, distance from face) both measured in skindepths: "
+dTmp = 0
+For ii = 0 To dNumSlices - 1
+    dLayerThicknesses(ii) = ( dNumLayer * dSkindepth / ( dNumSlices)^dOrder ) * (ii+1)^dOrder
+    sTmp = sTmp + "(" + CStr( Round(dLayerThicknesses(ii)/dSkindepth - dTmp,3) ) + ", " +  CStr( Round(dLayerThicknesses(ii)/dSkindepth,3) ) + ") "
+    dTmp = dLayerThicknesses(ii)/dSkindepth
+Next ii
+ReportInformation( sTmp )
+
+' -------------------------------------------------------------
+
+' create a shape from the picked faces and take care that it is really a sheet (name = 'face')
+Solid.CreateShapeFromFaces "face", sComponentPartSheets, "NONE"
+If Solid.GetVolume( sComponentPartSheets + ":face") > 0 Then
+    Solid.SolidToSheet( sComponentPartSheets + ":face")
+End If
+
+' tree update, needed to reliably find the just created component in the tree
+Resulttree.UpdateTree()
+
+' check whether sheets on this solid have been created already,
+' if yes obtain the highest of the first integers in the names of the sheets
+' so that the sheets for the next face chain will start with this integer + 1
+Dim iTmp As Integer, iIntNameExt As Integer, sIntNameExt As String
+iTmp = 1
+iIntNameExt = 0
+sTmp ="Components\" + Replace(sComponentPartSheets,"/","\") + "\face"
+sTmp = Resulttree.GetNextItemName(sTmp)
+While sTmp <> ""
+    tmpVar = Split(sTmp,"\")
+    iTmp = CInt( Split( tmpVar(UBound(tmpVar)), "_" )(1)  )
+    If iTmp > iIntNameExt Then
+        iIntNameExt = iTmp
+    End If
+
+    sTmp = Resulttree.GetNextItemName(sTmp)
+Wend
+sIntNameExt = CStr( iIntNameExt + 1 )
+
+' switch off tree update for performance and flickering reasons
+Resulttree.EnableTreeUpdate( False )
+
+' loop over the thicknesses and create the layers,
+' start with the biggest one since this is the one with the highest probability for CAD/acis error
+For ii = dNumSlices-1 To 0 STEP -1
+
+    ' create copy of face --> face_1
+    With Transform
+        .Reset
+        .Name sComponentPartSheets + ":face"
+        .Vector "0", "0", "0"
+        .UsePickedPoints "False"
+        .InvertPickedPoints "False"
+        .MultipleObjects "True"
+        .GroupObjects "False"
+        .Repetitions "1"
+        .MultipleSelection "False"
+        .Destination sComponentPartSheets
+        .Material "NONE"
+        .Transform "Shape", "Translate"
+    End With
+
+    ' thicken face_1 to the thickness at current loop index in dLayerThicknesses
+    Solid.ThickenSheetAdvanced(sComponentPartSheets + ":face_1", "Inside", CStr(dLayerThicknesses(ii))  , "True")
+    ' rename face_1 --> sheet_obtainedInt_loopIndex, at this moment the object is a solid depsite the name sheet_...
+
+    Solid.Rename(sComponentPartSheets + ":face_1", "sheet_" + sIntNameExt + "_" + CStr(ii))
+
+    ' create a copy of the original solid in the face... componente
+    With Transform
+        .Reset
+        .Name sSolidName
+        .Component ""
+        .Vector "0", "0", "0"
+        .UsePickedPoints "False"
+        .InvertPickedPoints "False"
+        .MultipleObjects "True"
+        .GroupObjects "False"
+        .Repetitions "1"
+        .MultipleSelection "False"
+        .Destination sComponentPartSheets
+        .Material "NONE"
+        .Transform "Shape", "Translate"
+    End With
+
+    ' the intersection of the copied solid with the thicken layer is the one which will survive
+    'Solid.Intersect sComponentPartSheets + ":sheet_" + sIntNameExt + "_" + CStr(ii), sSolidName + "_1"
+    Dim list_tmp As Variant
+    list_tmp = Split(sSolidName,":")
+    Solid.Intersect sComponentPartSheets + ":sheet_" + sIntNameExt + "_" + CStr(ii), sComponentPartSheets + ":" + list_tmp(UBound(list_tmp))
+    ' the layer will be converted to a sheet
+    ' Reason:  A sheet of material type "Normal" will have influence just on the mesh not on the solver
+    ' Therefore an adequate mesh is generated but still all losses and fields are within the original solid
+    Solid.SolidToSheet sComponentPartSheets + ":sheet_" + sIntNameExt + "_" + CStr(ii)
+
+	If ii < dNumSlices-1 Then
+    	Solid.Insert sComponentPartSheets + ":sheet_" + sIntNameExt + "_" + CStr(ii), sComponentPartSheets + ":sheet_" + sIntNameExt + "_" + CStr(dNumSlices-1)
+    End If
+
+Next ii
+
+' delete the object from which the layers where created
+Solid.Delete sComponentPartSheets + ":face"
+
+' to take care that the quality of the tets become not to low the size of the triangels on the dielectric sheets should be limited
+' therefore a meshgroup will be created  the sheets will be inserted in this group and the size of the test will be set to 10*skindepth (default)
+' however you can either change the magic number in the meshgroup settings after the macro has bee run or alternativly change the local parameter
+' dTriagMeshSize in the corresponding history list item
+Group.Add Replace(sComponentPartSheets,"/","_"), "mesh"
+With MeshSettings
+     With .ItemMeshSettings ("group$"+Replace(sComponentPartSheets,"/","_"))
+          .SetMeshType "Tet"
+          .Set "LayerStackup", "Automatic"
+          .Set "LocalAutomaticEdgeRefinement", "0"
+          .Set "LocalAutomaticEdgeRefinementOverwrite", 0
+          .Set "MaterialIndependent", 0
+          .Set "OctreeSizeFaces", "0"
+          .Set "PatchIndependent", 0
+          .Set "Size", CStr( dTriagMeshSize ) + "*" + CStr( Round(dSkindepth,3) )
+     End With
+    With .ItemMeshSettings ("group$"+Replace(sComponentPartSheets,"/","_"))
+          .SetMeshType "Plane"
+          .Set "OctreeSizeFaces", "0"
+          .Set "PatchIndependent", 0
+          .Set "Size", CStr( dTriagMeshSize ) + "*" + CStr( Round(dSkindepth,3) )
+     End With
+  
+End With
+
+' add the sheets to the created meshgroup
+For ii = 0 To dNumSlices - 1
+    Group.AddItem "solid$" + sComponentPartSheets +":sheet_" + sIntNameExt + "_" + CStr(ii), Replace(sComponentPartSheets,"/","_")
+Next
+
+
+' enable the tree update again
+Resulttree.EnableTreeUpdate( True )
+Resulttree.UpdateTree()
+
+End Sub
+

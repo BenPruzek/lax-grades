@@ -1,0 +1,313 @@
+' Construct RF SIP COMP / 3D helical rectangular inductor
+' !!! Do not change the line above !!!
+'-----------------------------------------------------------------------------------------------------------------------------
+' Constructs a 3D Helical Rectangular Inductor
+'-----------------------------------------------------------------------------------------------------------------------------
+' Copyright 2008-2023 Dassault Systemes Deutschland GmbH
+' ================================================================================================
+' History of Changes
+'-----------------------------------------------------------------------------------------------------------------------------
+' 14-Jun-2018 mmr: GUI revision
+' 12-Oct-2015 ube: improved error handling
+' 29-Oct-2008 ube: included into 2009 release
+' 10-Oct-2008 mku: Initial version
+'-----------------------------------------------------------------------------------------------------------------------------
+Option Explicit
+'-----------------------------------------------------------------------------------------------------------------------------
+
+Sub Main ()
+
+Dim cst_mthickness       As Double
+Dim cst_width            As Double
+Dim cst_viaradius        As Double
+Dim cst_inner_radius     As Double
+Dim cst_turns            As Double
+Dim cst_stub             As Double
+Dim cst_tape_thickness   As Double
+Dim scst_mthickness      As String
+Dim scst_width           As String
+Dim scst_viaradius       As String
+Dim scst_inner_radius    As String
+Dim scst_turns           As String
+Dim scst_stub            As String
+Dim scst_tape_thickness  As String
+Dim cst_result           As Integer
+Dim cst_index            As Integer
+Dim name_dummy1          As String
+Dim name_dummy2          As String
+
+
+BeginHide
+
+	Begin Dialog UserDialog 375,237,"3D Helical Inductor - Rectangular",.DialogFunc ' %GRID:10,7,1,1
+		Text 12,10,150,15,"Metal thickness:",.mthtLabel
+		TextBox 14,25,150,20,.mthickness
+		Text 12,55,150,15,"Metal width:",.WidthLabel
+		TextBox 14,70,150,20,.Width
+		Text 12,100,150,15,"Via radius:",.ViaRadiusLabel
+		TextBox 14,115,150,20,.ViaRadius
+		Text 12,145,150,15,"Tape thickness:",.TapeThicknessLabel
+		TextBox 14,160,150,20,.Tape_Thickness
+		Text 211,10,150,15,"Inner width:",.InnerRadiusLabel
+		TextBox 213,25,150,20,.InnerRadius
+		Text 211,55,150,15,"Number of turns:",.LabelTurns
+		TextBox 213,70,150,20,.Turns
+		Text 211,100,150,15,"Stub:",.StubLabel
+		TextBox 213,115,150,20,.Stub
+		OKButton 12,204,109,21
+		CancelButton 133,204,109,21
+		PushButton 254,204,109,21,"Help",.Help
+	End Dialog
+
+        Dim dlg As UserDialog
+		dlg.mthickness   = "3"
+		dlg.Width        = "30"
+		dlg.ViaRadius    = "12.5"
+		dlg.InnerRadius  = "100"
+		dlg.Turns        = "2"
+		dlg.stub		 = "15"
+		dlg.tape_thickness = "25"
+        cst_result = Dialog(dlg)
+        assign "cst_result"        '  writes e.g. "cst_result = -1/0/1"     into history list
+        If (cst_result = 0) Then Exit All
+
+        scst_mthickness     = dlg.mthickness
+        scst_width          = dlg.Width
+        scst_viaradius      = dlg.ViaRadius
+        scst_inner_radius   = dlg.InnerRadius
+        scst_turns          = dlg.Turns
+        scst_stub           =  dlg.stub
+        scst_tape_thickness = dlg.Tape_Thickness
+
+
+        assign "scst_mthickness"     ' writes e.g. "cst_mthickness = 0.1"          into history list
+        assign "scst_width"          ' writes e.g. "cst_width = 0.1"               into history list
+        assign "scst_viaradius"      ' writes e.g. "cst_gap = 0.3"                 into history list
+        assign "scst_inner_radius"   ' writes e.g. "cst_inner_radius = 5"          into history list
+        assign "scst_turns"          ' writes e.g. "cst_turns = 8"                 into history list
+        assign "scst_stub"           ' writes e.g. "cst_stub = 2"                  into history list
+        assign "scst_tape_thickness" ' writes e.g. "cst_cst_tape_thickness = 4"    into history list
+
+EndHide
+
+If (cst_result =0) Then Exit All   ' if cancel/help is clicked, exit all
+
+cst_mthickness   = Evaluate( scst_mthickness)
+cst_width        = Evaluate( scst_width)
+cst_viaradius    = Evaluate( scst_viaradius)
+cst_inner_radius = Evaluate( scst_inner_radius)
+cst_turns        = Evaluate( scst_turns)
+cst_stub         = Evaluate( scst_stub)
+cst_tape_thickness = Evaluate( scst_tape_thickness)
+
+If (cst_inner_radius <= 0) Then
+	ReportWarningToWindow "Inner Width is not positive. Geometry not constructed."
+	Exit All
+End If
+
+With Extrude
+     .Reset
+     .Name Solid.GetNextFreeName
+     .Component "component1"
+     .Material "PEC"
+     .Mode "Pointlist"
+     .Height cst_mthickness
+     .Twist "0.0"
+     .Taper "0.0"
+     .Origin "0.0", "0.0", "0.0"
+     .Uvector "1.0", "0.0", "0.0"
+     .Vvector "0.0", "1.0", "0.0"
+     .Point "0", cst_inner_radius+cst_width
+     .LineTo cst_inner_radius+cst_width, cst_inner_radius+cst_width
+     .LineTo cst_inner_radius+cst_width, -(cst_inner_radius+cst_width)
+     .LineTo -cst_stub, -(cst_inner_radius+cst_width)
+     .LineTo -cst_stub, -cst_inner_radius
+     .LineTo cst_inner_radius, -cst_inner_radius
+     .LineTo cst_inner_radius, cst_inner_radius
+     .LineTo 0, cst_inner_radius
+     .Create
+End With
+
+name_dummy1 = Solid.GetNextFreeName
+
+With Extrude
+     .Reset
+     .Name name_dummy1
+     .Component "component1"
+     .Material "PEC"
+     .Mode "Pointlist"
+     .Height cst_mthickness
+     .Twist "0.0"
+     .Taper "0.0"
+     .Origin "0.0", "0.0", -cst_tape_thickness
+     .Uvector "1.0", "0.0", "0.0"
+     .Vvector "0.0", "1.0", "0.0"
+     .Point -cst_stub, cst_inner_radius+cst_width
+     .LineTo cst_inner_radius+cst_width, cst_inner_radius+cst_width
+     .LineTo cst_inner_radius+cst_width, -(cst_inner_radius+cst_width)
+     .LineTo -cst_stub, -(cst_inner_radius+cst_width)
+     .LineTo -cst_stub, -cst_inner_radius
+     .LineTo cst_inner_radius, -cst_inner_radius
+     .LineTo cst_inner_radius, cst_inner_radius
+     .LineTo -cst_stub, cst_inner_radius
+     .Create
+End With
+
+With Transform
+     .Reset
+     .Name "component1:" & name_dummy1
+     .Origin "Free"
+     .Center "0", "0", "0"
+     .Angle "0", "0", "180"
+     .MultipleObjects "False"
+     .GroupObjects "False"
+     .Repetitions "1"
+     .MultipleSelection "False"
+     .RotateAdvanced
+End With
+
+name_dummy2 = Solid.GetNextFreeName
+
+With Cylinder
+     .Reset
+     .Name name_dummy2
+     .Component "component1"
+     .Material "PEC"
+     .OuterRadius cst_viaradius
+     .InnerRadius "0"
+     .Axis "z"
+     .Zrange -cst_tape_thickness+cst_mthickness, "0"
+     .Xcenter "0"
+     .Ycenter "0"
+     .Segments "0"
+     .Create
+End With
+
+With Transform
+     .Reset
+     .Name "component1:" & name_dummy2
+     .Vector "0", -(cst_inner_radius+cst_width/2), "0"
+     .UsePickedPoints "False"
+     .InvertPickedPoints "False"
+     .MultipleObjects "False"
+     .GroupObjects "False"
+     .Repetitions "1"
+     .MultipleSelection "False"
+     .TranslateAdvanced
+End With
+
+If Cstr(cst_turns) = "1" Then
+
+   With Transform
+     .Reset
+     .Name "component1:" & name_dummy2
+     .Vector "0", "0", -cst_tape_thickness
+     .UsePickedPoints "False"
+     .InvertPickedPoints "False"
+     .MultipleObjects "True"
+     .GroupObjects "False"
+     .Repetitions "1"
+     .MultipleSelection "False"
+     .TranslateAdvanced
+   End With
+
+   name_dummy2 = name_dummy2 & "_" & "1"
+
+   With Transform
+     .Reset
+     .Name "component1:" & name_dummy2
+     .Origin "Free"
+     .Center "0", "0", "0"
+     .PlaneNormal "0", "1", "0"
+     .MultipleObjects "False"
+     .GroupObjects "False"
+     .Repetitions "1"
+     .MultipleSelection "False"
+     .MirrorAdvanced
+   End With
+
+Else
+
+For cst_index = 3 To 2*cst_turns+1
+
+If cst_index < 2*cst_turns+1 Then
+
+   With Transform
+     .Reset
+     .Name "component1:" & name_dummy1
+     .Vector "0", "0", -cst_tape_thickness
+     .UsePickedPoints "False"
+     .InvertPickedPoints "False"
+     .MultipleObjects "True"
+     .GroupObjects "False"
+     .Repetitions "1"
+     .MultipleSelection "False"
+     .Component ""
+     .Material ""
+     .TranslateAdvanced
+   End With
+
+   name_dummy1 = name_dummy1 & "_" & "1"
+
+   With Transform
+     .Reset
+     .Name "component1:" & name_dummy1
+     .Origin "Free"
+     .Center "0", "0", "0"
+     .Angle "0", "0", "180"
+     .MultipleObjects "False"
+     .GroupObjects "False"
+     .Repetitions "1"
+     .MultipleSelection "False"
+     .RotateAdvanced
+   End With
+
+End If
+
+   With Transform
+     .Reset
+     .Name "component1:" & name_dummy2
+     .Vector "0", "0", -cst_tape_thickness
+     .UsePickedPoints "False"
+     .InvertPickedPoints "False"
+     .MultipleObjects "True"
+     .GroupObjects "False"
+     .Repetitions "1"
+     .MultipleSelection "False"
+     .TranslateAdvanced
+   End With
+
+   name_dummy2 = name_dummy2 & "_" & "1"
+
+   With Transform
+     .Reset
+     .Name "component1:" & name_dummy2
+     .Origin "Free"
+     .Center "0", "0", "0"
+     .PlaneNormal "0", "1", "0"
+     .MultipleObjects "False"
+     .GroupObjects "False"
+     .Repetitions "1"
+     .MultipleSelection "False"
+     .MirrorAdvanced
+   End With
+
+   Next
+
+End If
+
+End Sub
+Function DialogFunc%(Item As String, Action As Integer, Value As Integer)
+	Select Case Action
+	Case 1 ' Dialog box initialization
+	Case 2 ' Value changing or button pressed
+		Select Case Item
+		Case "Help"
+			StartHelp "common_preloadedmacro_Construct_Coils_3D_Helices"
+			DialogFunc = True
+		End Select
+	Case 3 ' ComboBox or TextBox Value changed
+	Case 4 ' Focus changed
+	Case 5 ' Idle
+	End Select
+End Function

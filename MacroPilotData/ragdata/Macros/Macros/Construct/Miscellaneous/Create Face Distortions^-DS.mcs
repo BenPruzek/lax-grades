@@ -1,0 +1,139 @@
+' CreateFaceDistortions
+
+Option Explicit
+
+' ================================================================================================
+' Copyright 2011-2023 Dassault Systemes Deutschland GmbH
+' ================================================================================================
+' History of Changes
+'------------------------------------------------------------------------------------------
+' 21-Mar-2012 ube: included warning, if no sheet object is selected
+' 22-Aug-2011 mac: first version
+'------------------------------------------------------------------------------------------
+
+Sub Main
+
+	Dim numDistortionsInX As String
+	Dim numDistortionsInY As String
+	Dim minDistortionHeight As String
+	Dim maxDistortionHeight As String
+	Dim distortionPatternId As String
+	Dim selectedTreeItem As String
+
+	Dim ProjectUnits As String
+	ProjectUnits = Units.GetUnit("Length")
+
+	Dim cst_result As Integer
+	
+	BeginHide
+
+	selectedTreeItem = SelectedName(GetSelectedTreeItem)
+
+	Begin Dialog UserDialog 460,196,"Create Face Distortions",.DialogFunc ' %GRID:10,7,1,1
+		GroupBox 20,14,310,168,"Distortions Properties",.GroupBox1
+		TextBox 230,35,60,21,.numDistortionsInX
+		TextBox 230,63,60,21,.numDistortionsInY
+		Text 40,42,160,21,"Number distortions in x:",.Text1
+		Text 40,70,150,21,"Number distortions in y:",.Text2
+		Text 40,98,170,21,"Minimum distortion height:",.Text3
+		Text 40,126,180,21,"Maximum distortion height:",.Text4
+		TextBox 230,91,60,21,.minDistortionHeight
+		TextBox 230,119,60,21,.maxDistortionHeight
+		Text 40,154,160,21,"Distortion pattern id:",.Text5
+		TextBox 230,147,60,21,.distortionPatternId
+		Text 298,95,25,14,ProjectUnits,.Text6
+		Text 298,124,25,14,ProjectUnits,.Text7
+		PushButton 344,14,100,21,"Create",.PushButton1
+		CancelButton 344,42,100,21
+		PushButton 344,70,100,21,"Help",.Help
+	End Dialog
+		Dim dlg As UserDialog
+
+		dlg.numDistortionsInX = "20"
+		dlg.numDistortionsInY = "20"
+		dlg.minDistortionHeight = "-0.5"
+		dlg.maxDistortionHeight = "0.5"
+		dlg.distortionPatternId = "1"
+
+		cst_result = Dialog(dlg)
+
+		assign "cst_result"
+
+	    If (cst_result = 0) Then Exit All
+
+	    numDistortionsInX = dlg.numDistortionsInX
+		numDistortionsInY = dlg.numDistortionsInY
+		minDistortionHeight = dlg.minDistortionHeight
+	    maxDistortionHeight = dlg.maxDistortionHeight
+	    distortionPatternId = dlg.distortionPatternId
+
+	    Assign "numDistortionsInX"
+	   	Assign "numDistortionsInY"
+	    Assign "minDistortionHeight"
+	    Assign "maxDistortionHeight"
+	    Assign "distortionPatternId"
+
+		selectedTreeItem = SelectedName(GetSelectedTreeItem)
+		Assign "selectedTreeItem"
+
+    EndHide
+    	
+    cst_result = Evaluate(cst_result)
+	If (cst_result =0) Then Exit All ' if cancel/help is clicked, exit all
+
+	With FaceDistortion
+		.Reset
+		.Name selectedTreeItem
+		.NumberDistortionsInX numDistortionsInX
+		.NumberDistortionsInY numDistortionsInY
+		.MinimunDistortionHeight minDistortionHeight
+		.MaximumDistortionHeight maxDistortionHeight
+		.DistortionPatternId distortionPatternId
+		.Create
+	End With
+
+End Sub
+
+Function DialogFunc%(Item As String, Action As Integer, Value As Integer)
+	Select Case Action
+	Case 1 ' Dialog box initialization
+	Case 2 ' Value changing or button pressed
+		Select Case Item
+		Case "Help"
+			StartHelp "common_struct_face_distortions"
+			DialogFunc = True
+		End Select
+	Case 3 ' ComboBox or TextBox Value changed
+	Case 4 ' Focus changed
+	Case 5 ' Idle
+	End Select
+End Function
+
+Function SelectedName( sName As String ) As String
+
+	Dim index As Integer
+
+	index = InStrRev( sName,"\" )
+
+	If index = 0 Or Resulttree.GetFirstChildName(sName) <> "" Then
+		MsgBox "Please first select a sheet object in Components tree and then run again.",vbExclamation
+		Exit All
+	End If
+
+	Dim sComponentName As String
+
+	Dim sSolidName As String
+
+	sSolidName = Mid$( sName, index+1 )
+
+	sComponentName = Left$( sName, index-1 )
+
+	index = InStr( sComponentName,"\" )
+
+	sComponentName = Mid$( sComponentName, index+1 )
+
+	SelectedName = sComponentName + ":" + sSolidName
+
+	SelectedName = Replace$( SelectedName, "\","/")
+
+End Function

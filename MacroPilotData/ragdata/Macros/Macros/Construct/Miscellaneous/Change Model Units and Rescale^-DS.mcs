@@ -1,0 +1,250 @@
+'#include "vba_globals_all.lib"
+
+' Change Model Units and Rescale
+
+' ================================================================================================
+' Copyright 2010-2023 Dassault Systemes Deutschland GmbH
+' ================================================================================================
+' History of Changes
+' -------------------------------------------------------------------------------------------------------------------------------------------------------
+' 04-Aug-2023 mha: Added scaling of coils
+' 23-Dec-2020 ube: change order of operations: now ports are scaled first, components follow afterwards
+' 03-Jul-2013 dta: Added scaling of wires and curves, adjusted history header to current standard ("transform X: ...", instead of just "transform: ")
+' 10-Jan-2013 fsr: Added scaling of ports and lumped elements
+' 25-Mar-2011 fsr: fixed a bug that required an additional history update after opening a cst file without existing project folder
+' 23-Feb-2011 fsr: fixed an error for the case when no components were defined
+' 05-Nov-2010 ube: cancel history handling -> cst_action
+' 29-Oct-2010 fsr: initial version
+' -------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Sub Main ()
+
+	Dim OldUnits         As String
+	Dim NewUnits         As String
+	Dim UnitsArray       As Variant
+	Dim ComponentToScale As String
+	Dim ScaleFactor      As Double
+
+	UnitsArray = Array("m", "cm", "mm", "um", "nm", "ft", "in", "mil")
+	OldUnits   = Units.GetUnit("Length")
+
+	Dim cst_action As String
+
+	BeginHide
+		Begin Dialog UserDialog 330, 105, "Change Model Units and Rescale" ' %GRID:10,7,1,1
+			Text          30, 14, 150,  14, "Current length unit:",   .Text1
+			Text         240, 14,  40,  14, OldUnits,                 .Text3
+			Text          30, 42, 150,  14, "Change and rescale to:", .Text2
+			DropListBox  210, 35,  90, 192, UnitsArray(),             .DropListBox1
+			OKButton     110, 70,  90,  21
+			CancelButton 210, 70,  90,  21
+		End Dialog
+		Dim dlg As UserDialog
+
+		If (Dialog(dlg)=0) Then
+			cst_action = "cancel"
+		Else
+			cst_action = "create"
+		End If
+
+		If cst_action = "create" Then
+			NewUnits = UnitsArray(dlg.DropListBox1)
+			Assign("OldUnits")
+			Assign("NewUnits")
+		End If
+		assign "cst_action"
+
+	EndHide
+
+	If cst_action = "create" Then
+		' Scale to meters first
+		ScaleFactor = Units.GetGeometryUnittoSI
+		' Change units
+		Units.SetUnit("Length",NewUnits)
+		' Scale from meters to new units
+		ScaleFactor = ScaleFactor*Units.GetGeometrySIToUnit
+
+		BeginHide
+
+		' Scale ports
+		ComponentToScale = ResultTree.GetFirstChildName("Ports")
+		If (ComponentToScale <> "") Then
+			AddToHistory("transform port: scale "+Split(ComponentToScale,"\")(1), _
+			"With Transform" + vbNewLine _
+		     + ".Reset" + vbNewLine _
+		     + ".Name "+ Quote(Split(ComponentToScale,"\")(1)) + vbNewLine _
+		     + ".Origin " + Quote("Free") + vbNewLine _
+		     + ".Center " + Quote("0")+", "+Quote("0")+", "+Quote("0") + vbNewLine _
+		     + ".ScaleFactor " + Quote(CStr(ScaleFactor))+", "+Quote(CStr(ScaleFactor))+", "+Quote(CStr(ScaleFactor)) + vbNewLine _
+		     + ".Repetitions " + Quote("1") + vbNewLine _
+		     + ".Transform " + Quote("Port")+", "+ Quote("Scale") + vbNewLine _
+			 + "End With" + vbNewLine)
+			' Scale all following ports
+			ComponentToScale = ResultTree.GetNextItemName(ComponentToScale)
+			While(ComponentToScale <> "")
+				AddToHistory("transform port: scale "+Split(ComponentToScale,"\")(1), _
+				"With Transform" + vbNewLine _
+			     +".Reset" + vbNewLine _
+			     +".Name "+Quote(Split(ComponentToScale,"\")(1)) + vbNewLine _
+			     +".Origin "+Quote("Free") + vbNewLine _
+			     +".Center "+Quote("0")+", "+Quote("0")+", "+Quote("0") + vbNewLine _
+			     +".ScaleFactor "+Quote(CStr(ScaleFactor))+", "+Quote(CStr(ScaleFactor))+", "+Quote(CStr(ScaleFactor)) + vbNewLine _
+			     +".Repetitions "+Quote("1") + vbNewLine _
+			     +".Transform "+Quote("Port")+", "+Quote("Scale") + vbNewLine _
+				+"End With" + vbNewLine)
+				ComponentToScale = ResultTree.GetNextItemName(ComponentToScale)
+			Wend
+		End If
+
+		' Scale coils / coilsegments
+		ComponentToScale = ResultTree.GetFirstChildName("Coils")
+		If (ComponentToScale <> "") Then
+			AddToHistory("transform coils / coilsegments: scale " + Split(ComponentToScale,"\")(1), _
+			"With Transform" + vbNewLine _
+		     + ".Reset" + vbNewLine _
+		     + ".Name "+ Quote(Split(ComponentToScale,"\")(1)) + vbNewLine _
+		     + ".Origin " + Quote("Free") + vbNewLine _
+		     + ".Center " + Quote("0") + ", " + Quote("0") + ", " + Quote("0") + vbNewLine _
+		     + ".ScaleFactor " + Quote(CStr(ScaleFactor)) + ", " + Quote(CStr(ScaleFactor))+", " + Quote(CStr(ScaleFactor)) + vbNewLine _
+		     + ".Repetitions " + Quote("1") + vbNewLine _
+		     + ".Transform " + Quote("Coil") + ", " + Quote("Scale") + vbNewLine _
+			 + "End With" + vbNewLine)
+			' Scale all following coils / coil segments
+			ComponentToScale = ResultTree.GetNextItemName(ComponentToScale)
+			While(ComponentToScale <> "")
+				AddToHistory("transform coils / coilsegments: scale " + Split(ComponentToScale,"\")(1), _
+				"With Transform" + vbNewLine _
+			     +".Reset" + vbNewLine _
+			     +".Name " + Quote(Split(ComponentToScale,"\")(1)) + vbNewLine _
+			     +".Origin " + Quote("Free") + vbNewLine _
+			     +".Center " + Quote("0") + ", " + Quote("0") + ", " + Quote("0") + vbNewLine _
+			     +".ScaleFactor " + Quote(CStr(ScaleFactor)) + ", " + Quote(CStr(ScaleFactor)) + ", " + Quote(CStr(ScaleFactor)) + vbNewLine _
+			     +".Repetitions " + Quote("1") + vbNewLine _
+			     +".Transform " + Quote("Coil") + ", " + Quote("Scale") + vbNewLine _
+				+"End With" + vbNewLine)
+				ComponentToScale = ResultTree.GetNextItemName(ComponentToScale)
+			Wend
+		End If
+
+		' Scale first component
+		ComponentToScale = ResultTree.GetFirstChildName("Components")
+		If (ComponentToScale <> "") Then
+			AddToHistory("transform: scale "+Split(ComponentToScale,"\")(1), _
+			"With Transform" + vbNewLine _
+		     +".Reset" + vbNewLine _
+		     +".Name "+Quote(Split(ComponentToScale,"\")(1)) + vbNewLine _
+		     +".Origin "+Quote("Free") + vbNewLine _
+		     +".Center "+Quote("0")+", "+Quote("0")+", "+Quote("0") + vbNewLine _
+		     +".ScaleFactor "+Quote(CStr(ScaleFactor))+", "+Quote(CStr(ScaleFactor))+", "+Quote(CStr(ScaleFactor)) + vbNewLine _
+		     +".Repetitions "+Quote("1") + vbNewLine _
+		     +".Transform "+Quote("Shape")+", "+Quote("Scale") + vbNewLine _
+			+"End With" + vbNewLine)
+			' Scale all following components
+			ComponentToScale = ResultTree.GetNextItemName(ComponentToScale)
+			While(ComponentToScale <> "")
+				AddToHistory("transform: scale "+Split(ComponentToScale,"\")(1), _
+				"With Transform" + vbNewLine _
+			     +".Reset" + vbNewLine _
+			     +".Name "+Quote(Split(ComponentToScale,"\")(1)) + vbNewLine _
+			     +".Origin "+Quote("Free") + vbNewLine _
+			     +".Center "+Quote("0")+", "+Quote("0")+", "+Quote("0") + vbNewLine _
+			     +".ScaleFactor "+Quote(CStr(ScaleFactor))+", "+Quote(CStr(ScaleFactor))+", "+Quote(CStr(ScaleFactor)) + vbNewLine _
+			     +".Repetitions "+Quote("1") + vbNewLine _
+			     +".Transform "+Quote("Shape")+", "+Quote("Scale") + vbNewLine _
+				+"End With" + vbNewLine)
+				ComponentToScale = ResultTree.GetNextItemName(ComponentToScale)
+			Wend
+		End If
+
+		' Scale lumped elements
+		ComponentToScale = ResultTree.GetFirstChildName("Lumped Elements")
+		If (ComponentToScale <> "") Then
+			AddToHistory("transform lumped element: scale "+Split(ComponentToScale,"\")(1), _
+			"With Transform" + vbNewLine _
+		     +".Reset" + vbNewLine _
+		     +".Name "+Quote(Split(ComponentToScale,"\")(1)) + vbNewLine _
+		     +".Origin "+Quote("Free") + vbNewLine _
+		     +".Center "+Quote("0")+", "+Quote("0")+", "+Quote("0") + vbNewLine _
+		     +".ScaleFactor "+Quote(CStr(ScaleFactor))+", "+Quote(CStr(ScaleFactor))+", "+Quote(CStr(ScaleFactor)) + vbNewLine _
+		     +".Repetitions "+Quote("1") + vbNewLine _
+		     +".ScaleLumpedElement" + vbNewLine _
+			+"End With" + vbNewLine)
+			' Scale all following lumped elements
+			ComponentToScale = ResultTree.GetNextItemName(ComponentToScale)
+			While(ComponentToScale <> "")
+				AddToHistory("transform lumped element: scale "+Split(ComponentToScale,"\")(1), _
+				"With Transform" + vbNewLine _
+			     +".Reset" + vbNewLine _
+			     +".Name "+Quote(Split(ComponentToScale,"\")(1)) + vbNewLine _
+			     +".Origin "+Quote("Free") + vbNewLine _
+			     +".Center "+Quote("0")+", "+Quote("0")+", "+Quote("0") + vbNewLine _
+			     +".ScaleFactor "+Quote(CStr(ScaleFactor))+", "+Quote(CStr(ScaleFactor))+", "+Quote(CStr(ScaleFactor)) + vbNewLine _
+			     +".Repetitions "+Quote("1") + vbNewLine _
+			     +".ScaleLumpedElement" + vbNewLine _
+				+"End With" + vbNewLine)
+				ComponentToScale = ResultTree.GetNextItemName(ComponentToScale)
+			Wend
+		End If
+
+		' Scale wires
+		ComponentToScale = ResultTree.GetFirstChildName("Wires")
+		If (ComponentToScale <> "") Then
+			AddToHistory("transform wire: scale "+Split(ComponentToScale,"\")(1), _
+			"With Transform" + vbNewLine _
+		     +".Reset" + vbNewLine _
+		     +".Name "+Quote(Split(ComponentToScale,"\")(1)) + vbNewLine _
+		     +".Origin "+Quote("Free") + vbNewLine _
+		     +".Center "+Quote("0")+", "+Quote("0")+", "+Quote("0") + vbNewLine _
+		     +".ScaleFactor "+Quote(CStr(ScaleFactor))+", "+Quote(CStr(ScaleFactor))+", "+Quote(CStr(ScaleFactor)) + vbNewLine _
+		     +".Repetitions "+Quote("1") + vbNewLine _
+		     +".Transform "+Quote("Wire")+", "+Quote("Scale") + vbNewLine _
+			+"End With" + vbNewLine)
+			' Scale all following wires
+			ComponentToScale = ResultTree.GetNextItemName(ComponentToScale)
+			While(ComponentToScale <> "")
+				AddToHistory("transform wire: scale "+Split(ComponentToScale,"\")(1), _
+				"With Transform" + vbNewLine _
+			     +".Reset" + vbNewLine _
+			     +".Name "+Quote(Split(ComponentToScale,"\")(1)) + vbNewLine _
+			     +".Origin "+Quote("Free") + vbNewLine _
+			     +".Center "+Quote("0")+", "+Quote("0")+", "+Quote("0") + vbNewLine _
+			     +".ScaleFactor "+Quote(CStr(ScaleFactor))+", "+Quote(CStr(ScaleFactor))+", "+Quote(CStr(ScaleFactor)) + vbNewLine _
+			     +".Repetitions "+Quote("1") + vbNewLine _
+			     +".Transform "+Quote("Wire")+", "+Quote("Scale") + vbNewLine _
+				+"End With" + vbNewLine)
+				ComponentToScale = ResultTree.GetNextItemName(ComponentToScale)
+			Wend
+		End If
+
+		' Scale curves
+		ComponentToScale = ResultTree.GetFirstChildName("Curves")
+		If (ComponentToScale <> "") Then
+			AddToHistory("transform curve: scale "+Split(ComponentToScale,"\")(1), _
+			"With Transform" + vbNewLine _
+		     +".Reset" + vbNewLine _
+		     +".Name "+Quote(Split(ComponentToScale,"\")(1)) + vbNewLine _
+		     +".Origin "+Quote("Free") + vbNewLine _
+		     +".Center "+Quote("0")+", "+Quote("0")+", "+Quote("0") + vbNewLine _
+		     +".ScaleFactor "+Quote(CStr(ScaleFactor))+", "+Quote(CStr(ScaleFactor))+", "+Quote(CStr(ScaleFactor)) + vbNewLine _
+		     +".Repetitions "+Quote("1") + vbNewLine _
+		     +".Transform "+Quote("Curve")+", "+Quote("Scale") + vbNewLine _
+			+"End With" + vbNewLine)
+			' Scale all following curves
+			ComponentToScale = ResultTree.GetNextItemName(ComponentToScale)
+			While(ComponentToScale <> "")
+				AddToHistory("transform curve: scale "+Split(ComponentToScale,"\")(1), _
+				"With Transform" + vbNewLine _
+			     +".Reset" + vbNewLine _
+			     +".Name "+Quote(Split(ComponentToScale,"\")(1)) + vbNewLine _
+			     +".Origin "+Quote("Free") + vbNewLine _
+			     +".Center "+Quote("0")+", "+Quote("0")+", "+Quote("0") + vbNewLine _
+			     +".ScaleFactor "+Quote(CStr(ScaleFactor))+", "+Quote(CStr(ScaleFactor))+", "+Quote(CStr(ScaleFactor)) + vbNewLine _
+			     +".Repetitions "+Quote("1") + vbNewLine _
+			     +".Transform "+Quote("Curve")+", "+Quote("Scale") + vbNewLine _
+				+"End With" + vbNewLine)
+				ComponentToScale = ResultTree.GetNextItemName(ComponentToScale)
+			Wend
+		End If
+		EndHide
+	End If
+End Sub

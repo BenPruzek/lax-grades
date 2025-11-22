@@ -1,0 +1,39 @@
+' Solver \ Allow overlapping waveguide ports in T-Solver
+
+' ================================================================================================
+' Copyright 2011-2023 Dassault Systemes Deutschland GmbH
+' ================================================================================================
+' History of Changes
+' ------------------------------------------------------------------------------------------------
+' 05-Aug-2011 ube: Initial version
+' ================================================================================================
+Sub Main ()
+
+Dim cst_result As Integer, filename As String
+
+BeginHide
+
+	filename = GetInstallPath + "\Library\Macros\Solver\Ports\Allow overlapping waveguide ports.bmp"
+
+	Begin Dialog UserDialog 480,273,"Allow overlapping ports" ' %GRID:10,7,1,1
+		Picture 130,7,200,126,filename,0,.Picture1
+		OKButton 20,245,90,21
+		GroupBox 10,133,460,105,"",.GroupBox1
+		CancelButton 120,245,90,21
+		Text 30,154,420,42,"Waveguide Ports are not supposed to overlap with each other. In the case of zero-fields in the overlapping region, this macro allows such overlappings. The solver run will continue with a warning.",.Text1
+		Text 30,203,420,28,"Note: Corresponding ports must not have electric shielding around port region and also must not be located on electric boundaries.",.Text2
+
+	End Dialog
+	Dim dlg As UserDialog
+
+    cst_result = Dialog(dlg)
+    assign "cst_result"        '  writes e.g. "cst_result = -1/0/1"     into history list
+	If (cst_result = 0) Then Exit All
+
+EndHide
+
+If (cst_result =0) Then Exit All   ' if cancel/help is clicked, exit all
+
+Solver.AllowOverlappingPorts True
+
+End Sub

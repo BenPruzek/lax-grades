@@ -1,0 +1,278 @@
+' waveguide array
+
+' ================================================================================================
+' Copyright 2014-2023 Dassault Systemes Deutschland GmbH
+' ================================================================================================
+' History of Changes
+' ------------------------------------------------------------------------------------------------
+' 01-Jan-2014 ube: Initial version
+' ================================================================================================
+Option Explicit
+
+Sub Main ()
+
+BeginHide
+StoreDoubleParameter("scan_theta", 30)
+StoreDoubleParameter("scan_phi", 0)
+StoreParameter("x_elements", 5)
+StoreParameter("y_elements", 5)
+EndHide
+
+Dim csti As Integer
+Dim portnum As Integer
+Dim cstxi As Integer
+Dim cstyi As Integer
+Dim c0 As Double
+Dim ss As String
+
+
+Component.New "waveguide"
+
+With Brick
+     .Reset
+     .Name "waveguide"
+     .Component "waveguide"
+     .Material "PEC"
+     .Xrange "-0.2", "0.2"
+     .Yrange "-0.45", "0.45"
+     .Zrange "-0.5", "0"
+     .Create
+End With
+
+Pick.PickFaceFromId "waveguide:waveguide", "1"
+Pick.PickFaceFromId "waveguide:waveguide", "2"
+Solid.ShellAdvanced "waveguide:waveguide", "Outside", "0.05", "True"
+
+Pick.PickFaceFromId "waveguide:waveguide", "8" 
+
+With Port 
+     .Reset 
+     .PortNumber "1" 
+     .Label "" 
+     .NumberOfModes "1" 
+     .AdjustPolarization "False" 
+     .PolarizationAngle "0.0" 
+     .ReferencePlaneDistance "0" 
+     .TextSize "50" 
+     .Coordinates "Picks" 
+     .Orientation "positive" 
+     .PortOnBound "True" 
+     .ClipPickedPortToBound "False" 
+     .Xrange "-0.25", "0.25" 
+     .Yrange "-0.5", "0.5" 
+     .Zrange "-0.5", "-0.5" 
+     .XrangeAdd "-0.05", "-0.05" 
+     .YrangeAdd "-0.05", "-0.05" 
+     .ZrangeAdd "0.0", "0.0" 
+     .SingleEnded "False" 
+     .Create 
+End With 
+
+
+For cstyi = 0 To (CInt("y_elements")-1)
+	For cstxi = 0 To (CInt("x_elements")-1)
+		If ( cstxi = 0 ) And ( cstyi = 0 ) Then
+		Else
+			With Transform
+				 .Reset
+				 .Name "waveguide:waveguide"
+				 .Vector CStr(cstxi*0.5), CStr(cstyi*1.0), "0"
+				 .UsePickedPoints "False"
+				 .InvertPickedPoints "False"
+				 .MultipleObjects "True"
+				 .GroupObjects "False"
+				 .Repetitions "1"
+				 .MultipleSelection "False"
+				 .Component ""
+				 .Material ""
+				 .TranslateAdvanced
+			End With
+			With Transform 
+				 .Reset 
+				 .Name "port1" 
+				 .Vector CStr(cstxi*0.5), CStr(cstyi*1.0), "0"
+				 .UsePickedPoints "False" 
+				 .InvertPickedPoints "False" 
+				 .MultipleObjects "True" 
+				 .GroupObjects "False" 
+				 .Repetitions "1" 
+				 .MultipleSelection "False" 
+				 .Transform "Port", "Translate" 
+			End With
+		End If
+	Next cstxi
+Next cstyi
+
+
+BeginHide
+	Dim sCommand As String
+
+	'@ define units
+	sCommand = ""
+	sCommand = sCommand + "With Units " + vbLf
+	sCommand = sCommand + ".Geometry ""in""" + vbLf
+	sCommand = sCommand + ".Frequency ""GHz""" + vbLf
+	sCommand = sCommand + ".Time ""ns""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define units", sCommand
+
+	
+	'@ define frequency range
+	sCommand = ""
+	sCommand = sCommand + "With Solver" + vbLf
+	sCommand = sCommand + ".FrequencyRange ""8.5"", ""11.5""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define frequency range", sCommand	
+
+
+	'@ define background
+	sCommand = ""
+	sCommand = sCommand + "With Background " + vbLf
+	sCommand = sCommand + ".Reset " + vbLf
+	sCommand = sCommand + ".Type ""Normal""" + vbLf
+	sCommand = sCommand + ".Epsilon ""1.0""" + vbLf
+	sCommand = sCommand + ".Mu ""1.0""" + vbLf
+	sCommand = sCommand + ".ThermalType ""Normal""" + vbLf
+	sCommand = sCommand + ".ThermalConductivity ""0.0""" + vbLf
+	sCommand = sCommand + ".XminSpace ""0.0""" + vbLf
+	sCommand = sCommand + ".XmaxSpace ""0.0""" + vbLf
+	sCommand = sCommand + ".YminSpace ""0.0""" + vbLf
+	sCommand = sCommand + ".YmaxSpace ""0.0""" + vbLf
+	sCommand = sCommand + ".ZminSpace ""0.0""" + vbLf
+	sCommand = sCommand + ".ZmaxSpace ""0.0""" + vbLf
+	sCommand = sCommand + ".ApplyInAllDirections ""False""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define background", sCommand	
+
+
+	'@ define boundaries
+	sCommand = ""
+	sCommand = sCommand + "With Boundary" + vbLf
+	sCommand = sCommand + ".Xmin ""expanded open""" + vbLf
+	sCommand = sCommand + ".Xmax ""expanded open""" + vbLf
+	sCommand = sCommand + ".Ymin ""expanded open""" + vbLf
+	sCommand = sCommand + ".Ymax ""expanded open""" + vbLf
+	sCommand = sCommand + ".Zmin ""expanded open""" + vbLf
+	sCommand = sCommand + ".Zmax ""expanded open""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define boundaries", sCommand	
+
+
+	'@ set mesh properties
+	sCommand = ""
+	sCommand = sCommand + "With MeshSettings " + vbLf
+	sCommand = sCommand + ".SetMeshType ""Hex""" + vbLf
+	sCommand = sCommand + ".Set ""StepsPerWaveNear"", ""10""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "set mesh properties (Hexahedral)", sCommand
+
+
+	'@ define e-field monitor
+	sCommand = ""
+	sCommand = sCommand + "With Monitor" + vbLf
+	sCommand = sCommand + "     .Reset" + vbLf
+	sCommand = sCommand + "     .Name ""e-field (f=10)""" + vbLf
+	sCommand = sCommand + "     .Dimension ""Volume""" + vbLf
+	sCommand = sCommand + "     .Domain ""Frequency""" + vbLf
+	sCommand = sCommand + "     .FieldType ""Efield""" + vbLf
+	sCommand = sCommand + "     .Frequency ""10""" + vbLf
+	sCommand = sCommand + "     .Create" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define monitor: e-field (f=10)", sCommand
+
+	
+	'@ define h-field monitor	
+	sCommand = ""
+	sCommand = sCommand + "With Monitor" + vbLf
+	sCommand = sCommand + "     .Reset" + vbLf
+	sCommand = sCommand + "     .Name ""h-field (f=10)""" + vbLf
+	sCommand = sCommand + "     .Dimension ""Volume""" + vbLf
+	sCommand = sCommand + "     .Domain ""Frequency""" + vbLf
+	sCommand = sCommand + "     .FieldType ""Hfield""" + vbLf
+	sCommand = sCommand + "     .Frequency ""10""" + vbLf
+	sCommand = sCommand + "     .Create" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define monitor: h-field (f=10)", sCommand
+
+	
+	'@ define farfield monitor
+	sCommand = ""
+	sCommand = sCommand + "With Monitor" + vbLf
+	sCommand = sCommand + "     .Reset" + vbLf
+	sCommand = sCommand + "     .Name ""farfield (f=9)""" + vbLf
+	sCommand = sCommand + "     .Domain ""Frequency""" + vbLf
+	sCommand = sCommand + "     .FieldType ""Farfield""" + vbLf
+	sCommand = sCommand + "     .Frequency ""9""" + vbLf
+	sCommand = sCommand + "     .Create" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define farfield monitor: farfield (f=9)", sCommand		
+
+	
+	'@ define farfield monitor
+	sCommand = ""
+	sCommand = sCommand + "With Monitor" + vbLf
+	sCommand = sCommand + "     .Reset" + vbLf
+	sCommand = sCommand + "     .Name ""farfield (f=10)""" + vbLf
+	sCommand = sCommand + "     .Domain ""Frequency""" + vbLf
+	sCommand = sCommand + "     .FieldType ""Farfield""" + vbLf
+	sCommand = sCommand + "     .Frequency ""10""" + vbLf
+	sCommand = sCommand + "     .Create" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define farfield monitor: farfield (f=10)", sCommand
+
+
+	'@ define farfield monitor
+	sCommand = ""
+	sCommand = sCommand + "With Monitor" + vbLf
+	sCommand = sCommand + "     .Reset" + vbLf
+	sCommand = sCommand + "     .Name ""farfield (f=11)""" + vbLf
+	sCommand = sCommand + "     .Domain ""Frequency""" + vbLf
+	sCommand = sCommand + "     .FieldType ""Farfield""" + vbLf
+	sCommand = sCommand + "     .Frequency ""11""" + vbLf
+	sCommand = sCommand + "     .Create" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define farfield monitor: farfield (f=11)", sCommand
+
+	' Speed of light in project units
+	' Dim c0 As Double
+	' c0 = CLight * Units.GetGeometrySIToUnit / Units.GetTimeSIToUnit
+	
+	'@ define solver parameters
+	sCommand = ""
+	sCommand = sCommand + "MakeSureParameterExists(""scan_theta"", ""30"")" + vbLf
+	sCommand = sCommand + "MakeSureParameterExists(""scan_phi"", ""0"")" + vbLf
+	sCommand = sCommand + "MakeSureParameterExists(""x_elements"", ""5"")" + vbLf
+	sCommand = sCommand + "MakeSureParameterExists(""y_elements"", ""5"")" + vbLf
+	sCommand = sCommand + "Dim portnum As Long" + vbLf
+	sCommand = sCommand + "Dim cstxi As Long" + vbLf
+	sCommand = sCommand + "Dim cstyi As Long" + vbLf
+	
+	sCommand = sCommand + "With CombineResults" + vbLf
+	sCommand = sCommand + ".Reset" + vbLf
+	sCommand = sCommand + "For cstyi = 0 To y_elements-1" + vbLf
+	sCommand = sCommand + "For cstxi = 0 To x_elements-1" + vbLf
+	sCommand = sCommand + "portnum = cstxi + cstyi * x_elements" + vbLf
+	sCommand = sCommand + ".SetExcitationValues ""port"", portnum+1, 1, 1.0, -(0.5*CStr(cstxi)*sinD(scan_theta)*cosD(scan_phi) + 1.0*Cstr(cstyi)*sinD(scan_theta)*sinD(scan_phi))/11.802852677165" + vbLf
+	sCommand = sCommand + "Next cstxi" + vbLf
+    sCommand = sCommand + "Next cstyi" + vbLf
+	sCommand = sCommand + ".SetLabel  ""Simulation_1""" + vbLf
+	sCommand = sCommand + ".SetOffsetType ""time""" + vbLf
+	sCommand = sCommand + ".AddToExcitationList" + vbLf
+	sCommand = sCommand + "End With" + vbLf
+	
+	sCommand = sCommand + "With Solver " + vbLf
+	sCommand = sCommand + ".CalculationType ""TD-S""" + vbLf
+	sCommand = sCommand + ".StimulationPort ""Selected""" + vbLf
+	sCommand = sCommand + ".StimulationMode ""All""" + vbLf
+	sCommand = sCommand + ".SteadyStateLimit ""-40""" + vbLf
+	sCommand = sCommand + ".AdaptivePortMeshing False" + vbLf
+	sCommand = sCommand + ".ResetExcitationModes" + vbLf
+	sCommand = sCommand + ".ActivateExcitation ""Simultaneous"", ""Simulation_1"", ""1"", ""True""" + vbLf
+	sCommand = sCommand + "End With"	
+	
+	AddToHistory "(*) define simultaneous port excitation T-solver", sCommand
+
+	ResetViewToStructure()
+EndHide	
+
+End Sub

@@ -1,0 +1,640 @@
+Sub Main ()
+
+' ================================================================================================
+' Copyright 2014-2023 Dassault Systemes Deutschland GmbH
+' ================================================================================================
+' History of Changes
+' ------------------------------------------------------------------------------------------------
+' 01-Jan-2014 ube: Initial version
+' ================================================================================================
+'@ use template: Transformers, Chokes
+
+BeginHide
+	StoreParameterWithDescription "length" , 80, "core length (x-direction)"
+	StoreParameterWithDescription "limb" , 15, "width of limbs (y-direction)"
+	StoreParameterWithDescription "n_prim" , 100, "number of turns of primary coil"
+	StoreParameterWithDescription "n_sec" , 5, "number of turns of secondary coil"
+	StoreParameterWithDescription "R_prim" , 0.1, "resistance of primary coil"
+	StoreParameterWithDescription "R_sec" , "R_prim", "resistance of secondary coil"	
+	StoreParameterWithDescription "radius" , 8, "radius of core blends"
+	StoreParameterWithDescription "thickness" , 25, "thickness of core (z-direction)"
+	StoreParameterWithDescription "width" , 70, "width of core (y-direction)"
+	StoreParameterWithDescription "freq" , 50, "frequency of sinusoidal signal"
+	StoreParameterWithDescription "n_periods" , 5, "number of periods"
+	StoreParameterWithDescription "voltage" , 10, "voltage of the primary coil"
+	StoreParameterWithDescription "tss" , 0, "Time shift switch: 0:sin, 1:cos"
+EndHide
+
+
+BeginHide
+	Dim sHistoryString As String
+	
+	'@ change solver and mesh type
+	sHistoryString = ""
+	sHistoryString = sHistoryString + "ChangeSolverType ""LF Time Domain (MQS)""" + vbLf
+	AddToHistory "change solver and mesh type", sHistoryString
+	
+	
+	'@ define units
+	sHistoryString = ""
+	sHistoryString = sHistoryString + "With Units" + vbLf
+	sHistoryString = sHistoryString + ".Geometry ""mm""" + vbLf
+	sHistoryString = sHistoryString + ".Frequency ""Hz""" + vbLf
+	sHistoryString = sHistoryString + ".Voltage ""V""" + vbLf
+	sHistoryString = sHistoryString + ".Resistance ""Ohm""" + vbLf
+	sHistoryString = sHistoryString + ".Inductance ""NanoH""" + vbLf
+	sHistoryString = sHistoryString + ".TemperatureUnit  ""Kelvin""" + vbLf
+	sHistoryString = sHistoryString + ".Time ""s""" + vbLf
+	sHistoryString = sHistoryString + ".Current ""A""" + vbLf
+	sHistoryString = sHistoryString + ".Conductance ""Siemens""" + vbLf
+	sHistoryString = sHistoryString + ".Capacitance ""PikoF""" + vbLf
+	sHistoryString = sHistoryString + "End With"
+	AddToHistory "define units", sHistoryString
+
+	
+	'@ define background
+	sHistoryString = ""
+	sHistoryString = sHistoryString + "With Background" + vbLf
+	sHistoryString = sHistoryString + ".ResetBackground" + vbLf
+	sHistoryString = sHistoryString + ".Type ""Normal""" + vbLf
+	sHistoryString = sHistoryString + ".Epsilon ""1.0""" + vbLf
+	sHistoryString = sHistoryString + ".Mu ""1.0""" + vbLf
+	sHistoryString = sHistoryString + ".Rho ""1.204""" + vbLf
+	sHistoryString = sHistoryString + ".ThermalType ""Normal""" + vbLf
+	sHistoryString = sHistoryString + ".ThermalConductivity ""0.026""" + vbLf
+	sHistoryString = sHistoryString + ".SpecificHeat ""1005"", ""J/K/kg""" + vbLf
+	sHistoryString = sHistoryString + ".XminSpace 10e-3 * Units.GetGeometrySIToUnit()" + vbLf
+	sHistoryString = sHistoryString + ".XmaxSpace 10e-3 * Units.GetGeometrySIToUnit()" + vbLf
+	sHistoryString = sHistoryString + ".YminSpace 10e-3 * Units.GetGeometrySIToUnit()" + vbLf
+	sHistoryString = sHistoryString + ".YmaxSpace 10e-3 * Units.GetGeometrySIToUnit()" + vbLf
+	sHistoryString = sHistoryString + ".ZminSpace 10e-3 * Units.GetGeometrySIToUnit()" + vbLf
+	sHistoryString = sHistoryString + ".ZmaxSpace 10e-3 * Units.GetGeometrySIToUnit()" + vbLf
+	sHistoryString = sHistoryString + ".ApplyInAllDirections ""True""" + vbLf
+	sHistoryString = sHistoryString + "End With"
+	AddToHistory "define background", sHistoryString
+
+	
+	'@ define boundaries
+	sHistoryString = ""
+	sHistoryString = sHistoryString + "With Boundary" + vbLf
+	sHistoryString = sHistoryString + ".Xmin ""electric"" " + vbLf
+	sHistoryString = sHistoryString + ".Xmax ""electric"" " + vbLf
+	sHistoryString = sHistoryString + ".Ymin ""electric"" " + vbLf
+	sHistoryString = sHistoryString + ".Ymax ""electric"" " + vbLf
+	sHistoryString = sHistoryString + ".Zmin ""electric"" " + vbLf
+	sHistoryString = sHistoryString + ".Zmax ""electric"" " + vbLf
+	sHistoryString = sHistoryString + ".Xsymmetry ""magnetic"" " + vbLf
+	sHistoryString = sHistoryString + ".Ysymmetry ""none"" " + vbLf
+	sHistoryString = sHistoryString + ".Zsymmetry ""electric"" " + vbLf
+	sHistoryString = sHistoryString + ".XminThermal ""isothermal"" " + vbLf
+	sHistoryString = sHistoryString + ".XmaxThermal ""isothermal"" " + vbLf
+	sHistoryString = sHistoryString + ".YminThermal ""isothermal"" " + vbLf
+	sHistoryString = sHistoryString + ".YmaxThermal ""isothermal"" " + vbLf
+	sHistoryString = sHistoryString + ".ZminThermal ""isothermal"" " + vbLf
+	sHistoryString = sHistoryString + ".ZmaxThermal ""isothermal"" " + vbLf
+	sHistoryString = sHistoryString + ".XsymmetryThermal ""adiabatic"" " + vbLf
+	sHistoryString = sHistoryString + ".YsymmetryThermal ""none"" " + vbLf
+	sHistoryString = sHistoryString + ".ZsymmetryThermal ""adiabatic"" " + vbLf
+	sHistoryString = sHistoryString + ".ApplyInAllDirections ""False"" " + vbLf
+	sHistoryString = sHistoryString + ".ApplyInAllDirectionsThermal ""False"" " + vbLf
+	sHistoryString = sHistoryString + ".XminPotential """" " + vbLf
+	sHistoryString = sHistoryString + ".XminPotentialType ""None"" " + vbLf
+	sHistoryString = sHistoryString + ".XmaxPotential """" " + vbLf
+	sHistoryString = sHistoryString + ".XmaxPotentialType ""None"" " + vbLf
+	sHistoryString = sHistoryString + ".YminPotential """" " + vbLf
+	sHistoryString = sHistoryString + ".YminPotentialType ""None"" " + vbLf
+	sHistoryString = sHistoryString + ".YmaxPotential """" " + vbLf
+	sHistoryString = sHistoryString + ".YmaxPotentialType ""None"" " + vbLf
+	sHistoryString = sHistoryString + ".ZminPotential """" " + vbLf
+	sHistoryString = sHistoryString + ".ZminPotentialType ""None"" " + vbLf
+	sHistoryString = sHistoryString + ".ZmaxPotential """" " + vbLf
+	sHistoryString = sHistoryString + ".ZmaxPotentialType ""None"" " + vbLf
+	sHistoryString = sHistoryString + ".XminTemperature """" " + vbLf
+	sHistoryString = sHistoryString + ".XminTemperatureType ""None"" " + vbLf
+	sHistoryString = sHistoryString + ".XmaxTemperature """" " + vbLf
+	sHistoryString = sHistoryString + ".XmaxTemperatureType ""None"" " + vbLf
+	sHistoryString = sHistoryString + ".YminTemperature """" " + vbLf
+	sHistoryString = sHistoryString + ".YminTemperatureType ""None"" " + vbLf
+	sHistoryString = sHistoryString + ".YmaxTemperature """" " + vbLf
+	sHistoryString = sHistoryString + ".YmaxTemperatureType ""None"" " + vbLf
+	sHistoryString = sHistoryString + ".ZminTemperature """" " + vbLf
+	sHistoryString = sHistoryString + ".ZminTemperatureType ""None"" " + vbLf
+	sHistoryString = sHistoryString + ".ZmaxTemperature """" " + vbLf
+	sHistoryString = sHistoryString + ".ZmaxTemperatureType ""None"" " + vbLf
+	sHistoryString = sHistoryString + "End With"
+	AddToHistory "define boundaries", sHistoryString
+
+	'@ define excitation signal: signal1
+	sHistoryString = ""
+	sHistoryString = sHistoryString + "With TimeSignal" + vbLf
+	sHistoryString = sHistoryString + "     .Reset" + vbLf
+	sHistoryString = sHistoryString + "     .Name ""signal1""" + vbLf 
+	sHistoryString = sHistoryString + "     .SignalType ""Sine""" + vbLf 
+	sHistoryString = sHistoryString + "     .ProblemType ""Low Frequency""" + vbLf 
+	sHistoryString = sHistoryString + "    .Ttotal ""n_periods/freq""" + vbLf
+	sHistoryString = sHistoryString + "     .Offset ""0.0""" + vbLf 
+	sHistoryString = sHistoryString + "     .Frequency ""freq""" + vbLf 
+	sHistoryString = sHistoryString + "     .Create" + vbLf
+	sHistoryString = sHistoryString + "End With" + vbLf
+	AddToHistory "define excitation signal: signal1", sHistoryString
+
+	'@ use signal: signal1 as reference signal
+	sHistoryString = ""	
+	sHistoryString = sHistoryString + "With TimeSignal" + vbLf 
+	sHistoryString = sHistoryString + "     .ExcitationSignalAsReference ""signal1"", ""Low Frequency""" + vbLf 
+	sHistoryString = sHistoryString + "End With" + vbLf	
+	AddToHistory "use signal: signal1 as reference signal", sHistoryString
+
+	'@ set mesh properties (Planar)
+	sHistoryString = ""
+	sHistoryString = sHistoryString + "" + vbLf
+	sHistoryString = sHistoryString + "With Mesh " + vbLf
+	sHistoryString = sHistoryString + "     .MeshType ""Planar"" " + vbLf
+	sHistoryString = sHistoryString + "     .SetCreator ""Low Frequency""" + vbLf
+	sHistoryString = sHistoryString + "End With " + vbLf
+	sHistoryString = sHistoryString + "With MeshSettings " + vbLf
+	sHistoryString = sHistoryString + "     .SetMeshType ""Plane"" " + vbLf
+	sHistoryString = sHistoryString + "     .Set ""Version"", 1%" + vbLf
+	sHistoryString = sHistoryString + "     'MAX CELL - GEOMETRY REFINEMENT " + vbLf
+	sHistoryString = sHistoryString + "     .Set ""StepsPerBoxNear"", ""10"" " + vbLf
+	sHistoryString = sHistoryString + "     .Set ""StepsPerBoxFar"", ""5"" " + vbLf
+	sHistoryString = sHistoryString + "     .Set ""MaxStepNear"", ""0"" " + vbLf
+	sHistoryString = sHistoryString + "     .Set ""MaxStepFar"", ""0"" " + vbLf
+	sHistoryString = sHistoryString + "     .Set ""ModelBoxDescrNear"", ""maxedge"" " + vbLf
+	sHistoryString = sHistoryString + "     .Set ""ModelBoxDescrFar"", ""maxedge"" " + vbLf
+	sHistoryString = sHistoryString + "     .Set ""UseMaxStepAbsolute"", ""0"" " + vbLf
+	sHistoryString = sHistoryString + "     .Set ""GeometryRefinementSameAsNear"", ""0"" " + vbLf
+	sHistoryString = sHistoryString + "     'MIN CELL " + vbLf
+	sHistoryString = sHistoryString + "     .Set ""UseRatioLimit"", ""0"" " + vbLf
+	sHistoryString = sHistoryString + "     .Set ""RatioLimit"", ""100"" " + vbLf
+	sHistoryString = sHistoryString + "     .Set ""MinStep"", ""0"" " + vbLf
+	sHistoryString = sHistoryString + "     '2D CUTPLANE " + vbLf
+	sHistoryString = sHistoryString + "     .Set  ""CutplaneType"", ""Translational""" + vbLf
+	sHistoryString = sHistoryString + "     .Set  ""CutplaneNormal"", ""0.0"", ""0.0"", ""1.0""" + vbLf
+	sHistoryString = sHistoryString + "     .Set  ""CutplanePositionTypeX"", ""Center""" + vbLf
+	sHistoryString = sHistoryString + "     .Set  ""CutplanePositionTypeY"", ""Center""" + vbLf
+	sHistoryString = sHistoryString + "     .Set  ""CutplanePositionTypeZ"", ""Center""" + vbLf
+	sHistoryString = sHistoryString + "     .Set  ""CutplanePosition"", ""0.0"", ""0.0"", ""0.0""" + vbLf
+	sHistoryString = sHistoryString + "     .Set  ""CutplaneDepth"", ""thickness""" + vbLf
+	sHistoryString = sHistoryString + " " + vbLf
+	sHistoryString = sHistoryString + "End With " + vbLf
+	sHistoryString = sHistoryString + "With MeshSettings " + vbLf
+	sHistoryString = sHistoryString + "     .SetMeshType ""Plane"" " + vbLf
+	sHistoryString = sHistoryString + "     .Set ""CurvatureOrder"", ""1"" " + vbLf
+	sHistoryString = sHistoryString + "     .Set ""CurvatureOrderPolicy"", ""automatic"" " + vbLf
+	sHistoryString = sHistoryString + "     .Set ""CurvRefinementControl"", ""NormalTolerance"" " + vbLf
+	sHistoryString = sHistoryString + "     .Set ""NormalTolerance"", ""22.5"" " + vbLf
+	sHistoryString = sHistoryString + "     .Set ""SrfMeshGradation"", ""2"" " + vbLf
+	sHistoryString = sHistoryString + "     .Set ""SrfMeshOptimization"", ""1"" " + vbLf
+	sHistoryString = sHistoryString + "End With " + vbLf
+	sHistoryString = sHistoryString + "With MeshSettings " + vbLf
+	sHistoryString = sHistoryString + "     .SetMeshType ""Unstr"" " + vbLf
+	sHistoryString = sHistoryString + "     .Set ""UseMaterials"",  ""0"" " + vbLf
+	sHistoryString = sHistoryString + "End With " + vbLf
+	sHistoryString = sHistoryString + "With MeshSettings " + vbLf
+	sHistoryString = sHistoryString + "     .SetMeshType ""Unstr"" " + vbLf
+	sHistoryString = sHistoryString + "     .Set ""SmallFeatureSize"", ""0"" " + vbLf
+	sHistoryString = sHistoryString + "     .Set ""CoincidenceTolerance"", ""1e-006"" " + vbLf
+	sHistoryString = sHistoryString + "     .Set ""SelfIntersectionCheck"", ""1"" " + vbLf
+	sHistoryString = sHistoryString + "     .Set ""OptimizeForPlanarStructures"", ""0"" " + vbLf
+	sHistoryString = sHistoryString + "End With"
+	AddToHistory "set mesh properties (Planar)", sHistoryString
+
+	'@ define time monitor: b-field
+	sHistoryString = ""	
+	sHistoryString = sHistoryString + "With TimeMonitor" + vbLf
+	sHistoryString = sHistoryString + "     .Reset" + vbLf 
+	sHistoryString = sHistoryString + "     .Name ""b-field""" + vbLf 
+	sHistoryString = sHistoryString + "     .FieldType ""B-Field""" + vbLf 
+	sHistoryString = sHistoryString + "     .Tstart ""0.0""" + vbLf 
+	sHistoryString = sHistoryString + "     .Tstep ""1/freq/40""" + vbLf 
+	sHistoryString = sHistoryString + "     .Tend ""0.0""" + vbLf 
+	sHistoryString = sHistoryString + "     .UseTend ""False""" + vbLf 
+	sHistoryString = sHistoryString + "     .Create" + vbLf 
+	sHistoryString = sHistoryString + "End With" + vbLf
+	AddToHistory "define time monitor: b-field", sHistoryString
+
+	'@ define time monitor: material
+	sHistoryString = ""	
+	sHistoryString = sHistoryString + "With TimeMonitor" + vbLf
+	sHistoryString = sHistoryString + "     .Reset" + vbLf 
+	sHistoryString = sHistoryString + "     .Name ""material"" " + vbLf
+	sHistoryString = sHistoryString + "     .FieldType ""Material""" + vbLf 
+	sHistoryString = sHistoryString + "     .Tstart ""0.0""" + vbLf
+	sHistoryString = sHistoryString + "     .Tstep ""1/freq/40""" + vbLf
+	sHistoryString = sHistoryString + "     .Tend ""0.0""" + vbLf 
+	sHistoryString = sHistoryString + "     .UseTend ""False""" + vbLf
+	sHistoryString = sHistoryString + "     .Create" + vbLf 
+	sHistoryString = sHistoryString + "End With" + vbLf
+	AddToHistory "define time monitor: material", sHistoryString
+
+	'@ define time monitor 3d: incremental inductance matrix
+	sHistoryString = ""		
+	sHistoryString = sHistoryString + "With TimeMonitor3D" + vbLf
+	sHistoryString = sHistoryString + "     .Reset" + vbLf
+	sHistoryString = sHistoryString + "     .Name ""incremental inductance matrix""" + vbLf
+	sHistoryString = sHistoryString + "     .FieldType ""Inc.Ind.""" + vbLf
+	sHistoryString = sHistoryString + "     .UseAllSolids ""True""" + vbLf
+	sHistoryString = sHistoryString + "     .SolidName ""background""" + vbLf
+	sHistoryString = sHistoryString + "     .SolidType ""all domains""" + vbLf
+	sHistoryString = sHistoryString + "     .Create" + vbLf
+	sHistoryString = sHistoryString + "End With" + vbLf
+	AddToHistory "define time monitor 3d: incremental inductance matrix", sHistoryString
+
+	'@ define mqs excitations
+	sHistoryString = ""
+	sHistoryString = sHistoryString + "With MQSTDSolver " + vbLf
+	sHistoryString = sHistoryString + "     .ResetExcitationList " + vbLf
+	sHistoryString = sHistoryString + "     .ExcitationName ""primary"" " + vbLf
+	sHistoryString = sHistoryString + "     .ExcitationType ""coil"" " + vbLf
+	sHistoryString = sHistoryString + "     .ExcitationShift ""-(0.5*tss)/freq"" " + vbLf
+	sHistoryString = sHistoryString + "     .ExcitationSignal ""[Reference]"" " + vbLf
+	sHistoryString = sHistoryString + "     .ExcitationActive ""True"" " + vbLf
+	sHistoryString = sHistoryString + "     .CreateExcitation " + vbLf
+	sHistoryString = sHistoryString + "     .ExcitationName ""secondary"" " + vbLf
+	sHistoryString = sHistoryString + "     .ExcitationType ""coil"" " + vbLf
+	sHistoryString = sHistoryString + "     .ExcitationShift ""0.0"" " + vbLf
+	sHistoryString = sHistoryString + "     .ExcitationSignal ""[Reference]"" " + vbLf
+	sHistoryString = sHistoryString + "     .ExcitationActive ""True"" " + vbLf
+	sHistoryString = sHistoryString + "     .CreateExcitation " + vbLf
+	sHistoryString = sHistoryString + "End With"
+	AddToHistory "define mqs excitations", sHistoryString
+	
+	'@ define lf time domain solver (mqs) parameters
+	sHistoryString = ""
+	sHistoryString = sHistoryString + "With MQSTDSolver" + vbLf
+	sHistoryString = sHistoryString + "     .Reset" + vbLf
+	sHistoryString = sHistoryString + "     .Method ""Planar Mesh""" + vbLf
+	sHistoryString = sHistoryString + "     .EquationType ""Magnetoquasistatic""" + vbLf
+	sHistoryString = sHistoryString + "     .StoreResultsInCache ""False""" + vbLf
+	sHistoryString = sHistoryString + "     .SystemSolverType ""Auto""" + vbLf
+	sHistoryString = sHistoryString + "     .MaxNumIter ""0""" + vbLf
+	sHistoryString = sHistoryString + "     .PECDefault ""Grounded""" + vbLf
+	sHistoryString = sHistoryString + "     .Accuracy ""1e-006""" + vbLf
+	sHistoryString = sHistoryString + "     .SimulationDuration ""n_periods/freq""" + vbLf
+	sHistoryString = sHistoryString + "     .MeshAdaption ""False""" + vbLf
+	sHistoryString = sHistoryString + "     .TimeIntegrationMethod ""Low order""" + vbLf
+	sHistoryString = sHistoryString + "     .TimeAdaption ""False""" + vbLf
+	sHistoryString = sHistoryString + "     .TimeStepWidthActive ""False""" + vbLf
+	sHistoryString = sHistoryString + "     .TimeStepWidth ""0.0005""" + vbLf
+	sHistoryString = sHistoryString + "     .TimeStepSamples ""n_periods*40""" + vbLf
+	sHistoryString = sHistoryString + "     .TimeStepMin ""1e-6""" + vbLf
+	sHistoryString = sHistoryString + "     .TimeStepMax ""1e-1""" + vbLf
+	sHistoryString = sHistoryString + "     .TimeStepInit ""1e-2""" + vbLf
+	sHistoryString = sHistoryString + "     .TimeStepTolerance ""1e-4""" + vbLf
+	sHistoryString = sHistoryString + "     .TetSolverOrder ""2""" + vbLf
+	sHistoryString = sHistoryString + "     .UseMaxNumberOfThreads ""True""" + vbLf
+	sHistoryString = sHistoryString + "     .MaxNumberOfThreads ""72""" + vbLf
+	sHistoryString = sHistoryString + "     .MaximumNumberOfCPUDevices ""2""" + vbLf
+	sHistoryString = sHistoryString + "     .UseDistributedComputing ""False""" + vbLf
+	sHistoryString = sHistoryString + "End With"
+	AddToHistory "define lf time domain solver (mqs) parameters", sHistoryString
+	
+EndHide
+
+Plot.DrawBox True
+
+'@ define material: ST37
+With Material
+     .Reset
+     .Name "ST37"
+     .Folder ""
+.FrqType "all" 
+.Type "Nonlinear" 
+.SetMaterialUnit "Hz", "m" 
+.Mu "1000" 
+.NonlinearMeasurementError "1e-1" 
+.Kappa "0"
+.ResetHBList
+.AddHBValue "0", "0" 
+.AddHBValue "50", "0.02" 
+.AddHBValue "100", "0.045" 
+.AddHBValue "150", "0.09" 
+.AddHBValue "200", "0.15" 
+.AddHBValue "300", "0.265" 
+.AddHBValue "400", "0.38" 
+.AddHBValue "500", "0.5" 
+.AddHBValue "600", "0.62" 
+.AddHBValue "700", "0.74" 
+.AddHBValue "800", "0.85" 
+.AddHBValue "900", "0.95" 
+.AddHBValue "1000", "1.033" 
+.AddHBValue "1100", "1.11" 
+.AddHBValue "1200", "1.17" 
+.AddHBValue "1400", "1.26" 
+.AddHBValue "1600", "1.32" 
+.AddHBValue "1800", "1.365" 
+.AddHBValue "2000", "1.4" 
+.AddHBValue "2400", "1.46" 
+.AddHBValue "2800", "1.51" 
+.AddHBValue "3000", "1.53" 
+.AddHBValue "3500", "1.575" 
+.AddHBValue "4000", "1.62" 
+.AddHBValue "5000", "1.69" 
+.AddHBValue "6000", "1.75" 
+.AddHBValue "7000", "1.79" 
+.AddHBValue "8000", "1.82" 
+.AddHBValue "1.0e+004", "1.87" 
+.AddHBValue "1.2e+004", "1.9" 
+.AddHBValue "1.6e+004", "1.95" 
+.AddHBValue "1.8e+004", "1.975" 
+.AddHBValue "2.0e+004", "2" 
+.AddHBValue "2.2e+004", "2.02" 
+.AddHBValue "2.4e+004", "2.04" 
+.AddHBValue "2.6e+004", "2.058" 
+.AddHBValue "2.8e+004", "2.075" 
+.AddHBValue "3.0e+004", "2.09" 
+.AddHBValue "3.2e+004", "2.105" 
+.AddHBValue "3.4e+004", "2.12" 
+.AddHBValue "3.6e+004", "2.136" 
+.Rho "7850" 
+.ThermalType "Normal" 
+.ThermalConductivity "0" 
+.SpecificHeat "0", "J/K/kg" 
+.MetabolicRate "0" 
+.BloodFlow "0" 
+.VoxelConvection "0" 
+.MechanicsType "Unused" 
+.FrqType "hf" 
+.Type "Normal" 
+.SetMaterialUnit "Hz", "m" 
+.Epsilon "1" 
+.Mu "1" 
+.Kappa "0" 
+.TanD "0.0" 
+.TanDFreq "0.0" 
+.TanDGiven "False" 
+.TanDModel "ConstTanD" 
+.KappaM "0" 
+.TanDM "0.0" 
+.TanDMFreq "0.0" 
+.TanDMGiven "False" 
+.TanDMModel "ConstTanD" 
+.DispModelEps "None" 
+.DispModelMu "None" 
+.DispersiveFittingSchemeEps "1st Order" 
+.DispersiveFittingSchemeMu "1st Order" 
+.UseGeneralDispersionEps "False" 
+.UseGeneralDispersionMu "False" 
+.Colour "0.443137", "0.509804", "0.184314" 
+.Wireframe "False" 
+.Reflection "False" 
+.Allowoutline "True" 
+.Transparentoutline "False" 
+.Transparency "0" 
+.Create
+End With
+
+'@ new component: component1
+
+Component.New "component1"
+
+'@ define brick: component1:core
+
+With Brick
+     .Reset 
+     .Name "core" 
+     .Component "component1" 
+     .Material "ST37" 
+     .Xrange "-0.5*length", "0.5*length" 
+     .Yrange "-0.5*width", "0.5*width" 
+     .Zrange "-thickness/2", "thickness/2" 
+     .Create
+End With
+
+'@ switch working plane
+
+Plot.DrawWorkplane "false"
+
+'@ pick edge
+
+Pick.PickEdgeFromId "component1:core", "11", "3"
+
+'@ pick edge
+
+Pick.PickEdgeFromId "component1:core", "12", "2"
+
+'@ pick edge
+
+Pick.PickEdgeFromId "component1:core", "10", "1"
+
+'@ pick edge
+
+Pick.PickEdgeFromId "component1:core", "9", "4"
+
+'@ blend edges of: component1:core
+
+Solid.BlendEdge "radius"
+
+'@ pick face
+
+Pick.PickFaceFromId "component1:core", "8"
+
+'@ pick face
+
+Pick.PickFaceFromId "component1:core", "12"
+
+'@ shell object: component1:core
+
+Solid.ShellAdvanced "component1:core", "Inside", "limb", "True"
+
+'@ store picked point: 11
+
+Pick.NextPickToDatabase "11" 
+Pick.PickMidpointFromId "component1:core", "25" 
+
+
+'@ store picked point: 12
+
+Pick.NextPickToDatabase "12" 
+Pick.PickMidpointFromId "component1:core", "30" 
+
+
+'@ store picked point: 13
+
+Pick.NextPickToDatabase "13" 
+Pick.PickMidpointFromId "component1:core", "12" 
+
+
+'@ store picked point: 14
+
+Pick.NextPickToDatabase "14" 
+Pick.PickMidpointFromId "component1:core", "5" 
+
+
+'@ store picked point: 15
+
+Pick.NextPickToDatabase "15" 
+Pick.PickMidpointFromId "component1:core", "25" 
+
+
+'@ define curve 3dpolygon: curve1:3dpolygon1
+
+With Polygon3D 
+     .Reset 
+     .Version 10 
+     .Name "3dpolygon1" 
+     .Curve "curve1" 
+     .Point "xp(11)", "yp(11)", "zp(11)" 
+     .Point "xp(12)", "yp(12)", "zp(12)" 
+     .Point "xp(13)", "yp(13)", "zp(13)" 
+     .Point "xp(14)", "yp(14)", "zp(14)" 
+     .Point "xp(15)", "yp(15)", "zp(15)" 
+     .Create 
+End With 
+
+
+'@ store picked point: 16
+
+Pick.NextPickToDatabase "16" 
+Pick.PickCurveMidpointFromId "curve1:3dpolygon1", "1" 
+
+
+'@ define curve rectangle: curve1:rectangle1
+
+With Rectangle
+     .Reset 
+     .Name "rectangle1" 
+     .Curve "curve1" 
+     .Xrange "-0.45*(length-2*limb)", "0.45*(length-2*limb)" 
+     .Yrange "yp(16)-0.4*(width-2*limb)", "yp(16)-0.05*(width-2*limb)"
+     .Create
+End With
+
+
+'@ define curve blend: curve1:blend1 on: 3dpolygon1,3dpolygon1
+
+With BlendCurve 
+  .Reset 
+  .Name "blend1" 
+  .Radius "0.1*thickness" 
+  .Curve "curve1" 
+  .CurveItem1 "3dpolygon1" 
+  .CurveItem2 "3dpolygon1" 
+  .EdgeId1 "1" 
+  .EdgeId2 "4" 
+  .VertexId1 "1" 
+  .VertexId2 "1" 
+  .Create 
+End With 
+
+
+'@ define curve blend: curve1:blend2 on: 3dpolygon1,3dpolygon1
+
+With BlendCurve 
+  .Reset 
+  .Name "blend2" 
+  .Radius "0.1*thickness" 
+  .Curve "curve1" 
+  .CurveItem1 "3dpolygon1" 
+  .CurveItem2 "3dpolygon1" 
+  .EdgeId1 "1" 
+  .EdgeId2 "4" 
+  .VertexId1 "1" 
+  .VertexId2 "1" 
+  .Create 
+End With 
+
+
+'@ define curve blend: curve1:blend3 on: 3dpolygon1,3dpolygon1
+
+With BlendCurve 
+  .Reset 
+  .Name "blend3" 
+  .Radius "0.1*thickness" 
+  .Curve "curve1" 
+  .CurveItem1 "3dpolygon1" 
+  .CurveItem2 "3dpolygon1" 
+  .EdgeId1 "2" 
+  .EdgeId2 "4" 
+  .VertexId1 "3" 
+  .VertexId2 "3" 
+  .Create 
+End With 
+
+
+'@ define curve blend: curve1:blend4 on: 3dpolygon1,3dpolygon1
+
+With BlendCurve 
+  .Reset 
+  .Name "blend4" 
+  .Radius "0.1*thickness" 
+  .Curve "curve1" 
+  .CurveItem1 "3dpolygon1" 
+  .CurveItem2 "3dpolygon1" 
+  .EdgeId1 "2" 
+  .EdgeId2 "3" 
+  .VertexId1 "4" 
+  .VertexId2 "4" 
+  .Create 
+End With 
+
+
+'@ define coil: primary
+
+With Coil
+     .Reset
+     .Name "primary"
+     .CoilType "Stranded Voltage"
+     .ToolType "CurveCurve"
+     .Value "voltage"
+     .Phase "0.0"
+     .NTurns "n_prim"
+     .Resistance "R_prim"
+     .ProjectProfileToPathAdvanced "True"
+     .ProfileName "curve1:rectangle1"
+     .PathName "curve1:blend1"
+     .Create
+End With
+
+
+'@ pick mid point
+
+Pick.PickMidpointFromId "component1:core", "5" 
+
+
+'@ pick mid point
+
+Pick.PickMidpointFromId "component1:core", "27" 
+
+
+'@ transform coil: translate primary
+
+With Transform 
+     .Reset 
+     .Name "primary" 
+     .Vector "0", "-55", "0" 
+     .UsePickedPoints "True" 
+     .InvertPickedPoints "False" 
+     .MultipleObjects "True" 
+     .GroupObjects "False" 
+     .Repetitions "1" 
+     .MultipleSelection "False" 
+     .Transform "Coil", "Translate" 
+End With 
+
+
+'@ rename coil: primary_1 to: secondary
+
+Coil.Rename "primary_1", "secondary" 
+
+
+'@ change coil properties: secondary
+
+With Coil
+     .Reset
+     .Name "secondary"
+     .CoilType "Stranded Voltage"
+     .ToolType "CurveCurve"
+     .Value "0"
+     .Phase "0.0"
+     .NTurns "n_sec"
+     .Resistance "R_sec"
+     .Change
+End With
+
+BeginHide
+	ResetViewToStructure()
+EndHide 
+
+End Sub

@@ -1,0 +1,277 @@
+' Construct / Online / DCPowerSplitter_Resistance
+' !!! Do not change the line above !!!
+' ================================================================================================
+' Copyright 2014-2023 Dassault Systemes Deutschland GmbH
+' ================================================================================================
+' History of Changes
+' ------------------------------------------------------------------------------------------------
+' 01-Jan-2014 ube: Initial version
+' ================================================================================================
+
+Sub Main ()
+BeginHide
+Dim sCommand As String
+'@ use template: Stationary Currents
+
+' (CSTxEMSxONLY)
+
+StoreDoubleParameter "I", 1.0
+StoreDoubleParameter "V", 1e-4
+
+
+'@ change solver and mesh type
+sCommand = ""
+sCommand = sCommand + "ChangeSolverAndMeshType ""LF Stationary Current""" + vbLf
+AddToHistory "change solver and mesh type", sCommand 
+
+
+'@ define units
+sCommand = ""
+sCommand = sCommand + "With Units " + vbLf
+sCommand = sCommand + ".Geometry ""mm""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define units", sCommand 
+
+
+'@ define background
+sCommand = ""
+sCommand = sCommand + "With Background " + vbLf
+sCommand = sCommand + ".Type ""Normal""" + vbLf
+sCommand = sCommand + ".Epsilon ""1.0""" + vbLf
+sCommand = sCommand + ".Mu ""1.0""" + vbLf
+sCommand = sCommand + ".XminSpace ""0.0""" + vbLf
+sCommand = sCommand + ".XmaxSpace ""0.0""" + vbLf
+sCommand = sCommand + ".YminSpace ""0.0""" + vbLf
+sCommand = sCommand + ".YmaxSpace ""0.0""" + vbLf
+sCommand = sCommand + ".ZminSpace ""0.0""" + vbLf
+sCommand = sCommand + ".ZmaxSpace ""0.0""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define background", sCommand 
+
+
+'@ define material: copper
+sCommand = ""
+sCommand = sCommand + "With Material " + vbLf
+sCommand = sCommand + ".Reset " + vbLf
+sCommand = sCommand + ".Name ""copper""" + vbLf
+sCommand = sCommand + ".FrqType ""all""" + vbLf
+sCommand = sCommand + ".Type ""Normal""" + vbLf
+sCommand = sCommand + ".Epsilon ""1""" + vbLf
+sCommand = sCommand + ".Mu ""1""" + vbLf
+sCommand = sCommand + ".Kappa ""5.8e7""" + vbLf
+sCommand = sCommand + ".Colour ""1.0"", ""1.0"", ""0""" + vbLf
+sCommand = sCommand + ".Create" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define material: copper", sCommand 
+
+
+'@ new curve: curve1
+sCommand = ""
+sCommand = sCommand + "With Curve" + vbLf
+sCommand = sCommand + ".NewCurve ""curve1""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "new curve: curve1", sCommand
+
+
+'@ define curve line: curve1:line1
+sCommand = ""
+sCommand = sCommand + "With Line" + vbLf
+sCommand = sCommand + ".Reset " + vbLf
+sCommand = sCommand + ".Name ""line1""" + vbLf
+sCommand = sCommand + ".Curve ""curve1""" + vbLf
+sCommand = sCommand + ".X1 ""0""" + vbLf
+sCommand = sCommand + ".Y1 ""-3""" + vbLf
+sCommand = sCommand + ".X2 ""0""" + vbLf
+sCommand = sCommand + ".Y2 ""0""" + vbLf
+sCommand = sCommand + ".Create" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define curve line: curve1:line1", sCommand
+
+
+'@ define curve line: curve1:line2
+sCommand = ""
+sCommand = sCommand + "With Line" + vbLf
+sCommand = sCommand + ".Reset " + vbLf
+sCommand = sCommand + ".Name ""line2""" + vbLf
+sCommand = sCommand + ".Curve ""curve1""" + vbLf
+sCommand = sCommand + ".X1 ""-3""" + vbLf
+sCommand = sCommand + ".Y1 ""0""" + vbLf
+sCommand = sCommand + ".X2 ""3""" + vbLf
+sCommand = sCommand + ".Y2 ""0""" + vbLf
+sCommand = sCommand + ".Create" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define curve line: curve1:line2", sCommand
+
+
+'@ new component: component1
+sCommand = ""
+sCommand = sCommand + "With Component " + vbLf
+sCommand = sCommand + ".New ""component1""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "new component: component1", sCommand 
+
+
+'@ define tracefromcurve: component1:solid1
+sCommand = ""
+sCommand = sCommand + "With TraceFromCurve " + vbLf
+sCommand = sCommand + ".Reset " + vbLf
+sCommand = sCommand + ".Name ""solid1""" + vbLf
+sCommand = sCommand + ".Component ""component1""" + vbLf
+sCommand = sCommand + ".Material ""copper""" + vbLf
+sCommand = sCommand + ".Curve ""curve1:line1""" + vbLf
+sCommand = sCommand + ".Thickness ""1""" + vbLf
+sCommand = sCommand + ".Width ""1""" + vbLf
+sCommand = sCommand + ".RoundStart ""False""" + vbLf
+sCommand = sCommand + ".RoundEnd ""False""" + vbLf
+sCommand = sCommand + ".GapType ""2""" + vbLf
+sCommand = sCommand + ".Create " + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define tracefromcurve: component1:solid1", sCommand 
+
+
+'@ define tracefromcurve: component1:solid2
+sCommand = ""
+sCommand = sCommand + "With TraceFromCurve " + vbLf
+sCommand = sCommand + ".Reset " + vbLf
+sCommand = sCommand + ".Name ""solid2""" + vbLf
+sCommand = sCommand + ".Component ""component1""" + vbLf
+sCommand = sCommand + ".Material ""copper""" + vbLf
+sCommand = sCommand + ".Curve ""curve1:line2""" + vbLf
+sCommand = sCommand + ".Thickness ""1""" + vbLf
+sCommand = sCommand + ".Width ""1""" + vbLf
+sCommand = sCommand + ".RoundStart ""False""" + vbLf
+sCommand = sCommand + ".RoundEnd ""False""" + vbLf
+sCommand = sCommand + ".GapType ""2""" + vbLf
+sCommand = sCommand + ".Create " + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define tracefromcurve: component1:solid2", sCommand 
+
+
+'@ boolean add shapes: component1:solid1, component1:solid2
+sCommand = ""
+sCommand = sCommand + "With Solid " + vbLf
+sCommand = sCommand + ".Add ""component1:solid1"", ""component1:solid2""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "boolean add shapes: component1:solid1, component1:solid2", sCommand 
+
+
+'@ define current port: currentport1
+sCommand = ""
+sCommand = sCommand + "With CurrentPort" + vbLf
+sCommand = sCommand + ".Reset " + vbLf
+sCommand = sCommand + ".Name ""currentport1""" + vbLf
+sCommand = sCommand + ".Value ""I""" + vbLf
+sCommand = sCommand + ".ValueType ""Current""" + vbLf
+sCommand = sCommand + ".Face ""component1:solid1"", ""10""" + vbLf
+sCommand = sCommand + ".Create" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define current port: currentport1", sCommand
+
+
+'@ pick face
+sCommand = ""
+sCommand = sCommand + "With Pick" + vbLf
+sCommand = sCommand + ".PickFaceFromId ""component1:solid1"", ""2""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "pick face", sCommand
+
+
+'@ make shape from faces: component1:solid2
+sCommand = ""
+sCommand = sCommand + "With Solid" + vbLf
+sCommand = sCommand + ".CreateShapeFromFaces ""solid2"", ""component1"", ""PEC""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "make shape from faces: component1:solid2", sCommand
+
+
+'@ pick face
+sCommand = ""
+sCommand = sCommand + "With Pick" + vbLf
+sCommand = sCommand + ".PickFaceFromId ""component1:solid1"", ""4""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "pick face", sCommand
+
+
+'@ make shape from faces: component1:solid3
+sCommand = ""
+sCommand = sCommand + "With Solid" + vbLf
+sCommand = sCommand + ".CreateShapeFromFaces ""solid3"", ""component1"", ""PEC""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "make shape from faces: component1:solid3", sCommand
+
+
+'@ define potential: potential
+sCommand = ""
+sCommand = sCommand + "With Potential" + vbLf
+sCommand = sCommand + ".Reset" + vbLf
+sCommand = sCommand + ".Name ""potential""" + vbLf
+sCommand = sCommand + ".Value ""V""" + vbLf
+sCommand = sCommand + ".Phase """"" + vbLf
+sCommand = sCommand + ".AddFace ""component1:solid3"", ""4""" + vbLf
+sCommand = sCommand + ".Type ""Fixed""" + vbLf
+sCommand = sCommand + ".Create" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define potential: potential", sCommand
+
+
+'@ define boundaries
+sCommand = ""
+sCommand = sCommand + "With Boundary" + vbLf
+sCommand = sCommand + ".Xmin ""tangential""" + vbLf
+sCommand = sCommand + ".Xmax ""tangential""" + vbLf
+sCommand = sCommand + ".Ymin ""tangential""" + vbLf
+sCommand = sCommand + ".Ymax ""magnetic""" + vbLf
+sCommand = sCommand + ".Zmin ""magnetic""" + vbLf
+sCommand = sCommand + ".Zmax ""magnetic""" + vbLf
+sCommand = sCommand + ".Xsymmetry ""none""" + vbLf
+sCommand = sCommand + ".Ysymmetry ""none""" + vbLf
+sCommand = sCommand + ".Zsymmetry ""magnetic""" + vbLf
+sCommand = sCommand + ".XminThermal ""isothermal""" + vbLf
+sCommand = sCommand + ".XmaxThermal ""isothermal""" + vbLf
+sCommand = sCommand + ".YminThermal ""isothermal""" + vbLf
+sCommand = sCommand + ".YmaxThermal ""isothermal""" + vbLf
+sCommand = sCommand + ".ZminThermal ""isothermal""" + vbLf
+sCommand = sCommand + ".ZmaxThermal ""isothermal""" + vbLf
+sCommand = sCommand + ".XsymmetryThermal ""none""" + vbLf
+sCommand = sCommand + ".YsymmetryThermal ""none""" + vbLf
+sCommand = sCommand + ".ZsymmetryThermal ""none""" + vbLf
+sCommand = sCommand + ".ApplyInAllDirections ""False""" + vbLf
+sCommand = sCommand + ".XminPotential """"" + vbLf
+sCommand = sCommand + ".XminPotentialType ""None""" + vbLf
+sCommand = sCommand + ".XmaxPotential """"" + vbLf
+sCommand = sCommand + ".XmaxPotentialType ""None""" + vbLf
+sCommand = sCommand + ".YminPotential """"" + vbLf
+sCommand = sCommand + ".YminPotentialType ""None""" + vbLf
+sCommand = sCommand + ".XminTemperature """"" + vbLf
+sCommand = sCommand + ".XminTemperatureType ""None""" + vbLf
+sCommand = sCommand + ".XmaxTemperature """"" + vbLf
+sCommand = sCommand + ".XmaxTemperatureType ""None""" + vbLf
+sCommand = sCommand + ".YminTemperature """"" + vbLf
+sCommand = sCommand + ".YminTemperatureType ""None""" + vbLf
+sCommand = sCommand + ".YmaxTemperature """"" + vbLf
+sCommand = sCommand + ".YmaxTemperatureType ""None""" + vbLf
+sCommand = sCommand + ".ZminTemperature """"" + vbLf
+sCommand = sCommand + ".ZminTemperatureType ""None""" + vbLf
+sCommand = sCommand + ".ZmaxTemperature """"" + vbLf
+sCommand = sCommand + ".ZmaxTemperatureType ""None""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define boundaries", sCommand
+
+
+'@ define j-static solver parameters
+sCommand = ""
+sCommand = sCommand + "With StationaryCurrentSolver" + vbLf
+sCommand = sCommand + ".Reset" + vbLf
+sCommand = sCommand + ".Method ""Tetrahedral Mesh""" + vbLf
+sCommand = sCommand + ".TetAdaption ""True""" + vbLf 
+sCommand = sCommand + ".CalcConductanceMatrix ""True""" + vbLf
+sCommand = sCommand + "End With"
+AddToHistory "define j-static solver parameters", sCommand
+
+ResetViewToStructure()
+EndHide
+
+'set the solver type
+ChangeSolverType("LF Stationary Current")
+
+End Sub

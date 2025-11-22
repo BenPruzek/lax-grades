@@ -1,0 +1,247 @@
+' Construct / Online / Reflector dish
+' !!! Do not change the line above !!!
+
+'-----------------------------------------------------------------------------------------------------------------------------
+' Constructs a Reflector Dish
+'-----------------------------------------------------------------------------------------------------------------------------
+' Copyright 2008-2023 Dassault Systemes Deutschland GmbH
+' ================================================================================================
+' History of Changes
+'-----------------------------------------------------------------------------------------------------------------------------
+' 16-Dec-2014 tgl: stick to global units and check for free names
+' 08-May-2012 dta,ube: Indicate face distortion macro to user
+' 01-Nov-2011 dta: Substituded old fashion 2D-Analytical curve definition with new "Analytical curve" definition (Curve-> Analytical Curve).
+'		   		   Thicken sheet changed from "Centered" to "Outside" to keep constant the focus distance (with & w/o thickness).
+'				   Added [cm] to dialog box
+' 24-Jul-2009 ube: GetMacroPath replaced by GetInstallPath + "\Library\Macros" (previously only first macropath was searched)
+' 30-Jun-2009 dta: added dialog box for parameters
+' 21-Aug-2008 dta: Initial version
+'----------------------------------------------------
+
+Option Explicit
+
+Sub Main ()
+	Dim cst_D As Double, cst_focus As Double, cst_th_true As Boolean, cst_th_dish As Double
+	Dim scst_D As Double, scst_th_true As Boolean, scst_th_dish As Double
+	Dim cst_result As Integer
+	Dim scst_focus As String
+
+	BeginHide
+		' first check if the macro was run before and make sure the hardwired names are free!
+		If SelectTreeItem("Components\antenna\reflector") Then
+			MsgBox("solid ""reflector"" already exists, please rename the existing one!", vbCritical)
+			Exit All
+			' there is some space for further development here --> generate unique names for multiple dishes (this also need additional parametersets)!
+		End If
+
+		Begin Dialog UserDialog 610,238,"Construct Reflector dish",.DialogFunc ' %GRID:10,7,1,1
+			Text 10,21,210,21,"Diameter of the reflector (D)",.Text1
+			TextBox 240,14,60,21,.D
+			Text 10,49,220,14,"Focal length of the reflector",.Text3
+			TextBox 240,49,60,21,.focus
+			OKButton 10,203,100,21
+			CancelButton 120,203,100,21
+	''''''''''''''''''''''''''''''''''''''''		PushButton 230,168,100,21,"Help",.Help
+			Text 10,84,200,28,"Specify whether the reflector has finite (1) or no thickness (0)",.Text4
+			TextBox 240,91,60,21,.th_true
+			Text 10,126,200,14,"Thickness of the reflector",.Text6
+			TextBox 240,126,60,21,.th_dish
+			Picture 340,7,250,189,GetInstallPath + "\Library\Macros\Construct\Parts\Reflector_Dish.bmp",0,.Picture1
+			CheckBox 20,161,240,14,"Display Face Distortion Info",.FaceDistortionInfo
+		End Dialog
+	 	Dim dlg As UserDialog
+
+	 	' set defaults for dialog
+	 	dlg.D = "60.0"
+	 	dlg.focus ="0.5*D"
+	 	dlg.th_true = "0"
+	 	dlg.th_dish ="0.2"
+
+	 	cst_result=Dialog(dlg)
+	 	assign "cst_result"        '  writes e.g. "cst_result = -1/0/1"     into history list
+		'Dialog Window
+
+		If (cst_result = 0) Then Exit All
+
+	 	scst_D		=	evaluate(dlg.D)
+		scst_focus	=	dlg.focus
+	 	scst_th_true= 	evaluate(dlg.th_true)
+	 	scst_th_dish=	evaluate(dlg.th_dish)
+
+		MakeSureParameterExists "D", 	scst_D
+		SetParameterDescription  ( "D",  "Diameter of the reflector"  )
+		MakeSureParameterExists "focus", scst_focus
+		SetParameterDescription  ( "focus"," Focal length of the reflector"  )
+		MakeSureParameterExists "th_true", scst_th_true
+		SetParameterDescription  ("th_true",  "th_true=1. Please specify in th_dish the thickness of the reflector. th_true=0. The reflector has no thickness ")
+		MakeSureParameterExists "th_dish",scst_th_dish
+		SetParameterDescription  ( "th_dish",  "Thickness of the reflector. Must be greater than 0" )
+
+	EndHide
+
+	If (cst_result =0) Then Exit All   ' if cancel/help is clicked, exit all
+
+	'@ define curve circle: Dummy:circle1
+	Dim sCurveName1 As String
+
+	On Error GoTo Curve_Exists1
+		Curve.NewCurve "Dummy"
+	Curve_Exists1:
+	On Error GoTo 0
+
+	'check to generate a fresh dummy curve!
+	BeginHide
+		Dim iii As Integer
+		iii = 1
+		While SelectTreeItem("Curves\Dummy\circle_"+CStr(iii))
+			iii = iii+1
+		Wend
+		sCurveName1 = "circle_"+CStr(iii)
+		assign "sCurveName1"
+	EndHide
+
+
+	'@ define curve circle: Dummy:circle1
+	With Circle
+	     .Reset
+	     .Name sCurveName1
+	     .Curve "Dummy"
+	     .Radius "D/2"
+	     .Xcenter "0.0"
+	     .Ycenter "0.0"
+	     .Segments "0"
+	     .Create
+	End With
+
+
+	'@ transform curve: translate Dummy:circle1
+	With Transform
+	     .Reset
+	     .Name "Dummy:circle_1"
+	     .Vector "0", "0", "(D^2)/(16*focus)+th_true-th_true"
+	     .UsePickedPoints "False"
+	     .InvertPickedPoints "False"
+	     .MultipleObjects "False"
+	     .GroupObjects "False"
+	     .Repetitions "1"
+	     .MultipleSelection "False"
+	     .TranslateCurve
+	End With
+
+	'@ check if curve exists and assign a name
+	On Error GoTo Curve_Exists
+		Curve.NewCurve "2D-Analytical"
+	Curve_Exists:
+	On Error GoTo 0
+
+	Dim sCurveName As String
+
+	BeginHide
+		Dim kkk As Integer
+		kkk = 1
+		While SelectTreeItem("Curves\2D-Analytical\profile_"+CStr(kkk))
+			kkk = kkk+1
+		Wend
+		sCurveName = "profile_"+CStr(kkk)
+
+		assign "sCurveName"
+	EndHide
+
+	'@ define analytical curve
+	With AnalyticalCurve
+	     .Reset
+	     .Name sCurveName
+	     .Curve "2D-Analytical"
+	     .LawX "t"
+	     .LawY "t^2/(4*focus)"
+	     .LawZ "0"
+	     .ParameterRange "0", "D/2"
+	     .Create
+	End With
+
+	SelectTreeItem("Curves\2D-Analytical\"+sCurveName)
+
+	'@ transform curve: rotate 2D-Analytical:spline_1
+	With Transform
+	     .Reset
+	     .Name "2D-Analytical:" + sCurveName
+	     .Origin "Free"
+	     .Center "0", "0", "0"
+	     .Angle "90", "0", "0"
+	     .MultipleObjects "False"
+	     .GroupObjects "False"
+	     .Repetitions "1"
+	     .MultipleSelection "False"
+	     .RotateCurve
+	End With
+
+	'@ new component: antenna
+	On Error GoTo Component_exists
+		Component.New "antenna"
+	Component_exists:
+	On Error GoTo 0
+
+	'@ define sweepprofile: antenna:dish
+
+	With SweepCurve
+	     .Reset
+	     .Name "reflector"
+	     .Component "antenna"
+	     .Material "PEC"
+	     .Twistangle "0.0"
+	     .Taperangle "0.0"
+	     .ProjectProfileToPathAdvanced "False"
+	     .Path "Dummy:circle_1"
+	     .Curve "2D-Analytical:profile_1"
+	     .Create
+	End With
+
+	SelectTreeItem("Components")
+
+	'@ delete curves
+
+	Curve.DeleteCurve "2D-Analytical"
+	Curve.DeleteCurve "Dummy"
+
+	' add thickness if neccessary
+	If RestoreDoubleParameter("th_true") Then
+		Pick.PickFaceFromId "antenna:reflector", "1"
+		Solid.ThickenSheetAdvanced "antenna:reflector", "Outside", "th_dish", "True"
+
+		Pick.PickEndpointFromId "antenna:reflector", "2"
+		Pick.MovePoint "-1", "0.0", "0.0", "focus", "False"   'translate the picked points in the focus of the reflector
+	Else
+		Pick.PickEndpointFromId "antenna:reflector", "1"
+		Pick.MovePoint "-1", "0.0", "0.0", "focus", "False"   'translate the picked points in the focus of the reflector
+	End If
+
+	' handle distortion info
+	BeginHide
+		If dlg.FaceDistortionInfo = 1 Then
+			If RestoreDoubleParameter("th_true") = 0 Then
+				SelectTreeItem("Components\antenna\reflector")
+				MsgBox "Reflector Dish successfully generated." + vbCrLf + vbCrLf + _
+					"To add face distortions to the dish, run ""Macros - Construct - Miscellaneous - Create Face Distortions""", vbInformation, "Face Distortions"
+			Else
+				MsgBox "Face distortions are only supported for sheets, not for objects with finite thickness", vbExclamation, "Face Distortions"
+			End If
+		End If
+	EndHide
+
+End Sub
+
+
+Function DialogFunc%(Item As String, Action As Integer, Value As Integer)
+	Select Case Action
+	Case 1 ' Dialog box initialization
+	Case 2 ' Value changing or button pressed
+		Select Case Item
+		Case "Help"
+			StartHelp "common_preloadedmacro_Construct_Reflector_Dish"
+			DialogFunc = True
+		End Select
+	Case 3 ' ComboBox or TextBox Value changed
+	Case 4 ' Focus changed
+	Case 5 ' Idle
+	End Select
+End Function

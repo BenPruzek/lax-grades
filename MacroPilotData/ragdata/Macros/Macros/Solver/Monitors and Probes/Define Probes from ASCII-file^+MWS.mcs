@@ -1,0 +1,155 @@
+' Solver \ Define Probes from ASCII file
+
+' ================================================================================================
+' Copyright 2010-2023 Dassault Systemes Deutschland GmbH
+' ================================================================================================
+' History of Changes
+'------------------------------------------------------------------------------------
+' 16-Sep-2024 ube: use .Caption to name a probe, formerly .Name
+' 21-Jul-2016 ube: prevent crash during cancel browse dialogue
+' 21-Oct-2015 ube: improved robustness of line and separator parsing (use sConvertSeparators_LIB)
+' 26-Apr-2013 tgl: by default Probes All (x,y,z+abs) are generated now
+' 06-Jul-2010 ube,rsj: first version
+'------------------------------------------------------------------------------------
+
+Option Explicit
+
+'#include "vba_globals_all.lib"
+
+Sub Main ()
+
+Dim cst_action As String
+Dim cst_file_points As String
+
+BeginHide
+
+	Begin Dialog UserDialog 540,210,"Define Probes from ASCII-file",.DialogFunction ' %GRID:10,7,1,1
+		OKButton 10,182,90,21
+		CancelButton 110,182,90,21
+		GroupBox 10,14,520,154,"Select point list file",.GroupBox2
+		TextBox 30,133,370,21,.pointfile
+		PushButton 410,133,90,21,"Browse...",.Browse
+		Text 30,28,480,98,"ASCII-File contains for every position one line. Every line contains 4 or 5 columns:"+vbCrLf+ _
+		"# Probe-Name (or index)         X                 Y               Z          orientation"+vbCrLf+ _
+		"#========================================================"+vbCrLf+ _
+		"           1                               462              -92            465.8       x"+vbCrLf+ _
+		"           2                               450               77            527.3       "+vbCrLf+ _
+		"           3                               464              -92            465.3       all",.Text1
+	End Dialog
+	Dim dlg As UserDialog
+
+	dlg.pointfile  = "please browse your file"
+
+	If (Dialog(dlg)=0) Then
+		cst_action="cancel"
+	Else
+		If Dir$(GetProjectPath("Model3D") + dlg.pointfile) <> "" Then
+			cst_action="create"
+		Else
+			MsgBox "File not found, nothing done.", vbCritical
+			cst_action="cancel"
+		End If
+	End If
+
+	If cst_action = "create" Then
+
+		cst_file_points = dlg.pointfile
+		assign "cst_file_points"
+		
+		ScreenUpdating False
+		LockTree True
+		SetLock True
+
+	End If
+
+	assign "cst_action"
+
+EndHide
+
+Dim thisX As Double
+Dim thisY As Double
+Dim thisZ As Double
+Dim thisName As String
+Dim thisType As String
+
+If cst_action = "create" Then
+
+	Open GetProjectPath("Model3D") + cst_file_points For Input As #11
+		Dim sLine As String, csep As String
+		While Not EOF(11)
+			Line Input #11, sLine
+			If Left(sLine,1)<>"#" Then
+				' convert any type of seperator into (single) spaces:
+				sLine = sConvertSeparators_LIB(sLine)
+				csep=" "
+				' get the position data
+				thisX = CDbl(Split(sLine,csep)(1))
+				thisY = CDbl(Split(sLine,csep)(2))
+				thisZ = CDbl(Split(sLine,csep)(3))
+				' check for the number of elements written
+				If UBound(Split(sLine,csep)) = 4 Then
+					thisType = LCase(Split(sLine,csep)(4))
+				Else
+					thisType = "all"
+				End If
+				' check for proper orientation (x,y,z,all)
+				If Not(thisType = "all" Or thisType = "x" Or thisType = "y" Or thisType = "z") Then
+					ReportError("The defined Orientation is not supported!")
+				End If
+				' now really create the probes!
+				With Probe
+				     .Reset
+				     .Caption "E-"+Split(sLine,csep)(0) + "-" + thisType
+				     .Field "Efield"
+				     .Orientation(thisType)
+				     .Xpos thisX
+				     .Ypos thisY
+				     .Zpos thisZ
+				     .Create
+				End With
+				With Probe
+				     .Reset
+				     .Caption "H-"+Split(sLine,csep)(0) + "-" + thisType
+				     .Field "Hfield"
+					 .Orientation(thisType)
+				     .Xpos thisX
+				     .Ypos thisY
+				     .Zpos thisZ
+				     .Create
+				End With
+
+			End If
+		Wend
+	Close #11
+
+BeginHide
+	ScreenUpdating True
+	LockTree False
+	SetLock False
+
+	MsgBox "Probes successfully defined."+vbCrLf + _
+			"ASCII-file " + cst_file_points + " has been copied into Model/3D folder.", vbInformation
+EndHide
+
+End If
+
+End Sub
+Function DialogFunction%(Item As String, action As Integer, Value As Integer)
+
+	Dim filename As String, Index As Integer
+
+	If (action%=1) Or (action%=2) Then
+
+        Select Case Item
+			Case "Browse"
+				filename = DlgText("pointfile")
+				'filename = GetFilePath(filename, "txt", GetProjectPath("Model3D"), "Choose Root-directory", 0)
+				filename = GetFilePath(filename, "txt")
+				If (filename <> "") Then
+			        DlgText "pointfile", ShortName(filename)
+					FileCopy filename,getprojectpath("Model3D")+ShortName(filename)
+				End If
+				DialogFunction = True
+        End Select
+    End If
+End Function

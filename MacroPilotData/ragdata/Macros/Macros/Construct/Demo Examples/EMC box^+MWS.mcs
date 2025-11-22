@@ -1,0 +1,1438 @@
+' demo emc-box v2
+
+' ================================================================================================
+' Copyright 2014-2023 Dassault Systemes Deutschland GmbH
+' ================================================================================================
+' History of Changes
+' ------------------------------------------------------------------------------------------------
+' 17-Jan-2014 ube: Initial version
+' ================================================================================================
+Sub Main ()
+
+'@ set workplane properties
+
+With WCS
+     .SetWorkplaneSize "40"
+     .SetWorkplaneRaster "2"
+     .SetWorkplaneSnap "TRUE"
+     .SetWorkplaneSnapRaster "0.01"
+End With
+
+'@ define units
+
+With Units
+     .SetUnit("Length", "cm")
+     .SetUnit("Frequency", "GHz")
+     .SetUnit("Time", "ns")
+End With
+
+'@ define material: box
+
+With Material
+     .Reset
+     .Name "box"
+     .Type "Pec"
+     .MaterialUnit "Frequency", "GHz"
+     .MaterialUnit "Geometry", "cm"
+     .MaterialUnit "Time", "ns"
+     .Epsilon "1.0"
+     .Mu "1.0"
+     .Colour "0.501961", "0.501961", "0.501961"
+     .Create
+End With
+
+'@ define brick: box:wall
+
+With Brick
+     .Reset
+     .Name "wall"
+     .Component "box"
+     .Material "box"
+     .Xrange "-0.05", "22.635"
+     .Yrange "-0.635", "14.635"
+     .Zrange "-0.635", "30.635"
+     .Create
+End With
+
+'@ define material: inside
+
+With Material
+	.Reset
+	.Name "inside"
+	.Type "Normal"
+	.MaterialUnit "Frequency", "GHz"
+	.MaterialUnit "Geometry", "cm"
+	.MaterialUnit "Time", "ns"
+	.Epsilon "1.0"
+	.Mu "1.0"
+	.Colour "0.501961", "1", "1"
+    .Create
+End With
+
+
+'@ define brick: inside:Inside_box
+
+With Brick
+     .Reset
+     .Name "Inside_box"
+     .Component "inside"
+     .Material "inside"
+     .Xrange "0", "22"
+     .Yrange "0", "14"
+     .Zrange "0", "30"
+     .Create
+End With
+
+'@ boolean insert shapes: box:wall, inside:Inside_box
+
+Solid.Insert "box:wall", "inside:Inside_box"
+
+'@ set workplane properties
+
+With WCS
+     .SetWorkplaneSize "40"
+     .SetWorkplaneRaster "2"
+     .SetWorkplaneSnap "TRUE"
+     .SetWorkplaneSnapRaster "0.01"
+End With
+
+'@ define material: slot
+
+With Material
+	.Reset
+	.Name "slot"
+	.Type "Normal"
+	.MaterialUnit "Frequency", "GHz"
+	.MaterialUnit "Geometry", "cm"
+	.MaterialUnit "Time", "ns"
+	.Epsilon "1.0"
+    .Mu "1.0"
+    .Colour "0", "0.501961", "0.25098"
+    .Create
+End With
+
+'@ define brick: slot:aperture
+
+With Brick
+     .Reset
+     .Name "aperture"
+     .Component "slot"
+     .Material "slot"
+     .Xrange "-0.05", "0"
+     .Yrange "0.2", "0.3"
+     .Zrange "9", "21"
+     .Create
+End With
+
+'@ boolean insert shapes: box:wall, slot:aperture
+
+Solid.Insert "box:wall", "slot:aperture"
+
+'@ boolean insert shapes: inside:Inside_box, slot:aperture
+
+Solid.Insert "inside:Inside_box", "slot:aperture"
+
+'@ define material: ex_wire
+
+With Material
+     .Reset
+     .Name "ex_wire"
+     .Type "Pec"
+     .MaterialUnit "Frequency", "GHz"
+     .MaterialUnit "Geometry", "cm"
+     .MaterialUnit "Time", "ns"
+     .Epsilon "1.0"
+     .Mu "1.0"
+     .Colour "1", "0", "1"
+     .Create
+End With
+
+'@ define cylinder: ex_wire:wire
+
+With Cylinder
+     .Reset
+     .Name "wire"
+     .Component "ex_wire"
+     .Material "ex_wire"
+     .OuterRadius "0.16/2"
+     .InnerRadius "0"
+     .Axis "y"
+     .Yrange "0.1", "13.9"
+     .Xcenter "17"
+     .Zcenter "15"
+     .Create
+End With
+
+'@ boolean insert shapes: inside:Inside_box, ex_wire:wire
+
+Solid.Insert "inside:Inside_box", "ex_wire:wire"
+
+'@ define lumped element: R_ter
+
+With LumpedElement
+     .Reset
+     .SetName "R_ter"
+     .SetType "RLCSerial"
+     .SetR  "47"
+     .SetL  "0"
+     .SetC  "0"
+     .SetGs "0"
+     .SetI0 "0"
+     .SetT  "0"
+     .SetP1 "False", "17", "0", "15"
+     .SetP2 "False", "17", "0.1", "15"
+     .SetInvert "False"
+     .SetMonitor "False"
+     .Create
+End With
+
+'@ define automesh state
+
+Mesh.Automesh "True"
+
+'@ define frequency range
+
+Solver.FrequencyRange "0.7", "1.6"
+
+'@ define background
+
+With Background
+     .Type "Normal"
+     .Epsilon "1.0"
+     .Mu "1.0"
+     .XminSpace "0.0"
+     .XmaxSpace "0.0"
+     .YminSpace "0.0"
+     .YmaxSpace "0.0"
+     .ZminSpace "0.0"
+     .ZmaxSpace "0.0"
+End With
+
+'@ define boundaries
+
+With Boundary
+     .Xmin "expanded open"
+     .Xmax "expanded open"
+     .Ymin "expanded open"
+     .Ymax "expanded open"
+     .Zmin "expanded open"
+     .Zmax "expanded open"
+     .Xsymmetry "none"
+     .Ysymmetry "none"
+     .Zsymmetry "none"
+End With
+
+'@ define farfield monitor: farfield_1GHz
+
+With Monitor
+     .Reset
+     .Name "farfield_1GHz"
+     .FieldType "Farfield"
+     .Frequency "1"
+     .Create
+End With
+
+'@ define solver parameters
+
+With Solver
+     .StimulationPort "All"
+     .StimulationMode "1"
+     .SteadyStateLimit "-60"
+     .MeshAdaption False
+     .FrequencySamples "1000"
+     .AutoNormImpedance "False"
+     .NormingImpedance "50"
+     .AlwaysPerformAllRuns "False"
+     .StimulationType "Gaussian"
+End With
+
+'@ define E and H monitors at 1.1 GHz
+
+With Monitor 
+     .Reset 
+     .Name "h-field (f=1.1)" 
+     .Dimension "Volume" 
+     .Domain "Frequency" 
+     .FieldType "Hfield" 
+     .Frequency "1.1" 
+     .UseSubvolume "False" 
+     .Coordinates "Structure" 
+     .SetSubvolume "-0.050000000000001", "22.635", "-0.635", "18.9", "-0.635", "30.635" 
+     .SetSubvolumeOffset "0.0", "0.0", "0.0", "0.0", "0.0", "0.0" 
+     .Create 
+End With 
+
+With Monitor 
+     .Reset 
+     .Name "e-field (f=1.1)" 
+     .Dimension "Volume" 
+     .Domain "Frequency" 
+     .FieldType "Efield" 
+     .Frequency "1.1" 
+     .UseSubvolume "False" 
+     .Coordinates "Structure" 
+     .SetSubvolume "-0.050000000000001", "22.635", "-0.635", "18.9", "-0.635", "30.635" 
+     .SetSubvolumeOffset "0.0", "0.0", "0.0", "0.0", "0.0", "0.0" 
+     .Create 
+End With 
+
+
+
+'@ define probe: Ey_3m
+
+With Probe
+     .Reset
+     .Name "Ey_3m"
+     .Field "EFarfield" 
+     .Orientation "Y"
+     .Xpos "300"
+     .Ypos "7"
+     .Zpos "15"
+     .Create
+End With
+
+'@ define solver parameters
+
+With Solver
+     .StimulationPort "All"
+     .StimulationMode "1"
+     .SteadyStateLimit "-60"
+     .MeshAdaption False
+     .FrequencySamples "1000"
+     .AutoNormImpedance "False"
+     .NormingImpedance "50"
+     .AlwaysPerformAllRuns "False"
+     .StimulationType "Gaussian"
+End With
+
+'@ farfield plot options
+
+With FarfieldPlot
+     .Phistart "1.000000e+000", "0.000000e+000", "0.000000e+000"
+     .Thetastart "0.000000e+000", "0.000000e+000", "1.000000e+000"
+     .Origin "bbox"
+     .Userorigin "0.000000e+000", "0.000000e+000", "0.000000e+000"
+     .UseMirrorPlane "FALSE"
+     .MirrorPlaneAxis "X"
+     .MirrorPlanePosition "0.000000e+000"
+     .SetLogRange "40"
+     .SetScaleLinear "True"
+     .SetColorByValue "True"
+     .SetPlotGain "False"
+     .SetTheta360 "False"
+End With
+
+'@ define solver parameters
+
+With Solver
+     .CalculationType "TD-S"
+     .StimulationPort "All"
+     .StimulationMode "1"
+     .SteadyStateLimit "-60"
+     .MeshAdaption False
+     .FrequencySamples "1000"
+     .AutoNormImpedance "False"
+     .NormingImpedance "50"
+     .AlwaysPerformAllRuns "False"
+     .StimulationType "Gaussian"
+End With
+
+'@ define boundaries
+
+With Boundary
+     .Xmin "expanded open"
+     .Xmax "expanded open"
+     .Ymin "expanded open"
+     .Ymax "expanded open"
+     .Zmin "expanded open"
+     .Zmax "expanded open"
+     .Xsymmetry "none"
+     .Ysymmetry "none"
+     .Zsymmetry "magnetic"
+End With
+
+'@ define solver parameters
+
+With Solver
+     .CalculationType "TD-S"
+     .StimulationPort "All"
+     .StimulationMode "1"
+     .SteadyStateLimit "-60"
+     .MeshAdaption False
+     .FrequencySamples "1000"
+     .AutoNormImpedance "False"
+     .NormingImpedance "50"
+     .AlwaysPerformAllRuns "False"
+     .StimulationType "Gaussian"
+End With
+
+'@ define special solver parameters
+
+With Solver
+     .TimeBetweenUpdates "20"
+     .NumberOfPulseWidths "100"
+     .EnergyBalanceLimit "0.03"
+     .UseArfilter "False"
+     .ArMaxEnergyDeviation "0.1"
+     .ArPulseSkip "1"
+     .WaveguideBroadband "False"
+     .SetBBPSamples "5"
+     .MatrixDump "False"
+     .SetFading "False"
+     .TimestepReduction "0.45"
+     .NumberOfSubcycles "4"
+     .SubcycleFillLimit "70"
+     .WarningLevel "0"
+     .UseParallelization "False"
+     .MaximumNumberOfProcessors "2"
+     .TimeStepStabilityFactor "1.0"
+     .UseOpenBoundaryForHigherModes "True"
+     .SetModeFreqFactor "0.5"
+     .SurfaceImpedanceOrder "10"
+     .SetPortShielding "False"
+End With
+
+'@ define solver parameters
+
+With Solver
+     .CalculationType "TD-S"
+     .StimulationPort "All"
+     .StimulationMode "1"
+     .SteadyStateLimit "-80"
+     .MeshAdaption False
+     .FrequencySamples "1000"
+     .AutoNormImpedance "False"
+     .NormingImpedance "50"
+     .AlwaysPerformAllRuns "False"
+     .StimulationType "Gaussian"
+End With
+
+'@ define probe: Ey_3m
+
+With Probe
+     .Reset
+     .Name "Ey_3m"
+     .Field "Efield"
+     .Orientation "Y"
+     .Xpos "-10"
+     .Ypos "7"
+     .Zpos "15"
+     .Create
+End With
+
+'@ define background
+
+With Background
+     .Type "Normal"
+     .Epsilon "1.0"
+     .Mu "1.0"
+     .XminSpace "20"
+     .XmaxSpace "0.0"
+     .YminSpace "0.0"
+     .YmaxSpace "0.0"
+     .ZminSpace "0.0"
+     .ZmaxSpace "0.0"
+End With
+
+'@ define probe: Ey_3m
+
+With Probe
+     .Reset
+     .Name "Ey_3m"
+     .Field "Efield"
+     .Orientation "Y"
+     .Xpos "-15"
+     .Ypos "7"
+     .Zpos "15"
+     .Create
+End With
+
+'@ define solver parameters
+
+With Solver
+     .CalculationType "TD-S"
+     .StimulationPort "All"
+     .StimulationMode "1"
+     .SteadyStateLimit "-80"
+     .MeshAdaption False
+     .FrequencySamples "1000"
+     .AutoNormImpedance "False"
+     .NormingImpedance "50"
+     .AlwaysPerformAllRuns "False"
+     .StimulationType "Gaussian"
+End With
+
+'@ clear picks
+
+Pick.ClearAllPicks
+
+'@ pick face
+
+Pick.PickFaceFromId "ex_wire:wire", "3"
+
+'@ define extrude: ex_wire:solid1
+
+With Extrude
+     .Reset
+     .Name "solid1"
+     .Component "ex_wire"
+     .Material "ex_wire"
+     .Mode "Picks"
+     .Height "5"
+     .Twist "0.0"
+     .Taper "0.0"
+     .Create
+End With
+
+'@ boolean insert shapes: box:wall, ex_wire:solid1
+
+Solid.Insert "box:wall", "ex_wire:solid1"
+
+'@ boolean insert shapes: inside:Inside_box, ex_wire:solid1
+
+Solid.Insert "inside:Inside_box", "ex_wire:solid1"
+
+'@ boolean insert shapes: ex_wire:wire, ex_wire:solid1
+
+Solid.Insert "ex_wire:wire", "ex_wire:solid1"
+
+'@ define boundaries
+
+With Boundary
+     .Xmin "expanded open"
+     .Xmax "expanded open"
+     .Ymin "expanded open"
+     .Ymax "open"
+     .Zmin "expanded open"
+     .Zmax "expanded open"
+     .Xsymmetry "none"
+     .Ysymmetry "none"
+     .Zsymmetry "magnetic"
+End With
+
+'@ pick circle center point
+
+Pick.PickCirclecenterFromId "box:wall", "47"
+
+'@ align wcs with point
+
+WCS.AlignWCSWithSelectedPoint
+
+'@ rotate wcs around u +90 degrees
+
+WCS.RotateWCS "u", "90"
+
+'@ store picked point: 1
+
+Pick.NextPickToDatabase "1"
+Pick.PickCirclecenterFromId "inside:Inside_box", "29"
+
+'@ store picked point: 2
+
+Pick.NextPickToDatabase "2"
+Pick.PickCirclepointFromId "ex_wire:solid1", "1"
+
+'@ define cylinder: box:coax
+
+With Cylinder
+     .Reset
+     .Name "coax"
+     .Component "box"
+     .Material "box"
+     .OuterRadius "0.4"
+     .InnerRadius "0.2159"
+     .Axis "z"
+     .Zrange "zp(2)", "0"
+     .Xcenter "xp(1)"
+     .Ycenter "yp(1)"
+     .Create
+End With
+
+'@ boolean insert shapes: box:wall, box:coax
+
+Solid.Insert "box:wall", "box:coax"
+
+'@ boolean insert shapes: inside:Inside_box, box:coax
+
+Solid.Insert "inside:Inside_box", "box:coax"
+
+'@ set mesh properties
+
+With Mesh
+     .RatioLimit "30.0"
+     .LinesPerWavelength "10"
+     .MinimumLineNumber "10"
+     .Automesh "True"
+     .AdaptionLimit "0.01"
+End With
+
+'@ define automesh parameters
+
+With Mesh
+     .AutomeshStraightLines "True"
+     .AutomeshEllipticalLines "True"
+     .AutomeshRefineAtPecLines "True", "2"
+     .AutomeshAtEllipseBounds "True", "10"
+     .AutomeshAtWireEndPoints "True"
+     .AutomeshRefineDielectrics "True"
+     .EquilibrateMesh "False"
+     .UsePecEdgeModel "True"
+End With
+With Solver
+     .UseNewMatrixCalculator "True"
+     .UseSplitComponents "False"
+     .PBAFillLimit "99"
+End With
+
+'@ set mesh properties
+
+With Mesh
+     .RatioLimit "50.0"
+     .LinesPerWavelength "10"
+     .MinimumLineNumber "10"
+     .Automesh "True"
+     .AdaptionLimit "0.01"
+End With
+
+'@ define automesh state
+
+Mesh.Automesh "True"
+
+'@ define frequency range
+
+Solver.FrequencyRange "0", "1.6"
+
+'@ set mesh properties
+
+With Mesh
+     .RatioLimit "50.0"
+     .LinesPerWavelength "12"
+     .MinimumLineNumber "10"
+     .Automesh "True"
+     .AdaptionLimit "0.01"
+End With
+
+'@ define automesh parameters
+
+With Mesh
+     .AutomeshStraightLines "True"
+     .AutomeshEllipticalLines "True"
+     .AutomeshRefineAtPecLines "True", "2"
+     .AutomeshAtEllipseBounds "True", "10"
+     .AutomeshAtWireEndPoints "True"
+     .AutomeshRefineDielectrics "True"
+     .EquilibrateMesh "False"
+     .UsePecEdgeModel "True"
+End With
+With Solver
+     .UseNewMatrixCalculator "True"
+     .UseSplitComponents "False"
+     .PBAFillLimit "99"
+End With
+
+'@ set mesh properties
+
+With Mesh
+     .RatioLimit "70.0"
+     .LinesPerWavelength "12"
+     .MinimumLineNumber "10"
+     .Automesh "True"
+     .AdaptionLimit "0.01"
+End With
+
+'@ set mesh adaption results
+
+With Mesh
+     .LinesPerWavelength "12"
+     .AutomeshRefineAtPecLines "True", "2"
+End With
+
+'@ set mesh properties
+
+With Mesh
+     .RatioLimit "10"
+     .LinesPerWavelength "12"
+     .MinimumLineNumber "10"
+     .Automesh "True"
+     .AdaptionLimit "0.01"
+End With
+
+'@ set mesh adaption results
+
+With Mesh
+     .LinesPerWavelength "27"
+     .AutomeshRefineAtPecLines "True", "2"
+End With
+
+'@ pick circle center point
+
+Pick.PickCirclecenterFromId "ex_wire:solid1", "1"
+
+'@ pick circle point
+
+Pick.PickCirclepointFromId "ex_wire:solid1", "1"
+
+'@ delete picked points
+
+Pick.DeletePoint "-1"
+
+'@ pick circle point
+
+Pick.PickCirclepointFromId "box:coax", "2"
+
+'@ pick face
+
+Pick.PickFaceFromId "box:coax", "1"
+
+'@ align wcs with face
+
+WCS.AlignWCSWithSelectedFace
+Pick.PickCenterpointFromId "box:coax", "1"
+WCS.AlignWCSWithSelectedPoint
+
+'@ clear picks
+
+Pick.ClearAllPicks
+
+'@ store picked point: 3
+
+Pick.NextPickToDatabase "3"
+Pick.PickCirclecenterFromId "ex_wire:solid1", "1"
+
+'@ store picked point: 4
+
+Pick.NextPickToDatabase "4"
+Pick.PickCirclepointFromId "box:coax", "2"
+
+'@ store picked point: 5
+
+Pick.NextPickToDatabase "5"
+Pick.PickCirclepointFromId "box:wall", "54"
+
+'@ store picked point: 6
+
+Pick.NextPickToDatabase "6"
+Pick.PickCirclepointFromId "ex_wire:solid1", "1"
+
+'@ define material: diel
+
+With Material
+	.Reset
+	.Name "diel"
+	.Type "Normal"
+	.MaterialUnit "Frequency", "GHz"
+	.MaterialUnit "Geometry", "cm"
+	.MaterialUnit "Time", "ns"
+	.Epsilon "1.419"
+    .Mu "1.0"
+	.Colour "1", "0.501961", "0.25098"
+	.Create
+End With
+
+'@ define cylinder: diel:solid2
+
+With Cylinder
+     .Reset
+     .Name "solid2"
+     .Component "diel"
+     .Material "diel"
+     .OuterRadius "dist2d(4, xp(3), yp(3))"
+     .InnerRadius "dist2d(6, xp(3), yp(3))"
+     .Axis "z"
+     .Zrange "zp(5)", "0"
+     .Xcenter "xp(3)"
+     .Ycenter "yp(3)"
+     .Create
+End With
+
+'@ set mesh adaption results
+
+With Mesh
+     .LinesPerWavelength "27"
+     .AutomeshRefineAtPecLines "True", "2"
+End With
+
+'@ set mesh properties
+
+With Mesh
+     .RatioLimit "10"
+     .LinesPerWavelength "10"
+     .MinimumLineNumber "10"
+     .Automesh "True"
+     .AdaptionLimit "0.01"
+End With
+
+'@ define automesh parameters
+
+With Mesh
+     .AutomeshStraightLines "True"
+     .AutomeshEllipticalLines "True"
+     .AutomeshRefineAtPecLines "True", "1"
+     .AutomeshAtEllipseBounds "True", "10"
+     .AutomeshAtWireEndPoints "True"
+     .AutomeshRefineDielectrics "True"
+     .EquilibrateMesh "False"
+     .UsePecEdgeModel "True"
+End With
+With Solver
+     .UseNewMatrixCalculator "True"
+     .UseSplitComponents "False"
+     .PBAFillLimit "99"
+End With
+
+'@ set mesh properties
+
+With Mesh
+     .RatioLimit "5"
+     .LinesPerWavelength "10"
+     .MinimumLineNumber "10"
+     .Automesh "True"
+     .AdaptionLimit "0.01"
+End With
+
+'@ set mesh adaption results
+
+With Mesh
+     .LinesPerWavelength "10"
+     .AutomeshRefineAtPecLines "True", "1"
+End With
+
+'@ set mesh properties
+
+With Mesh
+     .RatioLimit "10"
+     .LinesPerWavelength "10"
+     .MinimumLineNumber "10"
+     .Automesh "True"
+     .AdaptionLimit "0.01"
+End With
+
+'@ define automesh parameters
+
+With Mesh
+     .AutomeshStraightLines "True"
+     .AutomeshEllipticalLines "True"
+     .AutomeshRefineAtPecLines "True", "2"
+     .AutomeshAtEllipseBounds "True", "10"
+     .AutomeshAtWireEndPoints "True"
+     .AutomeshRefineDielectrics "True"
+     .EquilibrateMesh "False"
+     .UsePecEdgeModel "True"
+End With
+With Solver
+     .UseNewMatrixCalculator "True"
+     .UseSplitComponents "False"
+     .PBAFillLimit "99"
+End With
+
+'@ set mesh properties
+
+With Mesh
+     .RatioLimit "15"
+     .LinesPerWavelength "10"
+     .MinimumLineNumber "10"
+     .Automesh "True"
+     .AdaptionLimit "0.01"
+End With
+
+'@ set mesh adaption results
+
+With Mesh
+     .LinesPerWavelength "10"
+     .AutomeshRefineAtPecLines "True", "2"
+End With
+
+'@ define automesh parameters
+
+With Mesh
+     .AutomeshStraightLines "True"
+     .AutomeshEllipticalLines "True"
+     .AutomeshRefineAtPecLines "True", "2"
+     .AutomeshAtEllipseBounds "True", "10"
+     .AutomeshAtWireEndPoints "True"
+     .AutomeshRefineDielectrics "True"
+     .EquilibrateMesh "False"
+     .UsePecEdgeModel "True"
+End With
+With Solver
+     .UseNewMatrixCalculator "True"
+     .UseSplitComponents "False"
+     .PBAFillLimit "99"
+End With
+
+'@ set mesh properties
+
+With Mesh
+     .RatioLimit "10"
+     .LinesPerWavelength "10"
+     .MinimumLineNumber "10"
+     .Automesh "True"
+     .AdaptionLimit "0.01"
+End With
+
+'@ set mesh adaption results
+
+With Mesh
+     .LinesPerWavelength "15"
+     .AutomeshRefineAtPecLines "True", "2"
+End With
+
+'@ define automesh for: slot:aperture
+
+Solid.SetAutomeshParameters "slot:aperture", "1", "True"
+Solid.SetAutomeshStepwidth "slot:aperture", "0", "0", "0"
+
+'@ set mesh properties
+
+With Mesh
+     .RatioLimit "15"
+     .LinesPerWavelength "15"
+     .MinimumLineNumber "10"
+     .Automesh "True"
+     .AdaptionLimit "0.01"
+End With
+
+'@ define background
+
+With Background
+     .Type "Normal"
+     .Epsilon "1.0"
+     .Mu "1.0"
+     .XminSpace "0"
+     .XmaxSpace "0.0"
+     .YminSpace "0.0"
+     .YmaxSpace "0.5"
+     .ZminSpace "0.0"
+     .ZmaxSpace "0.0"
+End With
+
+'@ define boundaries
+
+With Boundary
+     .Xmin "expanded open"
+     .Xmax "expanded open"
+     .Ymin "expanded open"
+     .Ymax "open"
+     .Zmin "expanded open"
+     .Zmax "expanded open"
+     .Xsymmetry "none"
+     .Ysymmetry "none"
+     .Zsymmetry "magnetic"
+End With
+
+'@ define automesh state
+
+Mesh.Automesh "True"
+
+'@ define frequency range
+
+Solver.FrequencyRange "0", "2"
+
+'@ define automesh state
+
+Mesh.Automesh "True"
+
+'@ define frequency range
+
+Solver.FrequencyRange "0", "1.7"
+
+'@ delete probe: Ey_3m
+
+Probe.Delete "Ey_3m"
+
+'@ define solver parameters
+
+With Solver
+     .CalculationType "TD-S"
+     .StimulationPort "1"
+     .StimulationMode "1"
+     .SteadyStateLimit "-80"
+     .MeshAdaption False
+     .FrequencySamples "5000"
+     .StimulationType "Gaussian"
+End With
+
+'@ add all shapes on layer: ex_wire
+
+Solid.AddAllShapesInLayer "ex_wire"
+
+'@ heal all shapes
+
+Solid.HealAllShapes
+
+'@ define automesh parameters
+
+With Mesh
+     .AutomeshStraightLines "True"
+     .AutomeshEllipticalLines "True"
+     .AutomeshRefineAtPecLines "True", "3"
+     .AutomeshAtEllipseBounds "True", "10"
+     .AutomeshAtWireEndPoints "True"
+     .AutomeshRefineDielectrics "True"
+     .EquilibrateMesh "False"
+     .UsePecEdgeModel "True"
+End With
+With Solver
+     .UseNewMatrixCalculator "True"
+     .UseSplitComponents "False"
+     .PBAFillLimit "99"
+End With
+
+'@ set mesh adaption results
+
+With Mesh
+     .LinesPerWavelength "15"
+     .AutomeshRefineAtPecLines "True", "3"
+End With
+
+'@ set mesh properties
+
+With Mesh
+     .RatioLimit "20"
+     .LinesPerWavelength "15"
+     .MinimumLineNumber "10"
+     .Automesh "True"
+     .AdaptionLimit "0.01"
+End With
+
+'@ define solver parameters
+
+With Solver
+     .CalculationType "TD-S"
+     .StimulationPort "1"
+     .StimulationMode "1"
+     .SteadyStateLimit "-80"
+     .MeshAdaption False
+     .FrequencySamples "5000"
+     .StimulationType "Gaussian"
+End With
+
+'@ pick face
+
+Pick.PickFaceFromId "box:coax", "3"
+
+'@ pick mid point
+
+Pick.PickMidpointFromId "box:wall", "41"
+
+'@ define extrude: box:solid3
+
+With Extrude
+     .Reset
+     .Name "solid3"
+     .Component "box"
+     .Material "box"
+     .Mode "Picks"
+     .Height "0.635"
+     .Twist "0.0"
+     .Taper "0.0"
+     .Create
+End With
+
+'@ clear picks
+
+Pick.ClearAllPicks
+
+'@ delete shape: box:solid3
+
+Solid.Delete "box:solid3"
+
+'@ boolean insert shapes: box:wall, diel:solid2
+
+Solid.Insert "box:wall", "diel:solid2"
+
+'@ define solver parameters
+
+With Solver
+     .CalculationType "TD-S"
+     .StimulationPort "1"
+     .StimulationMode "1"
+     .SteadyStateLimit "-30"
+     .MeshAdaption False
+     .FrequencySamples "5000"
+     .StimulationType "Gaussian"
+End With
+
+'@ arfilter settings
+
+With Arfilter
+     .SetFirstTime "5"
+     .SetSkip "10"
+     .SetMaxFrq "2.8050000786781"
+     .SetMaxOrder "60"
+     .SetWindowLength "2.0"
+End With
+
+'@ arfilter settings
+
+With Arfilter
+     .SetFirstTime "5"
+     .SetSkip "10"
+     .SetMaxFrq "2.8050000786781"
+     .SetMaxOrder "60"
+     .SetWindowLength "2.0"
+End With
+
+'@ define solver parameters
+
+With Solver
+     .CalculationType "TD-S"
+     .StimulationPort "1"
+     .StimulationMode "1"
+     .SteadyStateLimit "-30"
+     .MeshAdaption False
+     .FrequencySamples "5000"
+     .StimulationType "Gaussian"
+End With
+
+'@ set mesh properties
+
+With Mesh
+     .RatioLimit "20"
+     .LinesPerWavelength "10"
+     .MinimumLineNumber "10"
+     .Automesh "True"
+     .AdaptionLimit "0.01"
+End With
+
+'@ define automesh parameters
+
+With Mesh
+     .AutomeshStraightLines "True"
+     .AutomeshEllipticalLines "True"
+     .AutomeshRefineAtPecLines "True", "2"
+     .AutomeshAtEllipseBounds "True", "10"
+     .AutomeshAtWireEndPoints "True"
+     .AutomeshRefineDielectrics "True"
+     .EquilibrateMesh "False"
+     .UsePecEdgeModel "True"
+End With
+With Solver
+     .UseNewMatrixCalculator "True"
+     .UseSplitComponents "False"
+     .PBAFillLimit "99"
+End With
+
+'@ set mesh properties
+
+With Mesh
+     .RatioLimit "20"
+     .LinesPerWavelength "12"
+     .MinimumLineNumber "10"
+     .Automesh "True"
+     .AdaptionLimit "0.01"
+End With
+
+'@ define automesh parameters
+
+With Mesh
+     .AutomeshStraightLines "True"
+     .AutomeshEllipticalLines "True"
+     .AutomeshRefineAtPecLines "True", "2"
+     .AutomeshAtEllipseBounds "True", "10"
+     .AutomeshAtWireEndPoints "True"
+     .AutomeshRefineDielectrics "True"
+     .EquilibrateMesh "False"
+     .UsePecEdgeModel "True"
+End With
+With Solver
+     .UseNewMatrixCalculator "True"
+     .UseSplitComponents "False"
+     .PBAFillLimit "99"
+End With
+
+'@ define solver parameters
+
+With Solver
+     .CalculationType "TD-S"
+     .StimulationPort "1"
+     .StimulationMode "1"
+     .SteadyStateLimit "-30"
+     .MeshAdaption False
+     .FrequencySamples "5000"
+     .StimulationType "Gaussian"
+End With
+
+'@ arfilter settings
+
+With Arfilter
+     .SetFirstTime "5"
+     .SetSkip "10"
+     .SetMaxFrq "2.8050000786781"
+     .SetMaxOrder "30"
+     .SetWindowLength "2.0"
+End With
+
+'@ set mesh properties
+
+With Mesh
+     .RatioLimit "14"
+     .LinesPerWavelength "13"
+     .MinimumLineNumber "10"
+     .Automesh "True"
+     .AdaptionLimit "0.01"
+End With
+
+'@ define solver parameters
+
+With Solver
+     .CalculationType "TD-S"
+     .StimulationPort "1"
+     .StimulationMode "1"
+     .SteadyStateLimit "-30"
+     .MeshAdaption "False"
+     .CalculateModesOnly "False"
+     .SParaSymmetry "False"
+     .StoreTDResultsInCache "False"
+     .FullDeembedding "False"
+     .UseDistributedComputing "False"
+End With
+
+'@ define boundaries
+
+With Boundary
+     .Xmin "expanded open"
+     .Xmax "expanded open"
+     .Ymin "expanded open"
+     .Ymax "open"
+     .Zmin "expanded open"
+     .Zmax "expanded open"
+     .Xsymmetry "none"
+     .Ysymmetry "none"
+     .Zsymmetry "magnetic"
+     .XminThermal "isothermal"
+     .XmaxThermal "isothermal"
+     .YminThermal "isothermal"
+     .YmaxThermal "isothermal"
+     .ZminThermal "adiabatic"
+     .ZmaxThermal "isothermal"
+     .ApplyInAllDirections "False"
+     .XminTemperature ""
+     .XminTemperatureType "None"
+     .XmaxTemperature ""
+     .XmaxTemperatureType "None"
+     .YminTemperature ""
+     .YminTemperatureType "None"
+     .YmaxTemperature ""
+     .YmaxTemperatureType "None"
+     .ZmaxTemperature ""
+     .ZmaxTemperatureType "None"
+End With
+
+'@ define automesh parameters
+
+With Mesh
+     .AutomeshStraightLines "True"
+     .AutomeshEllipticalLines "True"
+     .AutomeshRefineAtPecLines "True", "4"
+     .AutomeshRefinePecAlongAxesOnly "False"
+     .AutomeshAtEllipseBounds "True", "10"
+     .AutomeshAtWireEndPoints "True"
+     .AutomeshAtProbePoints "True"
+     .SetAutomeshRefineDielectricsType "Wave"
+     .MergeThinPECLayerFixpoints "False"
+     .EquilibrateMesh "True"
+     .EquilibrateMeshRatio "1.19"
+     .UseCellAspectRatio "True"
+     .CellAspectRatio "50.0"
+     .UsePecEdgeModel "True"
+     .MeshType "PBA"
+     .AutoMeshLimitShapeFaces "True"
+     .AutoMeshNumberOfShapeFaces "1000"
+     .PointAccEnhancement "0"
+     .SurfaceOptimization "True"
+     .SurfaceSmoothing "3"
+     .MinimumCurvatureRefinement "100"
+     .CurvatureRefinementFactor "0.05"
+     .SmallFeatureSize "0.0"
+     .VolumeOptimization "True"
+     .VolumeSmoothing "True"
+     .VolumeMeshMethod "Delaunay"
+     .DelaunayOptimizationLevel "2"
+     .DelaunayPropagationFactor "1.050000"
+     .DensityTransitions "0.5"
+     .MeshAllRegions "False"
+     .ConvertGeometryDataAfterMeshing "True"
+     .AutomeshFixpointsForBackground "True"
+     .PBAType "Fast PBA"
+     .AutomaticPBAType "True"
+     .FPBAAvoidNonRegUnite "False"
+     .DetectSmallSolidPEC "True"
+End With
+With Solver
+     .UseSplitComponents "False"
+     .PBAFillLimit "99"
+     .EnableSubgridding "False"
+     .AlwaysExcludePec "False"
+End With
+
+'@ set mesh properties
+
+With Mesh
+     .UseRatioLimit "True"
+     .RatioLimit "20"
+     .LinesPerWavelength "15"
+     .MinimumLineNumber "10"
+     .Automesh "True"
+     .MeshType "PBA"
+End With
+
+'@ define automesh for: diel:solid2
+
+Solid.SetMeshProperties "diel:solid2", "PBA", "True"
+Solid.SetAutomeshParameters "diel:solid2", "0", "False"
+Solid.SetAutomeshStepwidth "diel:solid2", "0", "0", "0"
+Solid.SetAutomeshExtendwidth "diel:solid2", "0", "0", "0"
+Solid.SetAutomeshRefinement "diel:solid2", "False", "1.0", "False", "1.0"
+Solid.SetUseThinSheetMeshForShape "diel:solid2", "False"
+Solid.SetUseForSimulation "diel:solid2", "False"
+Solid.SetUseForBoundingBox "diel:solid2", "False"
+
+'@ store picked point: 7
+
+Pick.NextPickToDatabase "7"
+Pick.PickCirclecenterFromId "box:coax", "2"
+
+'@ store picked point: 8
+
+Pick.NextPickToDatabase "8"
+Pick.PickCirclepointFromId "box:coax", "2"
+
+'@ store picked point: 9
+
+Pick.NextPickToDatabase "9"
+Pick.PickCirclepointFromId "box:wall", "54"
+
+'@ store picked point: 10
+
+Pick.NextPickToDatabase "10"
+Pick.PickCirclepointFromId "box:wall", "54"
+
+'@ define cylinder: diel:solid3
+
+With Cylinder
+     .Reset
+     .Name "solid3"
+     .Component "diel"
+     .Material "diel"
+     .OuterRadius "dist2d(8, xp(7), yp(7))"
+     .InnerRadius "dist2d(10, xp(7), yp(7))"
+     .Axis "z"
+     .Zrange "zp(9)", "0"
+     .Xcenter "xp(7)"
+     .Ycenter "yp(7)"
+     .Segments "0"
+     .Create
+End With
+
+'@ boolean insert shapes: box:wall, diel:solid3
+
+Solid.Insert "box:wall", "diel:solid3"
+
+'@ boolean insert shapes: diel:solid2, diel:solid3
+
+Solid.Insert "diel:solid2", "diel:solid3"
+
+'@ arfilter settings for s-parameters
+
+With Arfilter
+     .SetType "s-parameter"
+     .SetFirstTime "2.0909110286044"
+     .SetSkip "10"
+     .SetMaxFrq "2.805"
+     .SetMaxOrder "40"
+     .SetWindowLength "2"
+End With
+
+'@ switch working plane
+
+Plot.DrawWorkplane "false"
+
+'@ activate global coordinates
+
+WCS.ActivateWCS "global"
+
+'@ define solver parameters
+
+With Solver
+     .CalculationType "TD-S"
+     .StimulationPort "1"
+     .StimulationMode "1"
+     .SteadyStateLimit "-30"
+     .MeshAdaption "False"
+     .CalculateModesOnly "False"
+     .SParaSymmetry "False"
+     .StoreTDResultsInCache "False"
+     .FullDeembedding "False"
+     .UseDistributedComputing "False"
+End With
+
+'@ define special solver parameters
+
+With Solver
+     .TimeBetweenUpdates "20"
+     .NumberOfPulseWidths "100"
+     .EnergyBalanceLimit "0.03"
+     .UseArfilter "True"
+     .ArMaxEnergyDeviation "0.1"
+     .ArPulseSkip "1"
+     .WaveguideBroadband "False"
+     .SetBBPSamples "5"
+     .SetSamplesFullDeembedding "20"
+     .MatrixDump "False"
+     .TimestepReduction "0.45"
+     .NumberOfSubcycles "4"
+     .SubcycleFillLimit "70"
+     .UseParallelization "False"
+     .MaximumNumberOfProcessors "2"
+     .TimeStepStabilityFactor "1.0"
+     .UseOpenBoundaryForHigherModes "True"
+     .SetModeFreqFactor "0.5"
+     .SurfaceImpedanceOrder "10"
+     .SetPortShielding "False"
+     .SetTimeStepMethod "Automatic"
+     .FrequencySamples "5000"
+     .ConsiderTwoPortReciprocity "True"
+     .UseTSTAtPort "True"
+     .SubGridTimeCycling "True"
+     .SParaAdjustment "True"
+     .RestartAfterInstabilityAbort "True"
+     .HardwareAcceleration "False"
+End With
+
+'@ clear picks
+
+Pick.ClearAllPicks
+Solver.AdaptivePortMeshing "False"
+
+Pick.PickFaceFromId "diel:solid3", "3"
+
+With Port 
+     .Reset 
+     .PortNumber "1" 
+     .Label ""
+     .Folder ""
+     .NumberOfModes "1"
+     .AdjustPolarization "False"
+     .PolarizationAngle "0.0"
+     .ReferencePlaneDistance "0"
+     .TextSize "50"
+     .TextMaxLimit "1"
+     .Coordinates "Picks"
+     .Orientation "positive"
+     .PortOnBound "False"
+     .ClipPickedPortToBound "False"
+     .Xrange "16.7841", "17.2159"
+     .Yrange "18.9", "18.9"
+     .Zrange "14.7841", "15.2159"
+     .XrangeAdd "0.0", "0.0"
+     .YrangeAdd "0.0", "0.0"
+     .ZrangeAdd "0.0", "0.0"
+     .SingleEnded "False"
+     .WaveguideMonitor "False"
+     .Create 
+End With
+
+
+
+End Sub

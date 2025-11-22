@@ -1,0 +1,341 @@
+' Wakefield Cavity
+
+' ================================================================================================
+' Copyright 2014-2023 Dassault Systemes Deutschland GmbH
+' ================================================================================================
+' History of Changes
+' ------------------------------------------------------------------------------------------------
+' 01-Jan-2014 ube: Initial version
+' ================================================================================================
+Sub Main ()
+
+BeginHide
+
+
+	Dim sCommand As String
+
+	'@ change problem type
+	sCommand = ""	
+	sCommand = sCommand + "ChangeProblemType ""Wakefield Solver"""
+	AddToHistory "change problem type", sCommand
+
+	
+	'@ define units
+	sCommand = ""
+	sCommand = sCommand + "With Units " + vbLf
+	sCommand = sCommand + ".Geometry ""cm"" " + vbLf
+	sCommand = sCommand + ".Frequency ""GHz"" " + vbLf
+	sCommand = sCommand + ".Time ""ns"" " + vbLf
+	sCommand = sCommand + ".TemperatureUnit ""Kelvin"" " + vbLf
+	sCommand = sCommand + ".Voltage ""V"" " + vbLf
+	sCommand = sCommand + ".Current ""A"" " + vbLf
+	sCommand = sCommand + ".Resistance ""Ohm"" " + vbLf
+	sCommand = sCommand + ".Conductance ""S"" " + vbLf
+	sCommand = sCommand + ".Capacitance ""PikoF"" " + vbLf
+	sCommand = sCommand + ".Inductance ""NanoH"" " + vbLf
+	sCommand = sCommand + "End With	"
+	AddToHistory "define units", sCommand
+
+
+	'@ define boundaries
+	sCommand = ""
+	sCommand = sCommand + "With Boundary" + vbLf
+	sCommand = sCommand + ".Xmin ""electric"" " + vbLf
+	sCommand = sCommand + ".Xmax ""electric"" " + vbLf
+	sCommand = sCommand + ".Ymin ""electric"" " + vbLf
+	sCommand = sCommand + ".Ymax ""electric"" " + vbLf
+	sCommand = sCommand + ".Zmin ""open"" " + vbLf
+	sCommand = sCommand + ".Zmax ""open"" " + vbLf
+	sCommand = sCommand + ".Xsymmetry ""magnetic"" " + vbLf
+	sCommand = sCommand + ".Ysymmetry ""magnetic"" " + vbLf
+	sCommand = sCommand + ".Zsymmetry ""none"" " + vbLf
+	sCommand = sCommand + ".XminThermal ""isothermal"" " + vbLf
+	sCommand = sCommand + ".XmaxThermal ""isothermal"" " + vbLf
+	sCommand = sCommand + ".YminThermal ""isothermal"" " + vbLf
+	sCommand = sCommand + ".YmaxThermal ""isothermal"" " + vbLf
+	sCommand = sCommand + ".ZminThermal ""isothermal"" " + vbLf
+	sCommand = sCommand + ".ZmaxThermal ""isothermal"" " + vbLf
+	sCommand = sCommand + ".XsymmetryThermal ""none"" " + vbLf
+	sCommand = sCommand + ".YsymmetryThermal ""none"" " + vbLf
+	sCommand = sCommand + ".ZsymmetryThermal ""none"" " + vbLf
+	sCommand = sCommand + ".ApplyInAllDirections ""False"" " + vbLf
+	sCommand = sCommand + ".XminPotential """" " + vbLf
+	sCommand = sCommand + ".XminPotentialType ""None"" " + vbLf
+	sCommand = sCommand + ".XmaxPotential """" " + vbLf
+	sCommand = sCommand + ".XmaxPotentialType ""None"" " + vbLf
+	sCommand = sCommand + ".YminPotential """" " + vbLf
+	sCommand = sCommand + ".YminPotentialType ""None"" " + vbLf
+	sCommand = sCommand + ".YmaxPotential """" " + vbLf
+	sCommand = sCommand + ".YmaxPotentialType ""None"" " + vbLf
+	sCommand = sCommand + ".XminTemperature """" " + vbLf
+	sCommand = sCommand + ".XminTemperatureType ""None"" " + vbLf
+	sCommand = sCommand + ".XmaxTemperature """" " + vbLf
+	sCommand = sCommand + ".XmaxTemperatureType ""None"" " + vbLf
+	sCommand = sCommand + ".YminTemperature """" " + vbLf
+	sCommand = sCommand + ".YminTemperatureType ""None"" " + vbLf
+	sCommand = sCommand + ".YmaxTemperature """" " + vbLf
+	sCommand = sCommand + ".YmaxTemperatureType ""None"" " + vbLf
+	sCommand = sCommand + ".ZminTemperature """" " + vbLf
+	sCommand = sCommand + ".ZminTemperatureType ""None"" " + vbLf
+	sCommand = sCommand + ".ZmaxTemperature """" " + vbLf
+	sCommand = sCommand + ".ZmaxTemperatureType ""None"" " + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define boundaries", sCommand
+
+	
+	'@ define time monitor: e-field (t=0..end(1);x=0)
+	sCommand = ""
+	sCommand = sCommand + "With Monitor " + vbLf
+	sCommand = sCommand + ".Reset " + vbLf
+	sCommand = sCommand + ".Name ""e-field (t=0..end(1);x=0)"" " + vbLf
+	sCommand = sCommand + ".Dimension ""Volume"" " + vbLf
+	sCommand = sCommand + ".Domain ""Time"" " + vbLf
+	sCommand = sCommand + ".FieldType ""Efield"" " + vbLf
+	sCommand = sCommand + ".Tstart ""0"" " + vbLf
+	sCommand = sCommand + ".Tstep ""1"" " + vbLf
+	sCommand = sCommand + ".Tend ""0"" " + vbLf
+	sCommand = sCommand + ".UseTend ""False"" " + vbLf
+	sCommand = sCommand + ".UseSubvolume ""True""  " + vbLf
+	sCommand = sCommand + ".Coordinates ""Free"" " + vbLf
+	sCommand = sCommand + ".SetSubvolume ""-23"", ""23"", ""-23"", ""23"", ""0"", ""80""   " + vbLf
+	sCommand = sCommand + ".SetSubvolumeOffset ""0.0"", ""0.0"", ""0.0"", ""0.0"", ""0.0"", ""0.0"" " + vbLf
+	sCommand = sCommand + ".SetSubvolumeInflateWithOffset ""False"" " + vbLf
+	sCommand = sCommand + ".PlaneNormal ""x"" " + vbLf
+	sCommand = sCommand + ".PlanePosition ""0"" " + vbLf
+	sCommand = sCommand + ".Create " + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define time monitor: e-field (t=0..end(1);x=0)", sCommand
+
+
+	'@ set mesh properties (Hexahedral)
+	sCommand = ""
+	sCommand = sCommand + "With Mesh " + vbLf
+	sCommand = sCommand + ".MeshType ""PBA"" " + vbLf
+	sCommand = sCommand + ".SetCreator ""Wakefield""" + vbLf
+	sCommand = sCommand + "End With " + vbLf
+	sCommand = sCommand + "With MeshSettings " + vbLf
+	sCommand = sCommand + ".SetMeshType ""Hex"" " + vbLf
+	sCommand = sCommand + ".Set ""Version"", 1%" + vbLf
+	sCommand = sCommand + "'MAX CELL - WAVELENGTH REFINEMENT " + vbLf
+	sCommand = sCommand + ".Set ""StepsPerWaveNear"", ""10"" " + vbLf
+	sCommand = sCommand + ".Set ""StepsPerWaveFar"", ""10"" " + vbLf
+	sCommand = sCommand + ".Set ""WavelengthRefinementSameAsNear"", ""1"" " + vbLf
+	sCommand = sCommand + "'MAX CELL - GEOMETRY REFINEMENT " + vbLf
+	sCommand = sCommand + ".Set ""StepsPerBoxNear"", ""10"" " + vbLf
+	sCommand = sCommand + ".Set ""StepsPerBoxFar"", ""1"" " + vbLf
+	sCommand = sCommand + ".Set ""MaxStepNear"", ""0"" " + vbLf
+	sCommand = sCommand + ".Set ""MaxStepFar"", ""0"" " + vbLf
+	sCommand = sCommand + ".Set ""ModelBoxDescrNear"", ""maxedge"" " + vbLf
+	sCommand = sCommand + ".Set ""ModelBoxDescrFar"", ""maxedge"" " + vbLf
+	sCommand = sCommand + ".Set ""UseMaxStepAbsolute"", ""0"" " + vbLf
+	sCommand = sCommand + ".Set ""GeometryRefinementSameAsNear"", ""0"" " + vbLf
+	sCommand = sCommand + "'MIN CELL " + vbLf
+	sCommand = sCommand + ".Set ""UseRatioLimitGeometry"", ""1"" " + vbLf
+	sCommand = sCommand + ".Set ""RatioLimitGeometry"", ""10"" " + vbLf
+	sCommand = sCommand + ".Set ""MinStepGeometryX"", ""0"" " + vbLf
+	sCommand = sCommand + ".Set ""MinStepGeometryY"", ""0"" " + vbLf
+	sCommand = sCommand + ".Set ""MinStepGeometryZ"", ""0"" " + vbLf
+	sCommand = sCommand + ".Set ""UseSameMinStepGeometryXYZ"", ""1"" " + vbLf
+	sCommand = sCommand + "End With " + vbLf
+	sCommand = sCommand + "With MeshSettings " + vbLf
+	sCommand = sCommand + ".SetMeshType ""Hex"" " + vbLf
+	sCommand = sCommand + ".Set ""FaceRefinementOn"", ""0"" " + vbLf
+	sCommand = sCommand + ".Set ""FaceRefinementPolicy"", ""2"" " + vbLf
+	sCommand = sCommand + ".Set ""FaceRefinementRatio"", ""2"" " + vbLf
+	sCommand = sCommand + ".Set ""FaceRefinementStep"", ""0"" " + vbLf
+	sCommand = sCommand + ".Set ""FaceRefinementNSteps"", ""2"" " + vbLf
+	sCommand = sCommand + ".Set ""EllipseRefinementOn"", ""0"" " + vbLf
+	sCommand = sCommand + ".Set ""EllipseRefinementPolicy"", ""2"" " + vbLf
+	sCommand = sCommand + ".Set ""EllipseRefinementRatio"", ""2"" " + vbLf
+	sCommand = sCommand + ".Set ""EllipseRefinementStep"", ""0"" " + vbLf
+	sCommand = sCommand + ".Set ""EllipseRefinementNSteps"", ""2"" " + vbLf
+	sCommand = sCommand + ".Set ""FaceRefinementBufferLines"", ""3"" " + vbLf
+	sCommand = sCommand + ".Set ""EdgeRefinementOn"", ""1"" " + vbLf
+	sCommand = sCommand + ".Set ""EdgeRefinementPolicy"", ""1"" " + vbLf
+	sCommand = sCommand + ".Set ""EdgeRefinementRatio"", ""2"" " + vbLf
+	sCommand = sCommand + ".Set ""EdgeRefinementStep"", ""0"" " + vbLf
+	sCommand = sCommand + ".Set ""EdgeRefinementBufferLines"", ""3"" " + vbLf
+	sCommand = sCommand + ".Set ""RefineEdgeMaterialGlobal"", ""0"" " + vbLf
+	sCommand = sCommand + ".Set ""RefineAxialEdgeGlobal"", ""0"" " + vbLf
+	sCommand = sCommand + ".Set ""BufferLinesNear"", ""3"" " + vbLf
+	sCommand = sCommand + ".Set ""UseDielectrics"", ""1"" " + vbLf
+	sCommand = sCommand + ".Set ""EquilibrateOn"", ""0"" " + vbLf
+	sCommand = sCommand + ".Set ""Equilibrate"", ""1.5"" " + vbLf
+	sCommand = sCommand + ".Set ""IgnoreThinPanelMaterial"", ""0"" " + vbLf
+	sCommand = sCommand + "End With " + vbLf
+	sCommand = sCommand + "With MeshSettings " + vbLf
+	sCommand = sCommand + ".SetMeshType ""Hex"" " + vbLf
+	sCommand = sCommand + ".Set ""SnapToAxialEdges"", ""1""" + vbLf
+	sCommand = sCommand + ".Set ""SnapToPlanes"", ""1""" + vbLf
+	sCommand = sCommand + ".Set ""SnapToSpheres"", ""1""" + vbLf
+	sCommand = sCommand + ".Set ""SnapToEllipses"", ""1""" + vbLf
+	sCommand = sCommand + ".Set ""SnapToCylinders"", ""1""" + vbLf
+	sCommand = sCommand + ".Set ""SnapToCylinderCenters"", ""1""" + vbLf
+	sCommand = sCommand + ".Set ""SnapToEllipseCenters"", ""1""" + vbLf
+	sCommand = sCommand + "End With " + vbLf
+	sCommand = sCommand + "With Discretizer " + vbLf
+	sCommand = sCommand + ".MeshType ""PBA"" " + vbLf
+	sCommand = sCommand + ".PBAType ""Fast PBA"" " + vbLf
+	sCommand = sCommand + ".AutomaticPBAType ""True"" " + vbLf
+	sCommand = sCommand + ".FPBAAccuracyEnhancement ""enable""" + vbLf
+	sCommand = sCommand + ".ConnectivityCheck ""False""" + vbLf
+	sCommand = sCommand + ".ConvertGeometryDataAfterMeshing ""True"" " + vbLf
+	sCommand = sCommand + ".UsePecEdgeModel ""True"" " + vbLf
+	sCommand = sCommand + ".GapDetection ""False"" " + vbLf
+	sCommand = sCommand + ".FPBAGapTolerance ""1e-3"" " + vbLf
+	sCommand = sCommand + ".SetMaxParallelMesherThreads ""Hex"", ""12""" + vbLf
+	sCommand = sCommand + ".SetParallelMesherMode ""Hex"", ""Maximum""" + vbLf
+	sCommand = sCommand + ".PointAccEnhancement ""0"" " + vbLf
+	sCommand = sCommand + ".UseSplitComponents ""False"" " + vbLf
+	sCommand = sCommand + ".EnableSubgridding ""False"" " + vbLf
+	sCommand = sCommand + ".PBAFillLimit ""99"" " + vbLf
+	sCommand = sCommand + ".AlwaysExcludePec ""False"" " + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "set mesh properties (Hexahedral)", sCommand
+
+	
+	'@ define particle beam: ParticleBeam1
+	sCommand = ""
+	sCommand = sCommand + "With ParticleBeam" + vbLf
+	sCommand = sCommand + ".Reset " + vbLf
+	sCommand = sCommand + ".Name ""ParticleBeam1"" " + vbLf
+	sCommand = sCommand + ".Length ""10"" " + vbLf
+	sCommand = sCommand + ".Beta ""1.0"" " + vbLf
+	sCommand = sCommand + ".Charge ""1e-9"" " + vbLf
+	sCommand = sCommand + ".IsBunchGaussian ""True"" " + vbLf
+	sCommand = sCommand + ".ExcitationSignal """" " + vbLf
+	sCommand = sCommand + ".ConsiderForMeshRefinement ""True"" " + vbLf
+	sCommand = sCommand + ".BeamPoint ""False"", ""0.0"", ""0.0"", ""0.0"" " + vbLf
+	sCommand = sCommand + ".BeamDir ""0.0"", ""0.0"", ""1.0"" " + vbLf
+	sCommand = sCommand + ".WakeIntegrationType ""Indirect testbeams"" " + vbLf
+	sCommand = sCommand + ".WakeIntegrationShift ""0.0"", ""0.0"", ""0.0"" " + vbLf
+	sCommand = sCommand + ".WakeSpectrumFilter ""False"" " + vbLf
+	sCommand = sCommand + ".WakeSpectrumFilterRollOff ""0.5"" " + vbLf
+	sCommand = sCommand + ".LinesPerSigma ""False"", ""10.0"" " + vbLf
+	sCommand = sCommand + ".CurrentInjectionScheme ""Transmissionline"" " + vbLf
+	sCommand = sCommand + ".Create" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define particle beam: ParticleBeam1", sCommand
+
+
+
+	'@ define time domain solver parameters
+	sCommand = ""
+	sCommand = sCommand + "Mesh.SetCreator ""Wakefield"" " + vbLf
+	sCommand = sCommand + "" + vbLf
+	sCommand = sCommand + "With Solver " + vbLf
+	sCommand = sCommand + ".Method ""Hexahedral""" + vbLf
+	sCommand = sCommand + ".CalculationType ""TD-PB""" + vbLf
+	sCommand = sCommand + ".StimulationPort ""Particle beam""" + vbLf
+	sCommand = sCommand + ".StimulationMode ""1""" + vbLf
+	sCommand = sCommand + ".WakeLength ""2000""" + vbLf
+	sCommand = sCommand + ".MeshAdaption ""False""" + vbLf
+	sCommand = sCommand + ".StoreTDResultsInCache  ""False""" + vbLf
+	sCommand = sCommand + ".FullDeembedding ""False""" + vbLf
+	sCommand = sCommand + ".CalculateModesOnly ""False""" + vbLf
+	sCommand = sCommand + "End With"
+	AddToHistory "define time domain solver parameters", sCommand
+
+
+EndHide
+
+'@ new component: component1
+
+Component.New "component1"
+
+'@ define cylinder: component1:solid1
+
+With Cylinder 
+     .Reset 
+     .Name "solid1" 
+     .Component "component1" 
+     .Material "Vacuum" 
+     .OuterRadius "6" 
+     .InnerRadius "0" 
+     .Axis "z" 
+     .Zrange "0", "80" 
+     .Xcenter "0" 
+     .Ycenter "0" 
+     .Segments "0" 
+     .Create 
+End With
+
+'@ define cylinder: component1:solid2
+
+With Cylinder 
+     .Reset 
+     .Name "solid2" 
+     .Component "component1" 
+     .Material "Vacuum" 
+     .OuterRadius "23" 
+     .InnerRadius "0.0" 
+     .Axis "z" 
+     .Zrange "20", "50" 
+     .Xcenter "0" 
+     .Ycenter "0" 
+     .Segments "0" 
+     .Create 
+End With
+
+'@ boolean add shapes: component1:solid1, component1:solid2
+
+With Solid 
+     .Add "component1:solid1", "component1:solid2" 
+End With
+
+With Background 
+     .ResetBackground 
+     .XminSpace "0.0" 
+     .XmaxSpace "0.0" 
+     .YminSpace "0.0" 
+     .YmaxSpace "0.0" 
+     .ZminSpace "0.0" 
+     .ZmaxSpace "0.0" 
+     .ApplyInAllDirections "False" 
+End With 
+
+With Material 
+     .Reset 
+     .Rho "0.0"
+     .ThermalType "Normal"
+     .ThermalConductivity "0"
+     .SpecificHeat "0", "J/K/kg"
+     .DynamicViscosity "0"
+     .UseEmissivity "True"
+     .Emissivity "0"
+     .MetabolicRate "0.0"
+     .VoxelConvection "0.0"
+     .BloodFlow "0"
+     .MechanicsType "Unused"
+     .IntrinsicCarrierDensity "0"
+     .FrqType "all"
+     .Type "Pec"
+     .MaterialUnit "Frequency", "Hz"
+     .MaterialUnit "Geometry", "m"
+     .MaterialUnit "Time", "s"
+     .MaterialUnit "Temperature", "Kelvin"
+     .Epsilon "1.0"
+     .Mu "1.0"
+     .ReferenceCoordSystem "Global"
+     .CoordSystemType "Cartesian"
+     .NLAnisotropy "False"
+     .NLAStackingFactor "1"
+     .NLADirectionX "1"
+     .NLADirectionY "0"
+     .NLADirectionZ "0"
+     .Colour "0.6", "0.6", "0.6" 
+     .Wireframe "False" 
+     .Reflection "False" 
+     .Allowoutline "True" 
+     .Transparentoutline "False" 
+     .Transparency "0" 
+     .ChangeBackgroundMaterial
+End With
+
+
+BeginHide
+	ResetViewToStructure()
+EndHide
+
+
+End Sub

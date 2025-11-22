@@ -1,0 +1,405 @@
+' Vias along Curve
+'----------------------------------------------------------------------------------------------------------------
+' This macro is useful to create vias that follow a planar polygonal curve.
+' The via dimensions are fully parametric.
+' It is even possible to edit the curve's polygonal-points and the vias will follow the new changed curve.
+'
+' Supports single and multiple selection of curve items
+'----------------------------------------------------------------------------------------------------------------
+'
+' ================================================================================================
+' Copyright 2008-2023 Dassault Systemes Deutschland GmbH
+' ================================================================================================
+' History of Changes
+'----------------------------------------------------------------------------------------------------------------
+' 07-Oct-2015 ube,swa: use new curve functionality to also place vias along splines, ellipses, etc
+' 05-Aug-2010 kkr: vias are now always created in the global coordinate system
+' 17-Sep-2009 kkr: modified to handle curves with more than one item
+' 20-Aug-2009 kkr: modified to allow multiple calls - the curve name is now included in the via name
+' 13-Nov-2008 ube: included into 2009 release
+' 12-Nov-2008 jfe: initial version
+'----------------------------------------------------------------------------------------------------------------
+
+Option Explicit
+
+
+Sub Main ()
+
+	FastModelLoad "False"
+
+	Dim nConstSegm As Integer
+	nConstSegm = 1001
+
+	Dim datapoints() As Double
+	Dim d As Double
+	Dim i As Integer
+	Dim j As Integer
+	Dim ii As Integer
+	Dim cstcurve As String
+	Dim curvestr As String
+	Dim vor As Double
+	Dim vsp	As Double
+	Dim vh As Double
+	Dim vir As Double
+	Dim xflag As Integer
+	Dim cstphi As Double
+	Dim csttheta As Double
+	Dim pdiff As Double
+	Dim viacount As Integer
+	Dim nsel As Integer
+	Dim viairad As String
+	Dim viaorad As String
+	Dim viaheight As String
+	Dim viaspacing As String
+	Dim vianumber As String
+	Dim cselect As String
+	Dim selcurve As String
+	Dim cstitem As String
+	Dim nitems As Integer
+	Dim treename As String
+	Dim nsegs() As Integer
+	Dim maxsegs As Integer
+	Dim lastpoint As Integer
+	Dim nodes() As Double
+	Dim totalsegs As Integer
+	Dim tmpstr As String
+	Dim tmppoints() As Double
+	Dim tol As Double
+	Dim autospace As Boolean
+	Dim curvelength As Double
+	Dim cstlead As Double
+	Dim cstspace As Double
+	Dim seglength As Double
+	Dim cstnum As Integer
+	Dim orientation As String
+	Dim xcenter, ycenter, zcenter As Double
+	Dim activeWCS As String
+
+	tol=1e-6
+
+	BeginHide
+	nsel = CInt(GetNumberOfSelectedTreeItems)
+
+	If nsel = 0 Then
+		ReportError("You must first select a single polygonal curve or curve item along which vias are to be created.")
+	End If
+
+	selcurve = GetSelectedTreeItem
+
+	If Left$(selcurve, 6) <> "Curves" Then
+		ReportError("You must first select a single polygonal curve or curve item along which vias are to be created.")
+	End If
+	If InStr(selcurve, "\") = InStrRev(selcurve, "\") Then
+		' curve selected
+		cselect = "curve"
+		cstcurve =Mid$(selcurve, InStr(selcurve, "\")+1, Len(selcurve))
+		cstitem = ""
+	Else
+		' item selected
+		cselect = "item"
+		selcurve =Mid$(selcurve, InStr(selcurve, "\")+1, Len(selcurve))
+		cstcurve = Left$(selcurve, InStr(selcurve, "\")-1)
+		cstitem = Mid$(selcurve, InStr(selcurve, "\")+1, Len(selcurve))
+	End If
+
+	Assign("cstcurve")
+	Assign("cstitem")
+	Assign("cselect")
+
+	' default values
+	viairad = "0"
+	viaorad = "0.1"
+	viaheight = "1"
+	viaspacing = "1"
+	vianumber = "10"
+
+
+	Begin Dialog UserDialog 405,300,"Vias Along Curve" ' %GRID:5,3,0,1
+		GroupBox 25,9,355,102,"Via Dimensions",.GroupBox2
+		GroupBox 20,123,360,69,"Via Spacing",.GroupBox1
+		TextBox 295,24,60,21,.irad
+		TextBox 295,54,60,21,.orad
+		TextBox 295,84,60,21,.height
+		TextBox 295,168,60,18,.vspac
+		Text 45,27,120,21,"Via Inner Radius:",.Text1
+		Text 45,57,120,15,"Via Outer Radius:",.Text2
+		Text 45,87,120,18,"Via Height:",.Text3
+		OKButton 30,255,90,27
+		CancelButton 280,255,90,27
+		OptionGroup .Spacing
+			OptionButton 40,141,250,15,"Automatic, Specify Number of Vias:",.spac_auto
+			OptionButton 40,168,245,15,"Manual, Specify Via Spacing:",.spac_man
+		TextBox 295,141,60,18,.vnumber
+		GroupBox 20,204,360,39,"Orientation",.orientationstr
+		OptionGroup .orientation
+			OptionButton 35,222,45,15,"X",.orientx
+			OptionButton 185,222,70,12,"Y",.orienty
+			OptionButton 325,222,40,15,"Z",.orientz
+	End Dialog
+	Dim dlg As UserDialog
+	dlg.irad=viairad
+	dlg.orad=viaorad
+	dlg.height=viaheight
+	dlg.vnumber=vianumber
+	dlg.vspac=viaspacing
+	dlg.orientation=2
+	Dialog dlg
+	If dlg.Spacing = 0 Then
+		autospace=True
+	ElseIf dlg.Spacing = 1 Then
+		autospace=False
+	End If
+	Assign("autospace")
+	Select Case dlg.orientation
+	Case 0
+		orientation="x"
+	Case 1
+		orientation="y"
+	Case 2
+		orientation="z"
+	End Select
+	Assign("orientation")
+
+	' store parameters
+	StoreParameter("Via_Inner_Radius_"+cstcurve, cdbl(evaluate(dlg.irad)))
+	StoreParameter("Via_Outer_Radius_"+cstcurve, cdbl(evaluate(dlg.orad)))
+	StoreParameter("Via_Height_"+cstcurve, cdbl(evaluate(dlg.height)))
+	StoreParameter("Via_Number_"+cstcurve, cdbl(evaluate(dlg.vnumber)))
+	StoreParameter("Via_Spacing_"+cstcurve, cdbl(evaluate(dlg.vspac)))
+
+
+	EndHide
+
+	' update tree
+	Resulttree.UpdateTree
+
+	' check, if global or local WCS
+	activeWCS=WCS.IsWCSActive()
+	WCS.ActivateWCS("global")
+
+	' create vias
+	xflag = 0
+	viacount = 1
+
+	Select Case cselect
+	Case "item"
+		totalsegs=Curve.GetNumberOfPoints(cstcurve+":"+cstitem)
+		totalsegs=nConstSegm
+		ReDim datapoints(totalsegs,3) As Double
+
+		For i = 1 To totalsegs
+			d = CDbl(i-1) / (totalsegs-1)
+			Curve.SampleCoordinates(cstcurve+":"+cstitem, d, datapoints(i,1), datapoints(i,2), datapoints(i,3))
+		Next i
+
+		curvestr=cstcurve+"_"+cstitem
+
+	Case "curve"
+		' read curve items
+		treename = "Curves\"+cstcurve
+		SelectTreeItem treename
+
+		' count number of items first
+		cstitem = Resulttree.GetFirstChildName(treename)
+		maxsegs=nConstSegm
+		totalsegs=0
+		nitems=0
+		While cstitem <> ""
+			nitems = nitems+1
+			tmpstr = Replace(cstitem, "\", ":")
+			tmpstr = Right( tmpstr, Len(tmpstr) - InStr (tmpstr, ":"))
+	    	If Curve.GetNumberOfPoints(tmpstr) > maxsegs Then
+	    		maxsegs = Curve.GetNumberOfPoints(tmpstr)
+	    	End If
+	    	'totalsegs=totalsegs+Curve.GetNumberOfPoints(tmpstr)
+	    	totalsegs=totalsegs+maxsegs
+			cstitem = Resulttree.GetNextItemName(cstitem)
+		Wend
+
+		' Allocate memory
+		ReDim nsegs(nitems) As Integer
+		ReDim nodes(maxsegs, nitems, 3) As Double
+		ReDim datapoints(totalsegs, 3)
+		ReDim dataopints(totalsegs, 3)
+
+		' step through items again and fill arrays
+		cstitem = Resulttree.GetFirstChildName(treename)
+		ii=1
+        While cstitem <> ""
+        	tmpstr = Replace(cstitem, "\", ":")
+			tmpstr = Right( tmpstr, Len(tmpstr) - InStr (tmpstr, ":"))
+			'nsegs(ii) = Curve.GetNumberOfPoints(tmpstr)
+			nsegs(ii) = nConstSegm
+			For i = 1 To nsegs(ii)
+				d = CDbl(i-1) / (nsegs(ii)-1)
+				Curve.SampleCoordinates(tmpstr, d, nodes(i,ii,1), nodes(i,ii,2), nodes(i,ii,3))
+			Next
+			ii=ii+1
+			cstitem = Resulttree.GetNextItemName(cstitem)
+        Wend
+
+        ' sort items to form connections
+        ' copy first item
+        For i = 1 To nsegs(1)
+			datapoints(i, 1)=nodes(i, 1, 1)
+			datapoints(i, 2)=nodes(i, 1, 2)
+			datapoints(i, 3)=nodes(i, 1, 3)
+        Next
+        lastpoint=nsegs(1)
+        nsegs(1)=0
+
+        If maxsegs <> 0 Then
+
+	        While lastpoint <> totalsegs-nitems+1
+	        	' step through items to look for next item
+	        	For ii = 1 To nitems
+	        		' if segs(ii) = 0, item is already in use
+	        		If nsegs(ii) > 0 Then
+	        			' check if first point matches last point of last item
+	        			If Abs(nodes(1, ii, 1) - datapoints(lastpoint, 1))<tol And Abs(nodes(1, ii, 2) - datapoints(lastpoint, 2))<tol And Abs(nodes(1, ii, 3) - datapoints(lastpoint, 3))<tol Then
+	        				' copy to datapoints matrix
+	        				For i = 1 To nsegs(ii)-1
+	        					datapoints(lastpoint+i, 1) = nodes(i+1, ii, 1)
+	        					datapoints(lastpoint+i, 2) = nodes(i+1, ii, 2)
+	        					datapoints(lastpoint+i, 3) = nodes(i+1, ii, 3)
+	        				Next
+	        				lastpoint=lastpoint+nsegs(ii)-1
+	        				nsegs(ii)=0
+	        			' check if last point matches last point of last item
+	        			ElseIf Abs(nodes(nsegs(ii), ii, 1) - datapoints(lastpoint, 1))<tol And Abs(nodes(nsegs(ii), ii, 2) - datapoints(lastpoint, 2))<tol And Abs(nodes(nsegs(ii), ii, 3) - datapoints(lastpoint, 3))<tol Then
+	        				' copy reversed item to datapoints matrix
+	        				For i = 1 To nsegs(ii)-1
+	        					datapoints(lastpoint+i, 1) = nodes(nsegs(ii)-i, ii, 1)
+	        					datapoints(lastpoint+i, 2) = nodes(nsegs(ii)-i, ii, 2)
+	        					datapoints(lastpoint+i, 3) = nodes(nsegs(ii)-i, ii, 3)
+	        				Next
+	        				lastpoint=lastpoint+nsegs(ii)-1
+	        				nsegs(ii)=0
+	        			' check if last point matches first point of first item
+	        			ElseIf Abs(nodes(nsegs(ii), ii, 1) - datapoints(1, 1))<tol And Abs(nodes(nsegs(ii), ii, 2) - datapoints(1, 2))<tol And Abs(nodes(nsegs(ii), ii, 3) - datapoints(1, 3))<tol Then
+							' shift existing datapoints
+							tmppoints=datapoints
+							For i = 1 To lastpoint
+								datapoints(nsegs(ii)-1+i, 1) = tmppoints(i, 1)
+								datapoints(nsegs(ii)-1+i, 2) = tmppoints(i, 2)
+								datapoints(nsegs(ii)-1+i, 3) = tmppoints(i, 3)
+							Next
+	        				' copy to datapoints matrix
+	        				For i = 1 To nsegs(ii)-1
+	        					datapoints(i, 1) = nodes(i, ii, 1)
+	        					datapoints(i, 2) = nodes(i, ii, 2)
+	        					datapoints(i, 3) = nodes(i, ii, 3)
+	        				Next
+	        				lastpoint=lastpoint+nsegs(ii)-1
+	        				nsegs(ii)=0
+	        			' check if first point matches first point of first item
+	        			ElseIf Abs(nodes(1, ii, 1) - datapoints(1, 1))<tol And Abs(nodes(1, ii, 2) - datapoints(1, 2))<tol And Abs(nodes(1, ii, 3) - datapoints(1, 3))<tol Then
+							' shift existing datapoints
+							tmppoints=datapoints
+							For i = 1 To lastpoint
+								datapoints(nsegs(ii)-1+i, 1) = tmppoints(i, 1)
+								datapoints(nsegs(ii)-1+i, 2) = tmppoints(i, 2)
+								datapoints(nsegs(ii)-1+i, 3) = tmppoints(i, 3)
+							Next
+	        				' copy reversed item to datapoints matrix
+	        				For i = 1 To nsegs(ii)-1
+	        					datapoints(i, 1) = nodes(nsegs(ii)+1-i, ii, 1)
+	        					datapoints(i, 2) = nodes(nsegs(ii)+1-i, ii, 2)
+	        					datapoints(i, 3) = nodes(nsegs(ii)+1-i, ii, 3)
+	        				Next
+	        				lastpoint=lastpoint+nsegs(ii)-1
+	        				nsegs(ii)=0
+	        			End If
+	        		End If
+	        	Next
+
+	        Wend
+
+        End If
+
+        totalsegs=totalsegs-nitems+1
+
+		curvestr=cstcurve
+
+	End Select
+
+
+	' automatically choose the via spacing
+	If autospace Then
+		' compute length of curve
+		curvelength=0
+		For i = 2 To totalsegs
+			curvelength=curvelength+Sqr((datapoints(i, 1)-datapoints(i-1, 1))^2+(datapoints(i, 2)-datapoints(i-1, 2))^2+(datapoints(i, 3)-datapoints(i-1, 3))^2)
+		Next
+
+		StoreDoubleParameter("Via_Spacing_"+cstcurve, curvelength/(Evaluate("Via_Number_"+cstcurve)-1))
+
+	End If
+
+
+	' initialize
+	cstspace=cdbl(evaluate("Via_Spacing_"+cstcurve))
+	viacount=1
+	Dim distance_LastVia As Double
+	Dim bDefineVia As Boolean
+	distance_LastVia = 0.0
+
+	' loop through segments
+	For i = 1 To totalsegs
+		bDefineVia = False
+		If (i=1) Then
+			' always take first point
+			bDefineVia = True
+		Else
+			' this segment length
+			seglength=Sqr((datapoints(i-1, 1)-datapoints(i, 1))^2+(datapoints(i-1, 2)-datapoints(i, 2))^2+(datapoints(i-1, 3)-datapoints(i, 3))^2)
+			distance_LastVia = distance_LastVia + seglength
+			If distance_LastVia >= cstspace Then
+				distance_LastVia = distance_LastVia - cstspace
+				bDefineVia = True
+			End If
+			If ((i=totalsegs) And autospace) Then
+				' make really sure that last via is set for automatic spacing (given number of vias)
+				bDefineVia = True
+			End If
+		End If
+
+		If bDefineVia Then
+			xcenter=datapoints(i, 1)
+			ycenter=datapoints(i, 2)
+			zcenter=datapoints(i, 3)
+			'Pick.PickPointFromCoordinates datapoints(i, 1), datapoints(i, 2), datapoints(i, 3)
+
+			With Cylinder
+			    .Reset
+				.Name ("via_"+curvestr+"_"+cstr(viacount))
+			    .Component ("Vias along Curve")
+		    	.Material ("PEC")
+		    	.Axis (orientation)
+			    .Outerradius ("Via_Outer_Radius_"+cstcurve)
+			    .Innerradius ("Via_Inner_Radius_"+cstcurve)
+	    		.Xcenter (xcenter)
+			    .Ycenter (ycenter)
+			    .Zcenter (zcenter)
+			    Select Case orientation
+	    		Case "x"
+			    	.Xrange (xcenter, xcenter-cdbl(evaluate("Via_Height_"+cstcurve)))
+			    Case "y"
+			    	.Yrange (ycenter, ycenter-cdbl(evaluate("Via_Height_"+cstcurve)))
+			    Case "z"
+					.Zrange (zcenter, zcenter-cdbl(evaluate("Via_Height_"+cstcurve)))
+				End Select
+
+		    	.Segments (0)
+			    .Create
+			End With
+			' update number of created vias
+			viacount=viacount+1
+		End If
+
+	Next
+
+	' switch back to original WCS
+	WCS.ActivateWCS(activeWCS)
+
+End Sub

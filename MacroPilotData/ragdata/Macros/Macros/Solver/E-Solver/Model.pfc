@@ -1,0 +1,415 @@
+' userdefined watch for parameter sweep
+
+'-------------------------------------------------------------------------
+' This userdefined watch calculates the dispersion behaviour of arbitrary
+' waveguides, including slow wave structures such as e.g. helix-structures
+'
+' As a result of a parameter sweep of the phase between the periodic boundary-walls,
+' beta, phase- and group-velocity as well as power flow, axial electric field amplitude
+' and Pierce Impedance are calculated and displayed
+'
+' It is recommeded to perform a sweep with phase stepwidth=10 in order
+' to receive enough infomation for the dispersion diagrams
+'			(e.g. phase=10 to 180 step 10)
+'
+'-------------------------------------------------------------------------
+
+Option Explicit
+
+Sub ParameterSweepWatch(action As Integer)
+
+	' Definition of variables
+	Dim sBaseResult		As String
+	Dim sBaseTemp		As String
+	Dim sFileVphase		As String
+	Dim sFileVgroup		As String
+	Dim sFileEabs 		As String
+	Dim sFilePflux 		As String
+	Dim sFileZpierce	As String
+	Dim sFileBeta		As String
+
+	Dim oResultVphase   As Object
+	Dim oResultVgroup   As Object
+	Dim oResultPflux 	As Object
+	Dim oResultBeta     As Object
+	Dim oResultEabs 	As Object
+	Dim oResultZpierce 	As Object
+
+	' e.g. "C:\MyFolder\MyProject"
+	sBaseResult = GetProjectPath("Result")
+	sBaseTemp   = GetProjectPath("Temp")
+
+	sFileVphase = "vphase"
+	sFileVgroup = "vgroup"
+	sFileEabs 	= "Eabs"
+	sFilePflux 	= "Pflux"
+	sFileZpierce= "Zpierce"
+	sFileBeta	= "beta"
+
+	Dim iModes	As Integer
+	Dim iModeID	As Integer
+
+	iModes = Solver.AKSGetNumberOfModes
+
+	Dim dFrequency		As Double
+	Dim dBeta			As Double
+
+	'
+	' --- automatic detection of periodic boundary direction x,y,z
+	'
+	Dim idir As Integer, ii As Integer, cBoxMin(3) As Double, cBoxMax(3) As Double
+	Dim dPitchSI As Double, dPitchUnit As Double
+	'
+	idir = 0
+	With Boundary
+		If .GetXmin = "periodic" Then idir=1
+		If .GetYmin = "periodic" Then idir=2
+		If .GetZmin = "periodic" Then idir=3
+		If idir = 0 Then MsgBox "no periodic boundary condition is set",vbCritical
+		.GetCalculationBox cBoxMin(1), cBoxMax(1), cBoxMin(2), cBoxMax(2), cBoxMin(3), cBoxMax(3)
+		dPitchUnit = cBoxMax(idir) - cBoxMin(idir)
+		dPitchSI   = dPitchUnit * Units.GetGeometryUnitToSI
+	End With
+
+	Dim sFileName       As String
+
+	Select Case action
+		Case 0
+			'Please define actions before the parametersweep starts.
+
+			' Initialize empty files
+
+			For iModeID = 1 To iModes
+				sFileName = sBaseTemp + "_" + sFileBeta + "_" + CStr(iModeID) + ".sig"
+				On Error GoTo CannotDelete
+				Kill sFileName
+CannotDelete:	On Error GoTo 0
+				Open sFileName For Output As #11
+				Close #11
+				'
+				sFileName = sBaseTemp + "_" + sFileEabs + "_" + CStr(iModeID) + ".sig"
+				On Error GoTo CannotDelete2
+				Kill sFileName
+CannotDelete2:	On Error GoTo 0
+				Open sFileName For Output As #11
+				Close #11
+			Next iModeID
+
+		Case 1
+			'Please define actions after each calculation.
+
+			'
+			' --- read phase value
+			'
+			Dim dValuePhase As Double
+			With ParameterSweep
+				If (.GetNumberOfVaryingParameters = 1) Then
+					dValuePhase = .GetValueOfVaryingParameter(0)
+					If dValuePhase = 0.0 Then MsgBox "Parameter Phase has 0 value",vbCritical
+				Else
+					MsgBox "Error in Slow Wave user defined watch: Exactly one varying parameter is required",vbCritical
+				End If
+			End With
+			'
+			Dim cxyz(3) As Double, vre(3) As Double, vim(3) As Double, lok As Boolean
+			'
+			For ii = 1 To 3
+				cxyz(ii) = 0.5 * (cBoxMax(ii) + cBoxMin(ii))
+			Next ii
+			'
+			' --- write one wavelength of electric field function
+			'
+			Dim dWavelengthUnit As Double, dWavelengthSI As Double, dStepSize As Double, NSteps As Integer
+			dWavelengthUnit = dPitchUnit * 360/dValuePhase
+
+			NSteps = 360 ' every 1 degree
+			dStepSize = dWavelengthUnit / NSteps
+
+			For iModeID = 1 To iModes
+
+				Mesh.ViewMeshMode  False
+				SelectTreeItem "2D/3D Results\Modes\Mode " + CStr(iModeID) + "\e"
+				Wait 0.3
+				dFrequency = GetFieldFrequency() * Units.GetFrequencyUnitToSI
+
+				Plot3DPlotsOn2DPlane False   ' true (plot on 2d plane) might give smoother curve
+				With VectorPlot2D
+					If idir=1 Then
+			    		' take ycut at center
+			    		.PlaneNormal "y"
+			    		.PlaneCoordinate cxyz(2)
+			    	Else
+			    		' take xcut at center
+			    		.PlaneNormal "x"
+			    		.PlaneCoordinate cxyz(1)
+			    	End If
+				End With
+				Wait 0.1
+				Plot.Update
+				Wait 0.1
+
+				cxyz(idir) = cBoxMin(idir) + 0.5 * dStepSize
+
+				Dim dAddLengthIdir As Double, dAddPhase As Double, cosa As Double, sina As Double
+				dAddLengthIdir = 0.0
+				dAddPhase = 0.0
+				cosa = 1.0
+				sina = 0.0
+
+				Dim Eoabs As Double, dValue As Double, dFourierReal As Double, dFourierImag As Double
+
+				Eoabs = 0.0
+				dFourierReal = 0.0
+				dFourierImag = 0.0
+
+				Dim oResultEw As Object
+				Set oResultEw = Result1D("")
+
+				For ii = 1 To NSteps
+
+					If (cxyz(idir) > cBoxMax(idir)) Then
+						cxyz(idir) = cxyz(idir) - dPitchUnit
+						dAddLengthIdir = dAddLengthIdir + dPitchUnit
+						dAddPhase = dAddPhase - dValuePhase
+						cosa = Cos(dAddPhase*Pi/180)
+						sina = Sin(dAddPhase*Pi/180)
+					End If
+
+					lok = GetFieldVector ( cxyz(1), cxyz(2), cxyz(3), vre(1), vre(2), vre(3), vim(1), vim(2), vim(3) )
+
+					dValue = vre(idir)*cosa-vim(idir)*sina
+
+					If Abs(dValue) > Eoabs Then Eoabs = Abs(dValue)
+
+					dFourierReal = dFourierReal + dValue * Cos(ii/NSteps*2*Pi)
+					dFourierImag = dFourierImag + dValue * Sin(ii/NSteps*2*Pi)
+
+					oResultEw.AppendXY  cxyz(idir)+dAddLengthIdir , dValue
+
+					cxyz(idir) = cxyz(idir) + dStepSize
+
+				Next ii
+
+				With oResultEw
+					.Title "1 wavelength of Electric field along periodic structure"
+					.XLabel "Length / " + Units.GetGeometryUnit
+					.Type "Linear"
+					.Save sBaseResult + "^E" + CStr(iModeID) + ".sig"
+					'.AddToTree "1D Results\Ew\Mode " + CStr(iModeID)
+				End With
+
+				' SelectTreeItem "1D Results\Ew"
+
+				Dim Efourier As Double
+				Efourier = 2/NSteps * Sqr(dFourierReal^2 + dFourierImag^2)
+
+				' MsgBox "Eabs (from curve) = " + CStr(Eoabs) + vbCrLf + "EFourier = " + CStr(Efourier)
+
+				sFileName = sBaseTemp + "_" + sFileEabs + "_" + CStr(iModeID) + ".sig"
+
+				Open sFileName For Append As #11
+					Print #11,  Format(dFrequency/1e9, "0.000000e+000   "); Format(Eoabs,"0.000000e+000")
+				Close #11
+
+				dBeta	= (2*Pi) * dValuePhase/360.0 / dPitchSI
+
+				sFileName = sBaseTemp + "_" + sFileBeta + "_" + CStr(iModeID) + ".sig"
+
+				Open sFileName For Append As #11
+					Print #11,  Format(dFrequency/1e9, "0.000000e+000   "); Format(dBeta,"0.000000e+000")
+				Close #11
+
+			Next iModeID
+
+		Case 2
+			'Please define actions after the parametersweep has finished.
+
+			' Definition of local variables (only used in case=2)
+
+			Dim nn				As Integer
+			Dim dFreq2			As Double
+			Dim dFreqm			As Double
+			Dim dBeta2			As Double
+			Dim dBetam			As Double
+			Dim dEabs			As Double
+			Dim dEabs2			As Double
+			Dim dEabsm			As Double
+			Dim dVPhase			As Double
+			Dim dVPhaseNormed	As Double
+			Dim dVGroup			As Double
+			Dim dVGroupNormed	As Double
+			Dim dPflux			As Double
+			Dim dZpierce 		As Double
+
+			Dim bVPhase			As Boolean
+			Dim bVGroup			As Boolean
+
+			bVPhase = False
+			bVGroup = False
+
+			Dim sNewFileName    As String
+
+			sNewFileName=sBaseResult
+			For iModeID = 1 To iModes
+
+				dFreq2 = 0
+				dBeta2 = 0
+				dEabs2 = 0
+
+				Set oResultVphase = Result1D("")
+				Set oResultVgroup = Result1D("")
+				Set oResultPflux  = Result1D("")
+				Set oResultBeta   = Result1D("")
+				Set oResultEabs   = Result1D("")
+				Set oResultZpierce= Result1D("")
+
+				Dim sFileNameEabs As String
+				sFileNameEabs = sBaseTemp + "_" + sFileEabs + "_" + CStr(iModeID) + ".sig"
+				Dim oResultTempEabs As Object
+				Set oResultTempEabs = Result1D("")
+				oResultTempEabs.LoadPlainFile(sFileNameEabs)
+
+				Dim sFileNameBeta As String
+				sFileNameBeta = sBaseTemp + "_" + sFileBeta + "_" + CStr(iModeID) + ".sig"
+				Dim oResultTempBeta As Object
+				Set oResultTempBeta = Result1D("")
+				oResultTempBeta.LoadPlainFile(sFileNameBeta)
+
+				With oResultTempBeta
+					nn = .GetN		    ' Get number of frequency points in the file
+					For ii = 0 To nn-1	' Read all frequency points; index of first point is zero.
+
+						dFrequency	= .GetX(ii) * 1e9
+						dBeta		= .GetY(ii)
+						dEabs		= oResultTempEabs.GetY(ii)
+
+						oResultBeta.AppendXY dFrequency/1e9, dBeta
+						oResultEabs.AppendXY dFrequency/1e9, dEabs
+
+						If dBeta <>	0 Then
+
+							' calculate phase velocity (= omega / beta)
+							dVPhase = (2*Pi*dFrequency) / dBeta
+
+							dVPhaseNormed = dVPhase / 2.998e8
+
+							oResultVphase.AppendXY dFrequency/1e9, dVPhaseNormed
+
+							bVPhase = True
+
+						End If
+
+						If (ii > 0) Then
+
+							' calculate group velocity ( = d omega / d beta)
+
+							If dBeta <>	dBeta2 Then
+
+								dVGroup = (2*Pi) * (dFrequency-dFreq2) / (dBeta-dBeta2)
+								dVGroupNormed = dVGroup / 2.998e8
+
+								dPflux = 1 * dVGroup / dPitchSI
+
+								dBetam = 0.5*(dBeta2 + dBeta)
+								dEabsm = 0.5*(dEabs2 + dEabs)
+								dFreqm = 0.5*(dFrequency+dFreq2)
+								If (dBetam <> 0) And (dPflux <> 0) Then
+									dZpierce = dEabsm^2 / (2 * dBetam^2 * dPflux)
+								Else
+									dZpierce = 0.0
+								End If
+
+								oResultVgroup.AppendXY dFreqm/1e9, dVGroupNormed
+								oResultPflux.AppendXY  dFreqm/1e9, dPflux
+								oResultZpierce.AppendXY  dFreqm/1e9, dZpierce
+
+								bVGroup = True
+
+							End If
+
+						End If
+
+						dFreq2 = dFrequency
+						dBeta2 = dBeta
+						dEabs2 = dEabs
+
+					Next ii
+				End With
+
+				' Add graphs to the navigation tree
+
+				With oResultBeta
+					.Title "Propagation Constant beta / m"
+					.XLabel "Frequency / GHz"
+					.Type "Linear"
+					.Save sNewFileName + sFileBeta + "_"  + CStr(iModeID) + ".sig"
+					.AddToTree "1D Results\Dispersion Diagram\Mode " + CStr(iModeID)
+				End With
+
+				With oResultEabs
+					.Title "Axial electric field amplitude"
+					.XLabel "Frequency / GHz"
+					.Type "Linear"
+					.Save sNewFileName + sFileEabs + "_"  + CStr(iModeID) + ".sig"
+					.AddToTree "1D Results\Eaxis Amplitude\Mode " + CStr(iModeID)
+				End With
+
+				If bVGroup Then
+					With oResultVgroup
+						.Title "Group velocity / clight"
+						.XLabel "Frequency / GHz"
+						.Type "Linear"
+						.Save sNewFileName + sFileVgroup + "_" + CStr(iModeID) + ".sig"
+						.AddToTree "1D Results\Group Velocity\Mode " + CStr(iModeID)
+					End With
+					With oResultPflux
+						.Title "Power Flow / W"
+						.XLabel "Frequency / GHz"
+						.Type "Linear"
+						.Save sNewFileName + sFilePflux + "_" + CStr(iModeID) + ".sig"
+						.AddToTree "1D Results\Power Flow\Mode " + CStr(iModeID)
+					End With
+					With oResultZpierce
+						.Title "Pierce Impedance / Ohm"
+						.XLabel "Frequency / GHz"
+						.Type "Linear"
+						.Save sNewFileName + sFileZpierce + "_" + CStr(iModeID) + ".sig"
+						.AddToTree "1D Results\Pierce Impedance\Mode " + CStr(iModeID)
+					End With
+				End If
+
+				If bVPhase Then
+					With oResultVphase
+						.Title "Phase velocity / clight"
+						.XLabel "Frequency / GHz"
+						.Type "Linear"
+						.Save sNewFileName + sFileVphase + "_" + CStr(iModeID) + ".sig"
+						.AddToTree "1D Results\Phase Velocity\Mode " + CStr(iModeID)
+					End With
+				End If
+
+				On Error GoTo CannotDelete3
+				Kill sFileNameEabs
+CannotDelete3:	On Error GoTo 0
+
+				On Error GoTo CannotDelete4
+				Kill sFileNameBeta
+CannotDelete4:	On Error GoTo 0
+
+			Next iModeID
+
+		SelectTreeItem "1D Results\Phase Velocity"
+
+	End Select
+
+End Sub
+
+Sub Main()
+
+' this routine is only needed for debugging the function
+
+  ParameterSweepWatch 0
+  ParameterSweepWatch 1
+  ParameterSweepWatch 2
+
+End Sub
