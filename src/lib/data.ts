@@ -46,7 +46,7 @@ function serializeReview(review: ReviewWithRelations): ReviewType {
         wouldTakeAgain: review.wouldTakeAgain ?? null,
         attendanceMandatory: review.attendanceMandatory ?? null,
         grade: review.grade ?? null,
-        tags: review.tags,
+        tags: review.tags as ReviewType['tags'],
         createdAt: review.createdAt.toISOString(),
         updatedAt: review.updatedAt.toISOString(),
         user: {
