@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Wallet } from "lucide-react";
 
 export default function Error({
     error,
@@ -10,27 +13,31 @@ export default function Error({
     reset: () => void;
 }) {
     useEffect(() => {
-        // Log the error to an error reporting service
         console.error(error);
     }, [error]);
 
     return (
-        <main className="text-center py-24 h-screen bg-white dark:bg-transparent flex flex-col items-center justify-center px-4">
-            <h1 className="text-2xl md:text-3xl font-bold mb-4 text-gray-900 dark:text-gray-100">
-                Sorry, I ran out of money to pay for this.
-            </h1>
-            <p className="text-xl opacity-75 mb-8 text-gray-900 dark:text-gray-100">
-                Contact your school to consider supporting this service.
-            </p>
-            <button
-                onClick={
-                    // Attempt to recover by trying to re-render the segment
-                    reset
-                }
-                className="px-4 py-2 bg-gray-900 text-white rounded hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200 transition-colors"
-            >
-                Try again
-            </button>
+        <main className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-4 dark:bg-gray-900">
+            <Card className="w-full max-w-md text-center border-2 shadow-lg">
+                <CardHeader className="flex flex-col items-center gap-4 pb-2">
+                    <div className="rounded-full bg-red-100 p-3 dark:bg-red-900/20">
+                        <Wallet className="h-10 w-10 text-red-600 dark:text-red-400" />
+                    </div>
+                    <CardTitle className="text-xl sm:text-2xl">
+                        Sorry, I ran out of money to pay for this.
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-muted-foreground text-lg">
+                        Contact your school to consider supporting this service.
+                    </p>
+                </CardContent>
+                <CardFooter className="flex justify-center pb-8">
+                    <Button onClick={reset} size="lg" className="font-semibold">
+                        Try again
+                    </Button>
+                </CardFooter>
+            </Card>
         </main>
     );
 }
