@@ -155,7 +155,7 @@ export default function Search({ placeholder }: { placeholder: string }) {
             <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500 dark:text-gray-400 peer-focus:text-gray-900 dark:peer-focus:text-gray-100" />
 
             {open && (
-                <div className="absolute z-50 top-[110%] left-0 w-full rounded-lg border border-black/10 dark:border-white/10 bg-white/90 dark:bg-black/80 backdrop-blur p-2 shadow-xl">
+                <div className="absolute z-50 top-[110%] left-0 w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 backdrop-blur p-2 shadow-xl">
                     {groups.map((group, gi) => (
                         <div key={group.key} className="mb-2 last:mb-0">
                             <div className="px-2 py-1 text-xs uppercase tracking-wide text-gray-600 dark:text-gray-400">{group.label}</div>

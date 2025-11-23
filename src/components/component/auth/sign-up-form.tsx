@@ -3,6 +3,12 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
+import Link from 'next/link';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Loader2 } from "lucide-react";
 
 export default function SignUpForm() {
     const router = useRouter();
@@ -62,98 +68,81 @@ export default function SignUpForm() {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
-            <div className="max-w-md w-full space-y-8 bg-white dark:bg-gray-800 p-10 rounded-xl shadow-lg">
-                <div className="text-center">
-                    <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white">Create your account</h2>
-                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                        Already have an account?{' '}
-                        <a href="/sign-in" className="text-red-600 hover:text-red-700 dark:text-red-400">
-                            Sign in
-                        </a>
-                    </p>
-                </div>
-                <form className="mt-8 space-y-6" onSubmit={onSubmit}>
-                    <div className="space-y-4">
-                        <div>
-                            <label htmlFor="name" className="sr-only">
-                                Full name
-                            </label>
-                            <input
+            <Card className="w-full max-w-md shadow-lg border-0 dark:border dark:border-gray-800">
+                <CardHeader className="space-y-1 text-center">
+                    <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
+                    <CardDescription>
+                        Enter your details to get started
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <form onSubmit={onSubmit} className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="name">Full Name</Label>
+                            <Input
                                 id="name"
                                 name="name"
                                 type="text"
+                                placeholder="John Doe"
                                 required
-                                className="appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm placeholder-gray-500 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
-                                placeholder="Full name"
                                 disabled={isSubmitting}
                             />
                         </div>
-                        <div>
-                            <label htmlFor="email" className="sr-only">
-                                Email address
-                            </label>
-                            <input
+                        <div className="space-y-2">
+                            <Label htmlFor="email">Email</Label>
+                            <Input
                                 id="email"
                                 name="email"
                                 type="email"
-                                autoComplete="email"
+                                placeholder="name@example.com"
                                 required
-                                className="appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm placeholder-gray-500 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
-                                placeholder="Email address"
                                 disabled={isSubmitting}
                             />
                         </div>
-                        <div>
-                            <label htmlFor="password" className="sr-only">
-                                Password
-                            </label>
-                            <input
+                        <div className="space-y-2">
+                            <Label htmlFor="password">Password</Label>
+                            <Input
                                 id="password"
                                 name="password"
                                 type="password"
-                                autoComplete="new-password"
-                                minLength={8}
                                 required
-                                className="appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm placeholder-gray-500 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
-                                placeholder="Password"
+                                minLength={8}
                                 disabled={isSubmitting}
                             />
                         </div>
-                        <div>
-                            <label htmlFor="confirmPassword" className="sr-only">
-                                Confirm password
-                            </label>
-                            <input
+                        <div className="space-y-2">
+                            <Label htmlFor="confirmPassword">Confirm Password</Label>
+                            <Input
                                 id="confirmPassword"
                                 name="confirmPassword"
                                 type="password"
-                                autoComplete="new-password"
-                                minLength={8}
                                 required
-                                className="appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm placeholder-gray-500 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
-                                placeholder="Confirm password"
+                                minLength={8}
                                 disabled={isSubmitting}
                             />
                         </div>
-                    </div>
 
-                    {error ? (
-                        <p className="text-sm text-red-600 dark:text-red-400" role="alert">
-                            {error}
-                        </p>
-                    ) : null}
+                        {error && (
+                            <div className="p-3 text-sm text-red-500 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900 rounded-md">
+                                {error}
+                            </div>
+                        )}
 
+                        <Button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white" disabled={isSubmitting}>
+                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Create account
+                        </Button>
+                    </form>
+                </CardContent>
+                <CardFooter className="flex flex-col space-y-2 text-center text-sm text-gray-500 dark:text-gray-400">
                     <div>
-                        <button
-                            type="submit"
-                            disabled={isSubmitting}
-                            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                        >
-                            {isSubmitting ? 'Creating account…' : 'Create account'}
-                        </button>
+                        Already have an account?{" "}
+                        <Link href="/sign-in" className="text-red-600 hover:text-red-700 dark:text-red-400 font-medium hover:underline">
+                            Sign in
+                        </Link>
                     </div>
-                </form>
-            </div>
+                </CardFooter>
+            </Card>
         </div>
     );
 }

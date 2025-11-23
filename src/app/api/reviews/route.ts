@@ -2,6 +2,7 @@ import { getServerAuthSession } from '@/lib/auth';
 import { createReview } from '@/lib/data';
 import { NextResponse } from 'next/server';
 import { createReviewSchema } from '@/lib/validation/review-schema';
+import { moderateContent } from '@/lib/moderation';
 
 export async function POST(request: Request) {
     try {
@@ -33,6 +34,19 @@ export async function POST(request: Request) {
             grade,
             tags,
         } = result.data;
+
+        // Moderate content
+        const contentCheck = moderateContent(content);
+        if (contentCheck.flagged) {
+            return NextResponse.json({ error: 'Review contains inappropriate content.' }, { status: 400 });
+        }
+
+        if (title) {
+            const titleCheck = moderateContent(title);
+            if (titleCheck.flagged) {
+                return NextResponse.json({ error: 'Review title contains inappropriate content.' }, { status: 400 });
+            }
+        }
 
         const review = await createReview({
             classId,

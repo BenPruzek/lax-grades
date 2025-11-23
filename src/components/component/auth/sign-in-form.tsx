@@ -4,6 +4,11 @@ import { useState } from 'react';
 import { signIn, type SignInResponse } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Loader2 } from "lucide-react";
 
 export default function SignInForm() {
     const router = useRouter();
@@ -48,83 +53,84 @@ export default function SignInForm() {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
-            <div className="max-w-md w-full space-y-8 bg-white dark:bg-gray-800 p-10 rounded-xl shadow-lg">
-                <div className="text-center">
-                    <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white">Sign in to your account</h2>
-                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                        <Link href="/sign-up" className="text-red-600 hover:text-red-700 dark:text-red-400">
-                            create a new account
-                        </Link>
-                    </p>
-                </div>
-                <div className="mt-8 space-y-6">
-                    <button
+            <Card className="w-full max-w-md shadow-lg border-0 dark:border dark:border-gray-800">
+                <CardHeader className="space-y-1 text-center">
+                    <CardTitle className="text-2xl font-bold">Sign in</CardTitle>
+                    <CardDescription>
+                        Enter your credentials to access your account
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <Button
                         type="button"
+                        variant="outline"
                         onClick={handleGoogleSignIn}
                         disabled={isSubmitting}
-                        className="w-full flex justify-center items-center gap-2 py-2 px-4 border border-gray-300 dark:border-gray-700 text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+                        className="w-full"
                     >
-                        <span>Continue with Google</span>
-                    </button>
+                        <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
+                            <path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path>
+                        </svg>
+                        Continue with Google
+                    </Button>
 
-                    <div className="relative flex items-center">
-                        <div className="flex-grow border-t border-gray-300 dark:border-gray-700" />
-                        <span className="px-3 text-sm text-gray-500 dark:text-gray-400">or</span>
-                        <div className="flex-grow border-t border-gray-300 dark:border-gray-700" />
+                    <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t border-gray-200 dark:border-gray-700" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-white dark:bg-gray-950 px-2 text-gray-500 dark:text-gray-400">
+                                Or continue with
+                            </span>
+                        </div>
                     </div>
 
-                    <form className="space-y-6" onSubmit={onSubmit}>
-                        <div className="rounded-md shadow-sm -space-y-px">
-                            <div>
-                                <label htmlFor="email-address" className="sr-only">
-                                    Email address
-                                </label>
-                                <input
-                                    id="email-address"
-                                    name="email"
-                                    type="email"
-                                    autoComplete="email"
-                                    required
-                                    className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 placeholder-gray-500 text-gray-900 dark:text-gray-100 rounded-t-md focus:outline-none focus:ring-red-500 focus:border-red-500 focus:z-10 sm:text-sm"
-                                    placeholder="Email address"
-                                    disabled={isSubmitting}
-                                />
-                            </div>
-                            <div>
-                                <label htmlFor="password" className="sr-only">
-                                    Password
-                                </label>
-                                <input
-                                    id="password"
-                                    name="password"
-                                    type="password"
-                                    autoComplete="current-password"
-                                    required
-                                    className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 placeholder-gray-500 text-gray-900 dark:text-gray-100 rounded-b-md focus:outline-none focus:ring-red-500 focus:border-red-500 focus:z-10 sm:text-sm"
-                                    placeholder="Password"
-                                    disabled={isSubmitting}
-                                />
-                            </div>
-                        </div>
-
-                        {error ? (
-                            <p className="text-sm text-red-600 dark:text-red-400" role="alert">
-                                {error}
-                            </p>
-                        ) : null}
-
-                        <div>
-                            <button
-                                type="submit"
+                    <form onSubmit={onSubmit} className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="email">Email</Label>
+                            <Input
+                                id="email"
+                                name="email"
+                                type="email"
+                                placeholder="name@example.com"
+                                required
                                 disabled={isSubmitting}
-                                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                            >
-                                {isSubmitting ? 'Signing in…' : 'Sign in'}
-                            </button>
+                            />
                         </div>
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                                <Label htmlFor="password">Password</Label>
+                            </div>
+                            <Input
+                                id="password"
+                                name="password"
+                                type="password"
+                                required
+                                disabled={isSubmitting}
+                            />
+                        </div>
+
+                        {error && (
+                            <div className="p-3 text-sm text-red-500 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900 rounded-md">
+                                {error}
+                            </div>
+                        )}
+
+                        <Button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white" disabled={isSubmitting}>
+                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Sign in
+                        </Button>
                     </form>
-                </div>
-            </div>
+                </CardContent>
+                <CardFooter className="flex flex-col space-y-2 text-center text-sm text-gray-500 dark:text-gray-400">
+                    <div>
+                        Don&apos;t have an account?{" "}
+                        <Link href="/sign-up" className="text-red-600 hover:text-red-700 dark:text-red-400 font-medium hover:underline">
+                            Sign up
+                        </Link>
+                    </div>
+                </CardFooter>
+            </Card>
         </div>
     );
 }
