@@ -3,6 +3,12 @@ import { createReview } from '@/lib/data';
 import { NextResponse } from 'next/server';
 import { createReviewSchema } from '@/lib/validation/review-schema';
 import { moderateContent } from '@/lib/moderation';
+import rateLimit from '@/lib/rate-limit';
+
+const limiter = rateLimit({
+    interval: 60 * 1000, // 60 seconds
+    uniqueTokenPerInterval: 500, // Max 500 users per second
+});
 
 export async function POST(request: Request) {
     try {
@@ -10,6 +16,12 @@ export async function POST(request: Request) {
         
         if (!session?.user?.id) {
             return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+        }
+
+        try {
+            await limiter.check(5, session.user.id); // 5 requests per minute
+        } catch {
+            return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
         }
 
         const body = await request.json();

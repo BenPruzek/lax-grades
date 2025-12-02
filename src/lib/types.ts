@@ -68,6 +68,10 @@ export interface Review {
     attendanceMandatory?: boolean | null;
     grade?: string | null;
     tags: ReviewTagOption[];
+    likes: number;
+    dislikes: number;
+    score: number;
+    userVote?: 'LIKE' | 'DISLIKE' | null;
     createdAt: string;
     updatedAt: string;
     user: UserSummary;

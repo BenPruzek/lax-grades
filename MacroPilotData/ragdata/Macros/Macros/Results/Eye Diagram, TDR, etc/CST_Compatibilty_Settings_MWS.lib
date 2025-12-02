@@ -1,7 +1,0 @@
-'=============
-'
-Sub eye_CST_Settings(CSTSolver as object, CSTResultTree as Object)
-	Set CSTSolver = Solver
-	Set CSTResultTree = ResultTree
-End Sub
-

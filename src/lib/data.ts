@@ -104,7 +104,10 @@ export async function fetchDepartmentReviews(departmentId: number) {
         const reviews = await prisma.review.findMany({
             where: { departmentId },
             include: reviewInclude,
-            orderBy: { createdAt: 'desc' },
+            orderBy: [
+                { score: 'desc' },
+                { createdAt: 'desc' }
+            ],
         });
         return reviews.map(serializeReview);
     } catch (error) {
