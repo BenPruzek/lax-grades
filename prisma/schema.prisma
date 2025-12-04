@@ -83,6 +83,9 @@ model Review {
   courseCode    String
   isOnlineCourse Boolean   @default(false)
   difficulty    Int?
+  clarity             Int          @default(0)
+  workload            Int          @default(0)
+  support             Int          @default(0)
   wouldTakeAgain Boolean?
   attendanceMandatory Boolean?
   grade         String?
