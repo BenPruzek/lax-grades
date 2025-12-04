@@ -8,7 +8,18 @@ import Link from "next/link";
 import ClassDataCards from "./class-data-cards";
 import { GradePercentages } from "@/lib/types";
 
-export default function ClassFilterSelect({ classData, distributions }: { classData: any; distributions: any[] }) {
+// 1. Update props to accept the scores
+export default function ClassFilterSelect({ 
+    classData, 
+    distributions,
+    qualityScore,
+    intensityScore 
+}: { 
+    classData: any; 
+    distributions: any[];
+    qualityScore: string;
+    intensityScore: string;
+}) {
     const router = useRouter();
     const [selectedInstructor, setSelectedInstructor] = useState<number | null>(null);
     const [selectedSemester, setSelectedSemester] = useState<string | null>(null);
@@ -109,6 +120,43 @@ export default function ClassFilterSelect({ classData, distributions }: { classD
                         </SelectContent>
                     </Select>
                 </div>
+
+                {/* --- 2. NEW SCORE CARDS SECTION (Below Dropdowns) --- */}
+                <div className="mt-8 space-y-4 border-t border-gray-200 dark:border-zinc-800 pt-6">
+                    {/* Quality Card */}
+                    <div className="p-4 bg-[#f6f6ef] dark:bg-zinc-900 border border-transparent rounded-lg">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Quality</h3>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Clarity & Support</p>
+                            </div>
+                            <div className="text-right">
+                                <span className={`text-3xl font-bold ${qualityScore !== "N/A" && Number(qualityScore) >= 4 ? "text-emerald-600 dark:text-emerald-400" : "text-gray-900 dark:text-white"}`}>
+                                    {qualityScore}
+                                </span>
+                                <span className="text-xs text-gray-400 ml-1">/5</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Intensity Card */}
+                    <div className="p-4 bg-[#f6f6ef] dark:bg-zinc-900 border border-transparent rounded-lg">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Intensity</h3>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Difficulty & Workload</p>
+                            </div>
+                            <div className="text-right">
+                                <span className={`text-3xl font-bold ${intensityScore !== "N/A" && Number(intensityScore) >= 4 ? "text-red-600 dark:text-red-400" : "text-gray-900 dark:text-white"}`}>
+                                    {intensityScore}
+                                </span>
+                                <span className="text-xs text-gray-400 ml-1">/5</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {/* ---------------------------------------------------- */}
+
             </div>
             <div className="mt-6 lg:mt-0 lg:col-span-3">
                 <div className="col-span-2">
