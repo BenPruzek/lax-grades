@@ -27,6 +27,25 @@ export default async function ClassPage({ params, searchParams }: {
   // Fetch reviews for this class
   const reviews = await fetchClassReviews(classData.id);
 
+  // --- NEW LOGIC START ---
+  // 1. Extract all instructors from the distribution data
+  const allInstructors = distributions
+    .map((d) => d.instructor)
+    .filter((i): i is NonNullable<typeof i> => i !== null && i !== undefined);
+
+  // 2. Remove duplicates (instructors teach multiple semesters, so they appear multiple times)
+  const uniqueInstructors = Array.from(
+    new Map(allInstructors.map((item) => [item.id, item])).values()
+  );
+
+  // 3. Format for the dropdown
+  const availableInstructors = uniqueInstructors.map((i) => ({
+    id: i.id,
+    name: i.name,
+  })).sort((a, b) => a.name.localeCompare(b.name)); // Sort alphabetically
+  // --- NEW LOGIC END ---
+
+  // Default instructor ID (keep existing logic for fallback)
   const instructorId = distributions.find((distribution) => distribution.instructor)?.instructor?.id ?? 0;
 
   return (
@@ -54,6 +73,8 @@ export default async function ClassPage({ params, searchParams }: {
             departmentId={classData.department.id}
             classCode={classData.code}
             initialReviews={reviews}
+            // PASS THE LIST HERE
+            availableInstructors={availableInstructors}
           />
         </div>
       </div>
