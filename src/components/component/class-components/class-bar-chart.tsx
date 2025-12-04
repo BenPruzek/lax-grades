@@ -21,7 +21,8 @@ export default function ClassBarChart({ data, selectedInstructor, selectedSemest
     }
 
     return (
-        <div {...props}>
+        // 1. Added text color classes here so the chart has a color to inherit
+        <div {...props} className={`text-gray-600 dark:text-gray-400 ${props.className || ''}`}>
             <ResponsiveBar
                 data={data}
                 keys={keys}
@@ -42,6 +43,14 @@ export default function ClassBarChart({ data, selectedInstructor, selectedSemest
                 }}
                 gridYValues={4}
                 theme={{
+                    // 2. This tells the chart to use the parent's text color
+                    axis: {
+                        ticks: {
+                            text: {
+                                fill: "currentColor" 
+                            }
+                        }
+                    },
                     tooltip: {
                         chip: {
                             borderRadius: "9999px",
@@ -50,11 +59,14 @@ export default function ClassBarChart({ data, selectedInstructor, selectedSemest
                             fontSize: "12px",
                             textTransform: "capitalize",
                             borderRadius: "6px",
+                            // Force tooltip text to be black since the background is light (#f6f6ef)
+                            color: "#000000" 
                         },
                     },
                     grid: {
                         line: {
-                            stroke: "#f3f4f6",
+                            stroke: "#f3f4f6", // You might want to darken this for dark mode too if lines are invisible
+                            strokeOpacity: 0.5
                         },
                     },
                 }}
