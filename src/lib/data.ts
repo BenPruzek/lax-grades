@@ -43,6 +43,15 @@ function serializeReview(review: ReviewWithRelations): ReviewType {
         courseCode: review.courseCode,
         isOnlineCourse: review.isOnlineCourse,
         difficulty: review.difficulty ?? null,
+        
+        // --- ADDED NEW METRICS HERE ---
+        // Note: You might get a red squiggly line here if you haven't updated 'types.ts' yet.
+        // We will fix that in the next step.
+        clarity: review.clarity,
+        workload: review.workload,
+        support: review.support,
+        // ------------------------------
+
         wouldTakeAgain: review.wouldTakeAgain ?? null,
         attendanceMandatory: review.attendanceMandatory ?? null,
         grade: review.grade ?? null,
@@ -116,6 +125,7 @@ export async function fetchDepartmentReviews(departmentId: number) {
     }
 }
 
+// --- UPDATED CREATE FUNCTION ---
 export async function createReview({
     classId,
     instructorId,
@@ -127,6 +137,11 @@ export async function createReview({
     courseCode,
     isOnlineCourse,
     difficulty,
+    // New Arguments
+    clarity,
+    workload,
+    support,
+    // -------------
     wouldTakeAgain,
     attendanceMandatory,
     grade,
@@ -142,6 +157,11 @@ export async function createReview({
     courseCode: string;
     isOnlineCourse: boolean;
     difficulty?: number | null;
+    // New Types
+    clarity: number;
+    workload: number;
+    support: number;
+    // ---------
     wouldTakeAgain?: boolean | null;
     attendanceMandatory?: boolean | null;
     grade?: string | null;
@@ -160,6 +180,12 @@ export async function createReview({
                 courseCode,
                 isOnlineCourse,
                 difficulty: difficulty ?? null,
+                
+                // Saving new metrics to Database
+                clarity,
+                workload,
+                support,
+                
                 wouldTakeAgain: wouldTakeAgain ?? null,
                 attendanceMandatory: attendanceMandatory ?? null,
                 grade: grade ?? null,
