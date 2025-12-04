@@ -5,26 +5,48 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { REVIEW_TAG_OPTIONS, GRADE_OPTIONS } from '@/lib/review-constants';
 
+// 1. Define what an Instructor looks like
+interface InstructorOption {
+    id: number;
+    name: string;
+}
+
 interface ReviewFormProps {
     classId: number;
-    instructorId: number;
+    // We make this optional now, because the user might select it in the form
+    instructorId?: number; 
     departmentId: number;
     classCode: string;
+    // 2. Add this prop to receive the list of professors
+    availableInstructors?: InstructorOption[]; 
     onSuccess?: () => void;
 }
 
 const MAX_TAG_SELECTION = 3;
 const MAX_CONTENT_LENGTH = 350;
 
-export default function ReviewForm({ classId, instructorId, departmentId, classCode, onSuccess }: ReviewFormProps) {
+export default function ReviewForm({ 
+    classId, 
+    instructorId, 
+    departmentId, 
+    classCode, 
+    availableInstructors = [], // Default to empty list if not provided
+    onSuccess 
+}: ReviewFormProps) {
     const { data: session } = useSession();
     const router = useRouter();
+    
+    // 3. State for the selected instructor
+    // If an instructorId was passed in props (pre-selected), use it. Otherwise, empty.
+    const [selectedInstructorId, setSelectedInstructorId] = useState<string>(
+        instructorId ? instructorId.toString() : ''
+    );
+
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [courseCode, setCourseCode] = useState(classCode);
     const [isOnlineCourse, setIsOnlineCourse] = useState(false);
     
-    // Existing State
     const [difficulty, setDifficulty] = useState('');
     const [wouldTakeAgain, setWouldTakeAgain] = useState('');
     const [attendanceMandatory, setAttendanceMandatory] = useState('');
@@ -32,11 +54,9 @@ export default function ReviewForm({ classId, instructorId, departmentId, classC
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
     const [contentLength, setContentLength] = useState(0);
 
-    // --- NEW: Quality Triad State ---
     const [clarity, setClarity] = useState('');
     const [workload, setWorkload] = useState('');
     const [support, setSupport] = useState('');
-    // -------------------------------
 
     useEffect(() => {
         setCourseCode(classCode);
@@ -45,22 +65,13 @@ export default function ReviewForm({ classId, instructorId, departmentId, classC
     const handleTagToggle = (tag: string) => {
         setSelectedTags((prev) => {
             if (prev.includes(tag)) {
-                const updated = prev.filter((item) => item !== tag);
-                if (error && error.includes('3 tags')) {
-                    setError(null);
-                }
-                return updated;
+                return prev.filter((item) => item !== tag);
             }
-
             if (prev.length >= MAX_TAG_SELECTION) {
                 setError('You can select up to 3 tags.');
                 return prev;
             }
-
-            if (error && error.includes('3 tags')) {
-                setError(null);
-            }
-
+            setError(null);
             return [...prev, tag];
         });
     };
@@ -98,7 +109,6 @@ export default function ReviewForm({ classId, instructorId, departmentId, classC
         const trimmedContent = content.trim();
         const difficultyValue = parseInt(difficulty, 10);
         
-        // Convert New Metrics
         const clarityValue = parseInt(clarity, 10);
         const workloadValue = parseInt(workload, 10);
         const supportValue = parseInt(support, 10);
@@ -107,7 +117,14 @@ export default function ReviewForm({ classId, instructorId, departmentId, classC
         const attendanceValue = attendanceMandatory === '' ? null : attendanceMandatory === 'yes';
         const gradeValue = grade || null;
 
-        // --- VALIDATION UPDATES ---
+        // 4. Validate that an instructor is selected
+        const finalInstructorId = parseInt(selectedInstructorId, 10);
+        if (!finalInstructorId || isNaN(finalInstructorId)) {
+            setError('Please select an instructor.');
+            setIsSubmitting(false);
+            return;
+        }
+
         if (!trimmedCourseCode) {
             setError('Please select a course code.');
             setIsSubmitting(false);
@@ -120,13 +137,12 @@ export default function ReviewForm({ classId, instructorId, departmentId, classC
             return;
         }
 
-        if (!difficulty || Number.isNaN(difficultyValue) || difficultyValue < 1 || difficultyValue > 5) {
+        if (!difficulty || Number.isNaN(difficultyValue)) {
             setError('Please rate the difficulty.');
             setIsSubmitting(false);
             return;
         }
 
-        // New Metric Validation
         if (!clarity || !workload || !support) {
             setError('Please complete the Clarity, Workload, and Support ratings.');
             setIsSubmitting(false);
@@ -163,7 +179,7 @@ export default function ReviewForm({ classId, instructorId, departmentId, classC
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     classId,
-                    instructorId,
+                    instructorId: finalInstructorId, // Use the selected ID
                     departmentId,
                     title: title || null,
                     rating,
@@ -171,13 +187,9 @@ export default function ReviewForm({ classId, instructorId, departmentId, classC
                     courseCode: trimmedCourseCode,
                     isOnlineCourse,
                     difficulty: difficultyValue,
-                    
-                    // --- SEND NEW METRICS ---
                     clarity: clarityValue,
                     workload: workloadValue,
                     support: supportValue,
-                    // ------------------------
-
                     wouldTakeAgain: wouldTakeAgainValue,
                     attendanceMandatory: attendanceValue,
                     grade: gradeValue,
@@ -191,9 +203,7 @@ export default function ReviewForm({ classId, instructorId, departmentId, classC
                 return;
             }
 
-            // Reset form
             (event.target as HTMLFormElement).reset();
-            // Reset states manually to clear dropdowns
             setClarity('');
             setWorkload('');
             setSupport('');
@@ -202,6 +212,8 @@ export default function ReviewForm({ classId, instructorId, departmentId, classC
             setAttendanceMandatory('');
             setGrade('');
             setSelectedTags([]);
+            // Don't reset selectedInstructorId intentionally, user might want to review same prof? 
+            // Or reset it if you prefer: setSelectedInstructorId('');
             
             onSuccess?.();
         } catch (submitError) {
@@ -216,9 +228,38 @@ export default function ReviewForm({ classId, instructorId, departmentId, classC
         <form onSubmit={handleSubmit} className="space-y-6 p-6 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Write a Review</h3>
 
+            {/* 5. NEW: Instructor Dropdown */}
+            {availableInstructors.length > 0 ? (
+                <div>
+                    <label htmlFor="instructor" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Select Instructor *
+                    </label>
+                    <select
+                        id="instructor"
+                        value={selectedInstructorId}
+                        onChange={(e) => setSelectedInstructorId(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 dark:bg-gray-800 dark:text-gray-100"
+                        disabled={isSubmitting}
+                        required
+                    >
+                        <option value="">-- Choose an Instructor --</option>
+                        {availableInstructors.map((inst) => (
+                            <option key={inst.id} value={inst.id}>
+                                {inst.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            ) : (
+                // Fallback if no list provided (e.g. if parent component isn't updated yet)
+                <div className="text-sm text-gray-500 italic">
+                    Reviewing for: {courseCode} (Instructor selection unavailable)
+                </div>
+            )}
+
             <div>
                 <label htmlFor="courseCode" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Select Course Code *
+                    Confirm Course Code *
                 </label>
                 <input
                     id="courseCode"
@@ -246,24 +287,22 @@ export default function ReviewForm({ classId, instructorId, departmentId, classC
                 </label>
             </div>
 
-            {/* --- NEW QUALITY TRIAD SECTION --- */}
+            {/* Quality Triad Section */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
                 <h4 className="col-span-1 md:col-span-2 text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Detailed Ratings</h4>
                 
-                {/* Clarity */}
                 <div>
                     <label htmlFor="clarity" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Clarity of Instruction *</label>
                     <select id="clarity" value={clarity} onChange={(e) => setClarity(e.target.value)} disabled={isSubmitting} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-red-500 dark:bg-gray-800 dark:text-gray-100">
                         <option value="">Select...</option>
                         <option value="5">5 - Crystal Clear</option>
-                        <option value="4">4 - Good</option>
+                        <option value="4">4 - Clear</option>
                         <option value="3">3 - Average</option>
                         <option value="2">2 - Confusing</option>
                         <option value="1">1 - Unintelligible</option>
                     </select>
                 </div>
 
-                {/* Workload */}
                 <div>
                     <label htmlFor="workload" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Workload Volume *</label>
                     <select id="workload" value={workload} onChange={(e) => setWorkload(e.target.value)} disabled={isSubmitting} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-red-500 dark:bg-gray-800 dark:text-gray-100">
@@ -276,7 +315,6 @@ export default function ReviewForm({ classId, instructorId, departmentId, classC
                     </select>
                 </div>
 
-                {/* Support */}
                 <div>
                     <label htmlFor="support" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Instructor Support *</label>
                     <select id="support" value={support} onChange={(e) => setSupport(e.target.value)} disabled={isSubmitting} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-red-500 dark:bg-gray-800 dark:text-gray-100">
@@ -289,7 +327,6 @@ export default function ReviewForm({ classId, instructorId, departmentId, classC
                     </select>
                 </div>
 
-                {/* Difficulty (Moved here for better grouping) */}
                 <div>
                     <label htmlFor="difficulty" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Course Difficulty *</label>
                     <select id="difficulty" name="difficulty" value={difficulty} onChange={(event) => setDifficulty(event.target.value)} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-red-500 dark:bg-gray-800 dark:text-gray-100" disabled={isSubmitting} required>
@@ -302,19 +339,12 @@ export default function ReviewForm({ classId, instructorId, departmentId, classC
                     </select>
                 </div>
             </div>
-            {/* ------------------------------------- */}
 
             <div>
                 <label htmlFor="rating" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Overall rating *
                 </label>
-                <select
-                    id="rating"
-                    name="rating"
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 dark:bg-gray-800 dark:text-gray-100"
-                    disabled={isSubmitting}
-                >
+                <select id="rating" name="rating" required className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 dark:bg-gray-800 dark:text-gray-100" disabled={isSubmitting}>
                     <option value="">Select a rating</option>
                     <option value="5">5 - Awesome</option>
                     <option value="4">4 - Good</option>
@@ -328,27 +358,11 @@ export default function ReviewForm({ classId, instructorId, departmentId, classC
                 <legend className="text-sm font-medium text-gray-700 dark:text-gray-300">Would you choose this instructor again? *</legend>
                 <div className="flex gap-4">
                     <label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                        <input
-                            type="radio"
-                            name="wouldTakeAgain"
-                            value="yes"
-                            checked={wouldTakeAgain === 'yes'}
-                            onChange={(event) => setWouldTakeAgain(event.target.value)}
-                            disabled={isSubmitting}
-                            className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300"
-                        />
+                        <input type="radio" name="wouldTakeAgain" value="yes" checked={wouldTakeAgain === 'yes'} onChange={(event) => setWouldTakeAgain(event.target.value)} disabled={isSubmitting} className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300" />
                         Yes
                     </label>
                     <label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                        <input
-                            type="radio"
-                            name="wouldTakeAgain"
-                            value="no"
-                            checked={wouldTakeAgain === 'no'}
-                            onChange={(event) => setWouldTakeAgain(event.target.value)}
-                            disabled={isSubmitting}
-                            className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300"
-                        />
+                        <input type="radio" name="wouldTakeAgain" value="no" checked={wouldTakeAgain === 'no'} onChange={(event) => setWouldTakeAgain(event.target.value)} disabled={isSubmitting} className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300" />
                         No
                     </label>
                 </div>
@@ -358,27 +372,11 @@ export default function ReviewForm({ classId, instructorId, departmentId, classC
                 <legend className="text-sm font-medium text-gray-700 dark:text-gray-300">Was attendance required?</legend>
                 <div className="flex gap-4">
                     <label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                        <input
-                            type="radio"
-                            name="attendanceMandatory"
-                            value="yes"
-                            checked={attendanceMandatory === 'yes'}
-                            onChange={(event) => setAttendanceMandatory(event.target.value)}
-                            disabled={isSubmitting}
-                            className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300"
-                        />
+                        <input type="radio" name="attendanceMandatory" value="yes" checked={attendanceMandatory === 'yes'} onChange={(event) => setAttendanceMandatory(event.target.value)} disabled={isSubmitting} className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300" />
                         Yes
                     </label>
                     <label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                        <input
-                            type="radio"
-                            name="attendanceMandatory"
-                            value="no"
-                            checked={attendanceMandatory === 'no'}
-                            onChange={(event) => setAttendanceMandatory(event.target.value)}
-                            disabled={isSubmitting}
-                            className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300"
-                        />
+                        <input type="radio" name="attendanceMandatory" value="no" checked={attendanceMandatory === 'no'} onChange={(event) => setAttendanceMandatory(event.target.value)} disabled={isSubmitting} className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300" />
                         No
                     </label>
                 </div>
@@ -388,14 +386,7 @@ export default function ReviewForm({ classId, instructorId, departmentId, classC
                 <label htmlFor="grade" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Grade received (optional)
                 </label>
-                <select
-                    id="grade"
-                    name="grade"
-                    value={grade}
-                    onChange={(event) => setGrade(event.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 dark:bg-gray-800 dark:text-gray-100"
-                    disabled={isSubmitting}
-                >
+                <select id="grade" name="grade" value={grade} onChange={(event) => setGrade(event.target.value)} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 dark:bg-gray-800 dark:text-gray-100" disabled={isSubmitting}>
                     <option value="">Select grade</option>
                     {GRADE_OPTIONS.map((option) => (
                         <option key={option} value={option}>
@@ -411,17 +402,7 @@ export default function ReviewForm({ classId, instructorId, departmentId, classC
                     {REVIEW_TAG_OPTIONS.map((tag) => {
                         const isSelected = selectedTags.includes(tag);
                         return (
-                            <button
-                                key={tag}
-                                type="button"
-                                onClick={() => handleTagToggle(tag)}
-                                disabled={isSubmitting && !isSelected}
-                                className={`px-3 py-1.5 text-xs font-medium rounded-full border transition ${
-                                    isSelected
-                                        ? 'bg-red-600 text-white border-red-600'
-                                        : 'bg-white text-gray-700 border-gray-300 dark:bg-gray-900 dark:text-gray-200 dark:border-gray-700'
-                                }`}
-                            >
+                            <button key={tag} type="button" onClick={() => handleTagToggle(tag)} disabled={isSubmitting && !isSelected} className={`px-3 py-1.5 text-xs font-medium rounded-full border transition ${isSelected ? 'bg-red-600 text-white border-red-600' : 'bg-white text-gray-700 border-gray-300 dark:bg-gray-900 dark:text-gray-200 dark:border-gray-700'}`}>
                                 {tag}
                             </button>
                         );
@@ -430,61 +411,26 @@ export default function ReviewForm({ classId, instructorId, departmentId, classC
             </div>
 
             <div>
-                <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Title (optional)
-                </label>
-                <input
-                    id="title"
-                    name="title"
-                    type="text"
-                    maxLength={100}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 dark:bg-gray-800 dark:text-gray-100"
-                    placeholder="Brief summary of your experience"
-                    disabled={isSubmitting}
-                />
+                <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Title (optional)</label>
+                <input id="title" name="title" type="text" maxLength={100} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 dark:bg-gray-800 dark:text-gray-100" placeholder="Brief summary of your experience" disabled={isSubmitting} />
             </div>
 
             <div>
-                <label htmlFor="content" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Share your experience *
-                </label>
-                <textarea
-                    id="content"
-                    name="content"
-                    rows={6}
-                    required
-                    maxLength={MAX_CONTENT_LENGTH}
-                    onChange={handleContentChange}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 dark:bg-gray-800 dark:text-gray-100"
-                    placeholder="Focus on the instructor's teaching style, clarity, and the pace of the course"
-                    disabled={isSubmitting}
-                />
+                <label htmlFor="content" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Share your experience *</label>
+                <textarea id="content" name="content" rows={6} required maxLength={MAX_CONTENT_LENGTH} onChange={handleContentChange} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 dark:bg-gray-800 dark:text-gray-100" placeholder="Focus on the instructor's teaching style, clarity, and the pace of the course" disabled={isSubmitting} />
                 <div className="mt-1 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
                     <span>{contentLength}/{MAX_CONTENT_LENGTH}</span>
                     <span className="text-right">Keep it constructive, specific, and respectful.</span>
                 </div>
-                <ul className="mt-2 text-xs text-gray-500 dark:text-gray-400 space-y-1 list-disc list-inside">
-                    <li>Point to concrete examples that future students will find useful.</li>
-                    <li>Avoid personal attacks or language you wouldn&apos;t share in person.</li>
-                    <li>Give your review a quick proofread before submitting.</li>
-                </ul>
             </div>
 
-            {error && (
-                <p className="text-sm text-red-600 dark:text-red-400" role="alert">
-                    {error}
-                </p>
-            )}
+            {error && <p className="text-sm text-red-600 dark:text-red-400" role="alert">{error}</p>}
 
             <p className="text-xs text-gray-500 dark:text-gray-400">
                 By submitting, you confirm that your feedback aligns with the LAX Grades community guidelines and terms of use.
             </p>
 
-            <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+            <button type="submit" disabled={isSubmitting} className="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed">
                 {isSubmitting ? 'Submitting...' : 'Submit Rating'}
             </button>
         </form>
