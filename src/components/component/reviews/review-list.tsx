@@ -2,7 +2,8 @@ import type { Review } from '@/lib/types';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Lock, ThumbsUp, ThumbsDown } from 'lucide-react';
+// 1. Import Trash2 icon
+import { Lock, ThumbsUp, ThumbsDown, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -11,6 +12,36 @@ export default function ReviewList({ reviews: initialReviews }: { reviews: Revie
     const router = useRouter();
     const isAuthenticated = !!session;
     const [reviews, setReviews] = useState(initialReviews);
+
+    // 2. New Delete Handler
+    const handleDelete = async (reviewId: number) => {
+        // Simple confirmation dialog
+        if (!confirm("Are you sure you want to delete this review? This cannot be undone.")) {
+            return;
+        }
+
+        // Optimistic update: Remove from UI immediately
+        setReviews(prev => prev.filter(r => r.id !== reviewId));
+
+        try {
+            const response = await fetch(`/api/reviews/${reviewId}`, {
+                method: 'DELETE',
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.error || 'Failed to delete');
+            }
+            
+            // Refresh to ensure data consistency
+            router.refresh();
+        } catch (error) {
+            console.error("Delete failed:", error);
+            alert("Failed to delete review.");
+            // Optional: Revert state if you want strictly robust optimistic UI, 
+            // but for deletion, usually just showing an error is fine.
+        }
+    };
 
     const handleVote = async (reviewId: number, type: 'LIKE' | 'DISLIKE') => {
         if (!isAuthenticated) {
@@ -62,8 +93,6 @@ export default function ReviewList({ reviews: initialReviews }: { reviews: Revie
             }
         } catch (error) {
             console.error('Vote failed:', error);
-            // Revert optimistic update (optional, but good practice)
-            // For now we just log error
         }
     };
 
@@ -75,12 +104,15 @@ export default function ReviewList({ reviews: initialReviews }: { reviews: Revie
         );
     }
 
-    const visibleReviews = isAuthenticated ? reviews : reviews.slice(0, 3); // Show a few more blurred out
+    const visibleReviews = isAuthenticated ? reviews : reviews.slice(0, 3);
 
     return (
         <div className="space-y-4 relative">
             {visibleReviews.map((review, index) => {
                 const isBlurred = !isAuthenticated && index > 0;
+                // 3. Check ownership
+                // NextAuth IDs are strings, Prisma IDs are numbers (based on your schema)
+                const isOwner = session?.user?.id && parseInt(session.user.id) === review.user.id;
                 
                 return (
                     <article 
@@ -97,13 +129,28 @@ export default function ReviewList({ reviews: initialReviews }: { reviews: Revie
                                     {review.courseCode} • {review.instructor.name} • {review.isOnlineCourse ? 'Online' : 'In-person'}
                                 </p>
                             </div>
-                            <time className="text-sm text-gray-500 dark:text-gray-400">
-                                {new Date(review.createdAt).toLocaleDateString('en-US', {
-                                    year: 'numeric',
-                                    month: 'short',
-                                    day: 'numeric',
-                                })}
-                            </time>
+                            
+                            <div className="flex items-center gap-3">
+                                <time className="text-sm text-gray-500 dark:text-gray-400">
+                                    {new Date(review.createdAt).toLocaleDateString('en-US', {
+                                        year: 'numeric',
+                                        month: 'short',
+                                        day: 'numeric',
+                                    })}
+                                </time>
+                                
+                                {/* 4. Render Delete Button if Owner */}
+                                {isOwner && (
+                                    <button
+                                        onClick={() => handleDelete(review.id)}
+                                        className="text-gray-400 hover:text-red-600 transition-colors p-1"
+                                        title="Delete review"
+                                        aria-label="Delete review"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                )}
+                            </div>
                         </header>
 
                         <dl className="grid gap-2 text-sm text-gray-700 dark:text-gray-300 sm:grid-cols-2">
