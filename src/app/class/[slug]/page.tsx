@@ -24,28 +24,43 @@ export default async function ClassPage({ params, searchParams }: {
     classData.department.id,
   );
 
-  // Fetch reviews for this class
+  // 1. Fetch reviews
   const reviews = await fetchClassReviews(classData.id);
 
-  // --- NEW LOGIC START ---
-  // 1. Extract all instructors from the distribution data
+  // 2. Calculate the Big Numbers
+  // If a specific instructor is selected in the filter, only use their reviews for the score
+  const activeReviews = instructor
+    ? reviews.filter((r) => r.instructor.id.toString() === instructor)
+    : reviews;
+
+  // Filter for reviews that actually have the new data (Clarity/Support/Workload > 0)
+  const validQualityReviews = activeReviews.filter((r) => r.clarity > 0 && r.support > 0);
+  const validIntensityReviews = activeReviews.filter((r) => r.workload > 0 && r.difficulty !== null);
+
+  // Math: Calculate Averages
+  const avgClarity = validQualityReviews.reduce((sum, r) => sum + r.clarity, 0) / (validQualityReviews.length || 1);
+  const avgSupport = validQualityReviews.reduce((sum, r) => sum + r.support, 0) / (validQualityReviews.length || 1);
+  const avgWorkload = validIntensityReviews.reduce((sum, r) => sum + r.workload, 0) / (validIntensityReviews.length || 1);
+  const avgDifficulty = validIntensityReviews.reduce((sum, r) => sum + (r.difficulty || 0), 0) / (validIntensityReviews.length || 1);
+
+  // Math: Create the "Big Numbers" (1 decimal place)
+  const qualityScore = validQualityReviews.length > 0 ? ((avgClarity + avgSupport) / 2).toFixed(1) : "N/A";
+  const intensityScore = validIntensityReviews.length > 0 ? ((avgWorkload + avgDifficulty) / 2).toFixed(1) : "N/A";
+
+  // 3. Logic for the Review Section (Dropdowns)
   const allInstructors = distributions
     .map((d) => d.instructor)
     .filter((i): i is NonNullable<typeof i> => i !== null && i !== undefined);
 
-  // 2. Remove duplicates (instructors teach multiple semesters, so they appear multiple times)
   const uniqueInstructors = Array.from(
     new Map(allInstructors.map((item) => [item.id, item])).values()
   );
 
-  // 3. Format for the dropdown
   const availableInstructors = uniqueInstructors.map((i) => ({
     id: i.id,
     name: i.name,
-  })).sort((a, b) => a.name.localeCompare(b.name)); // Sort alphabetically
-  // --- NEW LOGIC END ---
+  })).sort((a, b) => a.name.localeCompare(b.name));
 
-  // Default instructor ID (keep existing logic for fallback)
   const instructorId = distributions.find((distribution) => distribution.instructor)?.instructor?.id ?? 0;
 
   return (
@@ -61,11 +76,17 @@ export default async function ClassPage({ params, searchParams }: {
             {classData.code.slice(classData.code.search(/\d/))}
           </p>
         </div>
+        
         <div className="lg:grid lg:grid-cols-4 gap-16 mt-4">
-          <ClassFilterSelect classData={classData} distributions={distributions} />
+          {/* 4. Pass the scores to the Filter Component */}
+          <ClassFilterSelect 
+             classData={classData} 
+             distributions={distributions} 
+             qualityScore={qualityScore}
+             intensityScore={intensityScore}
+          />
         </div>
         
-        {/* Reviews Section */}
         <div className="mt-12">
           <ReviewsSection
             classId={classData.id}
@@ -73,7 +94,6 @@ export default async function ClassPage({ params, searchParams }: {
             departmentId={classData.department.id}
             classCode={classData.code}
             initialReviews={reviews}
-            // PASS THE LIST HERE
             availableInstructors={availableInstructors}
           />
         </div>
