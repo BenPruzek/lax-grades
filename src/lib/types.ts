@@ -63,7 +63,16 @@ export interface Review {
     content: string;
     courseCode: string;
     isOnlineCourse: boolean;
+    
+    // Existing Metric
     difficulty?: number | null;
+    
+    // --- NEW QUALITY METRICS ---
+    clarity: number;
+    workload: number;
+    support: number;
+    // ---------------------------
+
     wouldTakeAgain?: boolean | null;
     attendanceMandatory?: boolean | null;
     grade?: string | null;
