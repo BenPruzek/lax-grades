@@ -229,7 +229,7 @@ export default function ReviewList({ reviews: initialReviews }: { reviews: Revie
                             Join to see full reviews
                         </h3>
                         <p className="text-gray-600 dark:text-gray-300 mb-6">
-                            Sign up for free to read all reviews, ratings, and grade data from students.
+                            Sign up with your <span className="font-bold text-gray-900 dark:text-white">@uwlax.edu</span> email to read all reviews, ratings, and grade data.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-3 justify-center">
                             <Link href="/sign-up" className="w-full sm:w-auto">
