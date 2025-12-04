@@ -7,8 +7,9 @@ import ClassBarChart from "./class-bar-chart";
 import Link from "next/link";
 import ClassDataCards from "./class-data-cards";
 import { GradePercentages } from "@/lib/types";
+// 1. IMPORT THE NEW COMPONENT
+import { AnimatedScore } from "../../ui/animated-score"; 
 
-// 1. Update props to accept the scores
 export default function ClassFilterSelect({ 
     classData, 
     distributions,
@@ -121,7 +122,7 @@ export default function ClassFilterSelect({
                     </Select>
                 </div>
 
-                {/* --- 2. NEW SCORE CARDS SECTION (Below Dropdowns) --- */}
+                {/* --- SCORE CARDS (Now with Animation) --- */}
                 <div className="mt-8 space-y-4 border-t border-gray-200 dark:border-zinc-800 pt-6">
                     {/* Quality Card */}
                     <div className="p-4 bg-[#f6f6ef] dark:bg-zinc-900 border border-transparent rounded-lg">
@@ -131,9 +132,8 @@ export default function ClassFilterSelect({
                                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Clarity & Support</p>
                             </div>
                             <div className="text-right">
-                                <span className={`text-3xl font-bold ${qualityScore !== "N/A" && Number(qualityScore) >= 4 ? "text-emerald-600 dark:text-emerald-400" : "text-gray-900 dark:text-white"}`}>
-                                    {qualityScore}
-                                </span>
+                                {/* 2. USE THE ANIMATED COMPONENT */}
+                                <AnimatedScore value={qualityScore} />
                                 <span className="text-xs text-gray-400 ml-1">/5</span>
                             </div>
                         </div>
@@ -147,15 +147,14 @@ export default function ClassFilterSelect({
                                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Difficulty & Workload</p>
                             </div>
                             <div className="text-right">
-                                <span className={`text-3xl font-bold ${intensityScore !== "N/A" && Number(intensityScore) >= 4 ? "text-red-600 dark:text-red-400" : "text-gray-900 dark:text-white"}`}>
-                                    {intensityScore}
-                                </span>
+                                {/* 2. USE THE ANIMATED COMPONENT */}
+                                <AnimatedScore value={intensityScore} />
                                 <span className="text-xs text-gray-400 ml-1">/5</span>
                             </div>
                         </div>
                     </div>
                 </div>
-                {/* ---------------------------------------------------- */}
+                {/* -------------------------------------- */}
 
             </div>
             <div className="mt-6 lg:mt-0 lg:col-span-3">
