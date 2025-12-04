@@ -25,9 +25,14 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json();
+        
+        // NOTE: You must update createReviewSchema in 'src/lib/validation/review-schema.ts'
+        // to include clarity, workload, and support, or this check will fail!
         const result = createReviewSchema.safeParse(body);
 
         if (!result.success) {
+            // Log the error so you can see if it's the schema rejecting the new fields
+            console.error("Validation failed:", result.error); 
             return NextResponse.json({ error: 'Invalid input.' }, { status: 400 });
         }
 
@@ -41,6 +46,11 @@ export async function POST(request: Request) {
             courseCode,
             isOnlineCourse,
             difficulty,
+            // --- NEW METRICS ---
+            clarity,
+            workload,
+            support,
+            // -------------------
             wouldTakeAgain,
             attendanceMandatory,
             grade,
@@ -60,6 +70,8 @@ export async function POST(request: Request) {
             }
         }
 
+        // NOTE: You must update the createReview function in 'src/lib/data.ts'
+        // to accept these new arguments!
         const review = await createReview({
             classId,
             instructorId,
@@ -71,6 +83,11 @@ export async function POST(request: Request) {
             courseCode,
             isOnlineCourse,
             difficulty,
+            // --- PASS NEW METRICS TO DATABASE ---
+            clarity,
+            workload,
+            support,
+            // ------------------------------------
             wouldTakeAgain,
             attendanceMandatory,
             grade,
