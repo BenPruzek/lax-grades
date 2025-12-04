@@ -14,7 +14,16 @@ export const createReviewSchema = z.object({
     content: z.string().min(1).max(350),
     courseCode: z.string().min(1).max(20),
     isOnlineCourse: z.boolean(),
+    
+    // Existing Difficulty
     difficulty: z.number().int().min(1).max(5),
+
+    // --- NEW QUALITY METRICS ---
+    clarity: z.number().int().min(1).max(5),
+    workload: z.number().int().min(1).max(5),
+    support: z.number().int().min(1).max(5),
+    // ---------------------------
+
     wouldTakeAgain: z.boolean(),
     attendanceMandatory: z.boolean().nullable(),
     grade: z.string().max(20).nullable(),
