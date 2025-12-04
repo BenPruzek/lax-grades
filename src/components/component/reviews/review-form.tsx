@@ -23,12 +23,20 @@ export default function ReviewForm({ classId, instructorId, departmentId, classC
     const [error, setError] = useState<string | null>(null);
     const [courseCode, setCourseCode] = useState(classCode);
     const [isOnlineCourse, setIsOnlineCourse] = useState(false);
+    
+    // Existing State
     const [difficulty, setDifficulty] = useState('');
     const [wouldTakeAgain, setWouldTakeAgain] = useState('');
     const [attendanceMandatory, setAttendanceMandatory] = useState('');
     const [grade, setGrade] = useState('');
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
     const [contentLength, setContentLength] = useState(0);
+
+    // --- NEW: Quality Triad State ---
+    const [clarity, setClarity] = useState('');
+    const [workload, setWorkload] = useState('');
+    const [support, setSupport] = useState('');
+    // -------------------------------
 
     useEffect(() => {
         setCourseCode(classCode);
@@ -89,10 +97,17 @@ export default function ReviewForm({ classId, instructorId, departmentId, classC
         const trimmedCourseCode = courseCode.trim();
         const trimmedContent = content.trim();
         const difficultyValue = parseInt(difficulty, 10);
+        
+        // Convert New Metrics
+        const clarityValue = parseInt(clarity, 10);
+        const workloadValue = parseInt(workload, 10);
+        const supportValue = parseInt(support, 10);
+
         const wouldTakeAgainValue = wouldTakeAgain === 'yes';
         const attendanceValue = attendanceMandatory === '' ? null : attendanceMandatory === 'yes';
         const gradeValue = grade || null;
 
+        // --- VALIDATION UPDATES ---
         if (!trimmedCourseCode) {
             setError('Please select a course code.');
             setIsSubmitting(false);
@@ -107,6 +122,13 @@ export default function ReviewForm({ classId, instructorId, departmentId, classC
 
         if (!difficulty || Number.isNaN(difficultyValue) || difficultyValue < 1 || difficultyValue > 5) {
             setError('Please rate the difficulty.');
+            setIsSubmitting(false);
+            return;
+        }
+
+        // New Metric Validation
+        if (!clarity || !workload || !support) {
+            setError('Please complete the Clarity, Workload, and Support ratings.');
             setIsSubmitting(false);
             return;
         }
@@ -149,6 +171,13 @@ export default function ReviewForm({ classId, instructorId, departmentId, classC
                     courseCode: trimmedCourseCode,
                     isOnlineCourse,
                     difficulty: difficultyValue,
+                    
+                    // --- SEND NEW METRICS ---
+                    clarity: clarityValue,
+                    workload: workloadValue,
+                    support: supportValue,
+                    // ------------------------
+
                     wouldTakeAgain: wouldTakeAgainValue,
                     attendanceMandatory: attendanceValue,
                     grade: gradeValue,
@@ -164,6 +193,16 @@ export default function ReviewForm({ classId, instructorId, departmentId, classC
 
             // Reset form
             (event.target as HTMLFormElement).reset();
+            // Reset states manually to clear dropdowns
+            setClarity('');
+            setWorkload('');
+            setSupport('');
+            setDifficulty('');
+            setWouldTakeAgain('');
+            setAttendanceMandatory('');
+            setGrade('');
+            setSelectedTags([]);
+            
             onSuccess?.();
         } catch (submitError) {
             console.error('Review submission failed:', submitError);
@@ -207,6 +246,64 @@ export default function ReviewForm({ classId, instructorId, departmentId, classC
                 </label>
             </div>
 
+            {/* --- NEW QUALITY TRIAD SECTION --- */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+                <h4 className="col-span-1 md:col-span-2 text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Detailed Ratings</h4>
+                
+                {/* Clarity */}
+                <div>
+                    <label htmlFor="clarity" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Clarity of Instruction *</label>
+                    <select id="clarity" value={clarity} onChange={(e) => setClarity(e.target.value)} disabled={isSubmitting} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-red-500 dark:bg-gray-800 dark:text-gray-100">
+                        <option value="">Select...</option>
+                        <option value="5">5 - Crystal Clear</option>
+                        <option value="4">4 - Good</option>
+                        <option value="3">3 - Average</option>
+                        <option value="2">2 - Confusing</option>
+                        <option value="1">1 - Unintelligible</option>
+                    </select>
+                </div>
+
+                {/* Workload */}
+                <div>
+                    <label htmlFor="workload" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Workload Volume *</label>
+                    <select id="workload" value={workload} onChange={(e) => setWorkload(e.target.value)} disabled={isSubmitting} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-red-500 dark:bg-gray-800 dark:text-gray-100">
+                        <option value="">Select...</option>
+                        <option value="5">5 - Very Light</option>
+                        <option value="4">4 - Light</option>
+                        <option value="3">3 - Moderate</option>
+                        <option value="2">2 - Heavy</option>
+                        <option value="1">1 - Extreme</option>
+                    </select>
+                </div>
+
+                {/* Support */}
+                <div>
+                    <label htmlFor="support" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Instructor Support *</label>
+                    <select id="support" value={support} onChange={(e) => setSupport(e.target.value)} disabled={isSubmitting} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-red-500 dark:bg-gray-800 dark:text-gray-100">
+                        <option value="">Select...</option>
+                        <option value="5">5 - Very Accessible</option>
+                        <option value="4">4 - Helpful</option>
+                        <option value="3">3 - Average</option>
+                        <option value="2">2 - Hard to Reach</option>
+                        <option value="1">1 - Ghosted Me</option>
+                    </select>
+                </div>
+
+                {/* Difficulty (Moved here for better grouping) */}
+                <div>
+                    <label htmlFor="difficulty" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Course Difficulty *</label>
+                    <select id="difficulty" name="difficulty" value={difficulty} onChange={(event) => setDifficulty(event.target.value)} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-red-500 dark:bg-gray-800 dark:text-gray-100" disabled={isSubmitting} required>
+                        <option value="">Select difficulty</option>
+                        <option value="1">1 - Very Easy</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5 - Very Difficult</option>
+                    </select>
+                </div>
+            </div>
+            {/* ------------------------------------- */}
+
             <div>
                 <label htmlFor="rating" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Overall rating *
@@ -224,28 +321,6 @@ export default function ReviewForm({ classId, instructorId, departmentId, classC
                     <option value="3">3 - Average</option>
                     <option value="2">2 - Poor</option>
                     <option value="1">1 - Awful</option>
-                </select>
-            </div>
-
-            <div>
-                <label htmlFor="difficulty" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    How challenging was the course? *
-                </label>
-                <select
-                    id="difficulty"
-                    name="difficulty"
-                    value={difficulty}
-                    onChange={(event) => setDifficulty(event.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 dark:bg-gray-800 dark:text-gray-100"
-                    disabled={isSubmitting}
-                    required
-                >
-                    <option value="">Select difficulty</option>
-                    <option value="1">1 - Very Easy</option>
-                    <option value="2">2</option>
-                    <option value="3">3</option>
-                    <option value="4">4</option>
-                    <option value="5">5 - Very Difficult</option>
                 </select>
             </div>
 
