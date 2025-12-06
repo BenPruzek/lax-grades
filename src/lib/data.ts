@@ -511,6 +511,38 @@ export async function fetchDepartmentInstructors(departmentName: string) {
     }
 }
 
+// --- NEW: Efficient Aggregation for Instructors ---
+export async function getInstructorAggregates(instructorId: number) {
+    try {
+        const aggregates = await prisma.review.aggregate({
+            where: { 
+                instructorId,
+                clarity: { gt: 0 }, // Only count new reviews
+            },
+            _avg: {
+                clarity: true,
+                support: true,
+                workload: true,
+                difficulty: true
+            },
+            _count: {
+                _all: true
+            }
+        });
+
+        return {
+            avgClarity: aggregates._avg.clarity || 0,
+            avgSupport: aggregates._avg.support || 0,
+            avgWorkload: aggregates._avg.workload || 0,
+            avgDifficulty: aggregates._avg.difficulty || 0,
+            count: aggregates._count._all
+        };
+    } catch (error) {
+        console.error('Failed to fetch instructor aggregates:', error);
+        return { avgClarity: 0, avgSupport: 0, avgWorkload: 0, avgDifficulty: 0, count: 0 };
+    }
+}
+
 export async function fetchDepartmentGrades(departmentId: number) {
     try {
         const departmentGrades = await prisma.distribution.findMany({
