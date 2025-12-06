@@ -2,10 +2,8 @@ import InstructorBarChart from "@/components/component/instructor-components/ins
 import InstructorHoverCards from "@/components/component/instructor-components/instructor-hover-cards";
 import InstructorDataCards from "@/components/component/instructor-components/intructor-data-cards";
 import Search from "@/components/component/search-components/search";
-// 1. Add getInstructorAggregates to imports
 import { getInstructorById, fetchInstructorClasses, getInstructorAggregates } from "@/lib/data";
 import { gradesOrder } from "@/lib/utils";
-// 2. Add AnimatedScore
 import { AnimatedScore } from "@/components/ui/animated-score";
 
 export default async function InstructorPage({ params }: { params: { id: string } }) {
@@ -16,10 +14,10 @@ export default async function InstructorPage({ params }: { params: { id: string 
 
     const instructorData = await fetchInstructorClasses(instructorId);
 
-    // 3. Fetch the Efficient Aggregates
+    // 1. Fetch the Efficient Aggregates
     const aggregates = await getInstructorAggregates(instructorId);
 
-    // 4. Calculate the Big Numbers
+    // 2. Calculate the Big Numbers
     const qualityScore = aggregates.count > 0 
         ? ((aggregates.avgClarity + aggregates.avgSupport) / 2).toFixed(1) 
         : "N/A";
@@ -61,7 +59,7 @@ export default async function InstructorPage({ params }: { params: { id: string 
                         </div>
                     </div>
 
-                    {/* --- 5. NEW: INSTRUCTOR SCORE CARDS --- */}
+                    {/* --- NEW SCORE CARDS --- */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* Quality Card */}
                         <div className="p-4 bg-[#f6f6ef] dark:bg-zinc-900 border border-transparent rounded-lg">
@@ -91,7 +89,7 @@ export default async function InstructorPage({ params }: { params: { id: string 
                             </div>
                         </div>
                     </div>
-                    {/* ------------------------------------- */}
+                    {/* --------------------- */}
 
                     <InstructorDataCards totalStudents={totalStudents} averageGPA={averageGPA} percentageA={percentageA} />
                 </div>
