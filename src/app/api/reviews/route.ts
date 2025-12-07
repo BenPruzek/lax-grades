@@ -19,19 +19,27 @@ export async function POST(request: Request) {
         }
 
         try {
-            await limiter.check(5, session.user.id); // 5 requests per minute
+            await limiter.check(5, session.user.id);
         } catch {
             return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
         }
 
         const body = await request.json();
         
-        // NOTE: You must update createReviewSchema in 'src/lib/validation/review-schema.ts'
-        // to include clarity, workload, and support, or this check will fail!
-        const result = createReviewSchema.safeParse(body);
+        // --- 1. THE AUTO-CALCULATION LOGIC ---
+        // Formula: (Clarity + Support) / 2
+        // We calculate this HERE so we can save it to the database 'rating' column.
+        const calculatedRating = Math.round((body.clarity + body.support) / 2);
+        // -------------------------------------
+
+        // 2. We inject this calculated number into the validation parser
+        // This tricks the system into thinking the user selected a star rating
+        const result = createReviewSchema.safeParse({
+            ...body,
+            rating: calculatedRating,
+        });
 
         if (!result.success) {
-            // Log the error so you can see if it's the schema rejecting the new fields
             console.error("Validation failed:", result.error); 
             return NextResponse.json({ error: 'Invalid input.' }, { status: 400 });
         }
@@ -41,16 +49,14 @@ export async function POST(request: Request) {
             instructorId,
             departmentId,
             title,
-            rating,
+            rating, // This now holds our calculated average
             content,
             courseCode,
             isOnlineCourse,
             difficulty,
-            // --- NEW METRICS ---
             clarity,
             workload,
             support,
-            // -------------------
             wouldTakeAgain,
             attendanceMandatory,
             grade,
@@ -70,24 +76,20 @@ export async function POST(request: Request) {
             }
         }
 
-        // NOTE: You must update the createReview function in 'src/lib/data.ts'
-        // to accept these new arguments!
         const review = await createReview({
             classId,
             instructorId,
             departmentId,
             userId: parseInt(session.user.id),
             title: title ?? null,
-            rating,
+            rating, 
             content,
             courseCode,
             isOnlineCourse,
             difficulty,
-            // --- PASS NEW METRICS TO DATABASE ---
             clarity,
             workload,
             support,
-            // ------------------------------------
             wouldTakeAgain,
             attendanceMandatory,
             grade,
