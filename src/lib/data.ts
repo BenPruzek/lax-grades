@@ -564,14 +564,24 @@ export async function fetchDepartmentGrades(departmentId: number) {
             },
         });
 
-// --- NEW: Efficient Aggregation for Departments ---
+        const parsedData = departmentGrades.map((item: (typeof departmentGrades)[number]) => ({
+            ...item,
+            gradePercentages: item.grades as { [key: string]: number },
+        }));
+
+        return parsedData;
+    } catch (error) {
+        console.error('Failed to fetch department grades:', error);
+        throw new Error('Failed to fetch department grades');
+    }
+}
+
+// --- NEW FUNCTION GOES HERE (OUTSIDE THE ONE ABOVE) ---
 export async function getDepartmentAggregates(departmentId: number) {
     try {
-        // This runs 1 fast query to get the math, instead of fetching all reviews
         const aggregates = await prisma.review.aggregate({
             where: { 
                 departmentId,
-                // Only count reviews that actually have the new data (avoiding 0s)
                 clarity: { gt: 0 },
             },
             _avg: {
@@ -594,19 +604,6 @@ export async function getDepartmentAggregates(departmentId: number) {
         };
     } catch (error) {
         console.error('Failed to fetch department aggregates:', error);
-        // Return zeros if anything fails so the UI doesn't crash
         return { avgClarity: 0, avgSupport: 0, avgWorkload: 0, avgDifficulty: 0, count: 0 };
-    }
-}
-
-        const parsedData = departmentGrades.map((item: (typeof departmentGrades)[number]) => ({
-            ...item,
-            gradePercentages: item.grades as { [key: string]: number },
-        }));
-
-        return parsedData;
-    } catch (error) {
-        console.error('Failed to fetch department grades:', error);
-        throw new Error('Failed to fetch department grades');
     }
 }

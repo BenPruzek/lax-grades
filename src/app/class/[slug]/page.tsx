@@ -28,26 +28,35 @@ export default async function ClassPage({ params, searchParams }: {
   const reviews = await fetchClassReviews(classData.id);
 
   // 2. Calculate the Big Numbers
-  // If a specific instructor is selected in the filter, only use their reviews for the score
+  // FIX: Convert both IDs to String to ensure "101" matches 101
   const activeReviews = instructor
-    ? reviews.filter((r) => r.instructor.id.toString() === instructor)
+    ? reviews.filter((r) => String(r.instructor.id) === String(instructor))
     : reviews;
 
-  // Filter for reviews that actually have the new data (Clarity/Support/Workload > 0)
-  const validQualityReviews = activeReviews.filter((r) => r.clarity > 0 && r.support > 0);
-  const validIntensityReviews = activeReviews.filter((r) => r.workload > 0 && r.difficulty !== null);
+  // FIX: Robust Filtering to ignore "Zombie" (Old) Reviews
+  // We check if values exist AND are greater than 0
+  const validQualityReviews = activeReviews.filter((r) => (r.clarity || 0) > 0 && (r.support || 0) > 0);
+  const validIntensityReviews = activeReviews.filter((r) => (r.workload || 0) > 0 && (r.difficulty || 0) > 0);
 
-  // Math: Calculate Averages
-  const avgClarity = validQualityReviews.reduce((sum, r) => sum + r.clarity, 0) / (validQualityReviews.length || 1);
-  const avgSupport = validQualityReviews.reduce((sum, r) => sum + r.support, 0) / (validQualityReviews.length || 1);
-  const avgWorkload = validIntensityReviews.reduce((sum, r) => sum + r.workload, 0) / (validIntensityReviews.length || 1);
+  // Calculate Averages
+  const avgClarity = validQualityReviews.reduce((sum, r) => sum + (r.clarity || 0), 0) / (validQualityReviews.length || 1);
+  const avgSupport = validQualityReviews.reduce((sum, r) => sum + (r.support || 0), 0) / (validQualityReviews.length || 1);
+  
+  const avgWorkload = validIntensityReviews.reduce((sum, r) => sum + (r.workload || 0), 0) / (validIntensityReviews.length || 1);
   const avgDifficulty = validIntensityReviews.reduce((sum, r) => sum + (r.difficulty || 0), 0) / (validIntensityReviews.length || 1);
 
-  // Math: Create the "Big Numbers" (1 decimal place)
+  // Create Big Numbers
+  // If no valid reviews, explicit "N/A"
   const qualityScore = validQualityReviews.length > 0 ? ((avgClarity + avgSupport) / 2).toFixed(1) : "N/A";
   const intensityScore = validIntensityReviews.length > 0 ? ((avgWorkload + avgDifficulty) / 2).toFixed(1) : "N/A";
 
-  // 3. Logic for the Review Section (Dropdowns)
+  // Debugging Log (Check your VS Code Terminal to see this!)
+  console.log(`--- DEBUG SCORES for ${instructor ? "Instructor " + instructor : "All"} ---`);
+  console.log(`Total Reviews: ${activeReviews.length}`);
+  console.log(`Valid Quality Reviews: ${validQualityReviews.length}`);
+  console.log(`Quality Score: ${qualityScore}`);
+
+  // 3. Logic for the Review Section
   const allInstructors = distributions
     .map((d) => d.instructor)
     .filter((i): i is NonNullable<typeof i> => i !== null && i !== undefined);
@@ -78,7 +87,6 @@ export default async function ClassPage({ params, searchParams }: {
         </div>
         
         <div className="lg:grid lg:grid-cols-4 gap-16 mt-4">
-          {/* 4. Pass the scores to the Filter Component */}
           <ClassFilterSelect 
              classData={classData} 
              distributions={distributions} 

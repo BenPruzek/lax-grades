@@ -11,22 +11,27 @@ export function AnimatedScore({ value }: { value: string }) {
   const previousValue = useRef(numericValue);
 
   useEffect(() => {
-    // If not a number or hasn't changed, don't animate
-    if (!isNumber || previousValue.current === numericValue) {
-        if (!isNumber) setDisplayValue(0);
+    // FIX: If it's not a number (N/A), reset everything to 0 and update the ref
+    if (!isNumber) {
+        setDisplayValue(0);
+        previousValue.current = 0; // <--- THIS WAS MISSING
+        return;
+    }
+
+    // If the value hasn't effectively changed, do nothing
+    if (previousValue.current === numericValue) {
         return;
     }
 
     const start = previousValue.current;
     const end = numericValue;
-    const duration = 1000; // 1 second animation speed
+    const duration = 1000;
     const startTime = performance.now();
 
     const animate = (currentTime: number) => {
       const elapsed = currentTime - startTime;
       const progress = Math.min(elapsed / duration, 1);
       
-      // "Ease Out" math makes the number slow down as it reaches the end
       const easeOut = 1 - Math.pow(1 - progress, 3);
 
       const current = start + (end - start) * easeOut;
@@ -35,7 +40,6 @@ export function AnimatedScore({ value }: { value: string }) {
       if (progress < 1) {
         requestAnimationFrame(animate);
       } else {
-        // Animation done
         setDisplayValue(end);
         previousValue.current = end;
       }
@@ -44,12 +48,11 @@ export function AnimatedScore({ value }: { value: string }) {
     requestAnimationFrame(animate);
   }, [numericValue, isNumber]);
 
-  // Dynamic Color Logic: Changes color as the number counts up/down
   const getColor = (val: number) => {
     if (!isNumber) return "text-gray-900 dark:text-white";
-    if (val >= 4.0) return "text-emerald-600 dark:text-emerald-400"; // Green for good
-    if (val >= 3.0) return "text-gray-900 dark:text-white"; // Black/White for average
-    return "text-red-600 dark:text-red-400"; // Red for intense/bad
+    if (val >= 4.0) return "text-emerald-600 dark:text-emerald-400";
+    if (val >= 3.0) return "text-gray-900 dark:text-white";
+    return "text-red-600 dark:text-red-400";
   };
 
   return (

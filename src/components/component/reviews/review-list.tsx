@@ -20,7 +20,7 @@ export default function ReviewList({ reviews: initialReviews }: { reviews: Revie
         setReviews(prev => prev.filter(r => r.id !== reviewId));
 
         try {
-            const response = await fetch(`/api/reviews/${reviewId}`, {
+            const response = await fetch(`/api/review/${reviewId}`, {
                 method: 'DELETE',
             });
 

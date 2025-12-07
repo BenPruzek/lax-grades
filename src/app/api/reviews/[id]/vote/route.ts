@@ -5,7 +5,7 @@ import { Prisma } from '@prisma/client';
 
 export async function POST(
     request: Request,
-    { params }: { params: { reviewId: string } }
+    { params }: { params: { id: string } }
 ) {
     const session = await getServerAuthSession();
     if (!session?.user?.id) {
@@ -13,7 +13,7 @@ export async function POST(
     }
 
     const userId = parseInt(session.user.id);
-    const reviewId = parseInt(params.reviewId);
+    const reviewId = parseInt(params.id);
 
     if (isNaN(reviewId)) {
         return NextResponse.json({ error: 'Invalid review ID' }, { status: 400 });
