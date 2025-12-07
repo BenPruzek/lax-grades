@@ -5,7 +5,6 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { REVIEW_TAG_OPTIONS, GRADE_OPTIONS } from '@/lib/review-constants';
 
-// 1. Define what an Instructor looks like
 interface InstructorOption {
     id: number;
     name: string;
@@ -13,12 +12,10 @@ interface InstructorOption {
 
 interface ReviewFormProps {
     classId: number;
-    // We make this optional now, because the user might select it in the form
-    instructorId?: number; 
+    instructorId?: number;
     departmentId: number;
     classCode: string;
-    // 2. Add this prop to receive the list of professors
-    availableInstructors?: InstructorOption[]; 
+    availableInstructors?: InstructorOption[];
     onSuccess?: () => void;
 }
 
@@ -30,14 +27,12 @@ export default function ReviewForm({
     instructorId, 
     departmentId, 
     classCode, 
-    availableInstructors = [], // Default to empty list if not provided
+    availableInstructors = [], 
     onSuccess 
 }: ReviewFormProps) {
     const { data: session } = useSession();
     const router = useRouter();
     
-    // 3. State for the selected instructor
-    // If an instructorId was passed in props (pre-selected), use it. Otherwise, empty.
     const [selectedInstructorId, setSelectedInstructorId] = useState<string>(
         instructorId ? instructorId.toString() : ''
     );
@@ -47,6 +42,7 @@ export default function ReviewForm({
     const [courseCode, setCourseCode] = useState(classCode);
     const [isOnlineCourse, setIsOnlineCourse] = useState(false);
     
+    // --- Removed "rating" state ---
     const [difficulty, setDifficulty] = useState('');
     const [wouldTakeAgain, setWouldTakeAgain] = useState('');
     const [attendanceMandatory, setAttendanceMandatory] = useState('');
@@ -103,7 +99,6 @@ export default function ReviewForm({
 
         const formData = new FormData(event.currentTarget);
         const title = (formData.get('title') as string) ?? '';
-        const rating = parseInt((formData.get('rating') as string) ?? '', 10);
         const content = (formData.get('content') as string) ?? '';
         const trimmedCourseCode = courseCode.trim();
         const trimmedContent = content.trim();
@@ -117,7 +112,7 @@ export default function ReviewForm({
         const attendanceValue = attendanceMandatory === '' ? null : attendanceMandatory === 'yes';
         const gradeValue = grade || null;
 
-        // 4. Validate that an instructor is selected
+        // Validation
         const finalInstructorId = parseInt(selectedInstructorId, 10);
         if (!finalInstructorId || isNaN(finalInstructorId)) {
             setError('Please select an instructor.');
@@ -131,12 +126,7 @@ export default function ReviewForm({
             return;
         }
 
-        if (!rating || rating < 1 || rating > 5) {
-            setError('Please select a rating between 1 and 5.');
-            setIsSubmitting(false);
-            return;
-        }
-
+        // --- UPDATED VALIDATION (Removed "Rating" check) ---
         if (!difficulty || Number.isNaN(difficultyValue)) {
             setError('Please rate the difficulty.');
             setIsSubmitting(false);
@@ -144,7 +134,7 @@ export default function ReviewForm({
         }
 
         if (!clarity || !workload || !support) {
-            setError('Please complete the Clarity, Workload, and Support ratings.');
+            setError('Please complete Clarity, Workload, and Support ratings.');
             setIsSubmitting(false);
             return;
         }
@@ -179,10 +169,10 @@ export default function ReviewForm({
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     classId,
-                    instructorId: finalInstructorId, // Use the selected ID
+                    instructorId: finalInstructorId,
                     departmentId,
                     title: title || null,
-                    rating,
+                    // --- REMOVED rating ---
                     content: trimmedContent,
                     courseCode: trimmedCourseCode,
                     isOnlineCourse,
@@ -204,6 +194,7 @@ export default function ReviewForm({
             }
 
             (event.target as HTMLFormElement).reset();
+            // Reset all states
             setClarity('');
             setWorkload('');
             setSupport('');
@@ -212,8 +203,6 @@ export default function ReviewForm({
             setAttendanceMandatory('');
             setGrade('');
             setSelectedTags([]);
-            // Don't reset selectedInstructorId intentionally, user might want to review same prof? 
-            // Or reset it if you prefer: setSelectedInstructorId('');
             
             onSuccess?.();
         } catch (submitError) {
@@ -228,7 +217,6 @@ export default function ReviewForm({
         <form onSubmit={handleSubmit} className="space-y-6 p-6 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Write a Review</h3>
 
-            {/* 5. NEW: Instructor Dropdown */}
             {availableInstructors.length > 0 ? (
                 <div>
                     <label htmlFor="instructor" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -251,7 +239,6 @@ export default function ReviewForm({
                     </select>
                 </div>
             ) : (
-                // Fallback if no list provided (e.g. if parent component isn't updated yet)
                 <div className="text-sm text-gray-500 italic">
                     Reviewing for: {courseCode} (Instructor selection unavailable)
                 </div>
@@ -338,20 +325,6 @@ export default function ReviewForm({
                         <option value="5">5 - Very Difficult</option>
                     </select>
                 </div>
-            </div>
-
-            <div>
-                <label htmlFor="rating" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Overall rating *
-                </label>
-                <select id="rating" name="rating" required className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 dark:bg-gray-800 dark:text-gray-100" disabled={isSubmitting}>
-                    <option value="">Select a rating</option>
-                    <option value="5">5 - Awesome</option>
-                    <option value="4">4 - Good</option>
-                    <option value="3">3 - Average</option>
-                    <option value="2">2 - Poor</option>
-                    <option value="1">1 - Awful</option>
-                </select>
             </div>
 
             <fieldset className="space-y-2">
