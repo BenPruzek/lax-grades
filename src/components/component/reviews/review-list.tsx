@@ -2,7 +2,6 @@ import type { Review } from '@/lib/types';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-// 1. Import Trash2 icon
 import { Lock, ThumbsUp, ThumbsDown, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -13,14 +12,11 @@ export default function ReviewList({ reviews: initialReviews }: { reviews: Revie
     const isAuthenticated = !!session;
     const [reviews, setReviews] = useState(initialReviews);
 
-    // 2. New Delete Handler
     const handleDelete = async (reviewId: number) => {
-        // Simple confirmation dialog
         if (!confirm("Are you sure you want to delete this review? This cannot be undone.")) {
             return;
         }
 
-        // Optimistic update: Remove from UI immediately
         setReviews(prev => prev.filter(r => r.id !== reviewId));
 
         try {
@@ -33,13 +29,10 @@ export default function ReviewList({ reviews: initialReviews }: { reviews: Revie
                 throw new Error(data.error || 'Failed to delete');
             }
             
-            // Refresh to ensure data consistency
             router.refresh();
         } catch (error) {
             console.error("Delete failed:", error);
             alert("Failed to delete review.");
-            // Optional: Revert state if you want strictly robust optimistic UI, 
-            // but for deletion, usually just showing an error is fine.
         }
     };
 
@@ -49,7 +42,6 @@ export default function ReviewList({ reviews: initialReviews }: { reviews: Revie
             return;
         }
 
-        // Optimistic update
         setReviews(currentReviews => currentReviews.map(review => {
             if (review.id !== reviewId) return review;
 
@@ -58,12 +50,10 @@ export default function ReviewList({ reviews: initialReviews }: { reviews: Revie
             let newUserVote = review.userVote;
 
             if (review.userVote === type) {
-                // Toggle off
                 newUserVote = null;
                 if (type === 'LIKE') newLikes--;
                 else newDislikes--;
             } else {
-                // Change vote or new vote
                 if (review.userVote === 'LIKE') newLikes--;
                 else if (review.userVote === 'DISLIKE') newDislikes--;
 
@@ -88,9 +78,7 @@ export default function ReviewList({ reviews: initialReviews }: { reviews: Revie
                 body: JSON.stringify({ type }),
             });
 
-            if (!response.ok) {
-                throw new Error('Vote failed');
-            }
+            if (!response.ok) throw new Error('Vote failed');
         } catch (error) {
             console.error('Vote failed:', error);
         }
@@ -110,10 +98,16 @@ export default function ReviewList({ reviews: initialReviews }: { reviews: Revie
         <div className="space-y-4 relative">
             {visibleReviews.map((review, index) => {
                 const isBlurred = !isAuthenticated && index > 0;
-                // 3. Check ownership
-                // NextAuth IDs are strings, Prisma IDs are numbers (based on your schema)
                 const isOwner = session?.user?.id && parseInt(session.user.id) === review.user.id;
                 
+                // --- NEW CALCULATION LOGIC ---
+                // Calculate Intensity: (Difficulty + Workload) / 2
+                const diff = review.difficulty || 0;
+                const workload = review.workload || 0;
+                const hasIntensityData = diff > 0 || workload > 0;
+                const intensityScore = hasIntensityData ? ((diff + workload) / 2).toFixed(1) : "N/A";
+                // -----------------------------
+
                 return (
                     <article 
                         key={review.id} 
@@ -138,57 +132,54 @@ export default function ReviewList({ reviews: initialReviews }: { reviews: Revie
                                         day: 'numeric',
                                     })}
                                 </time>
-                                
-                                {/* 4. Render Delete Button if Owner */}
                                 {isOwner && (
-                                    <button
-                                        onClick={() => handleDelete(review.id)}
-                                        className="text-gray-400 hover:text-red-600 transition-colors p-1"
-                                        title="Delete review"
-                                        aria-label="Delete review"
-                                    >
+                                    <button onClick={() => handleDelete(review.id)} className="text-gray-400 hover:text-red-600 transition-colors p-1" title="Delete review">
                                         <Trash2 className="w-4 h-4" />
                                     </button>
                                 )}
                             </div>
                         </header>
 
-                        <dl className="grid gap-2 text-sm text-gray-700 dark:text-gray-300 sm:grid-cols-2">
-                            <div className="flex gap-2">
-                                <dt className="font-medium">Rating:</dt>
-                                <dd>{review.rating}/5</dd>
+                        {/* UPDATED METRICS GRID */}
+                        <dl className="grid gap-4 text-sm text-gray-700 dark:text-gray-300 sm:grid-cols-2 md:grid-cols-4">
+                            {/* 1. Overall Quality (Stars) */}
+                            <div className="flex flex-col">
+                                <dt className="text-xs text-gray-500 uppercase font-semibold">Quality</dt>
+                                <dd className="font-bold text-emerald-600 dark:text-emerald-400">{review.rating}/5 Stars</dd>
                             </div>
-                            <div className="flex gap-2">
-                                <dt className="font-medium">Difficulty:</dt>
-                                <dd>{review.difficulty ?? '—'} / 5</dd>
-                            </div>
-                            <div className="flex gap-2">
-                                <dt className="font-medium">Would take again:</dt>
-                                <dd>{review.wouldTakeAgain === null || review.wouldTakeAgain === undefined ? '—' : review.wouldTakeAgain ? 'Yes' : 'No'}</dd>
-                            </div>
-                            <div className="flex gap-2">
-                                <dt className="font-medium">Attendance mandatory:</dt>
-                                <dd>
-                                    {review.attendanceMandatory === null || review.attendanceMandatory === undefined
-                                        ? '—'
-                                        : review.attendanceMandatory
-                                        ? 'Yes'
-                                        : 'No'}
+
+                            {/* 2. Intensity Score (Calculated) */}
+                            <div className="flex flex-col">
+                                <dt className="text-xs text-gray-500 uppercase font-semibold">Intensity</dt>
+                                <dd className={`font-bold ${intensityScore !== "N/A" && Number(intensityScore) >= 4 ? "text-red-600 dark:text-red-400" : ""}`}>
+                                    {intensityScore} / 5
                                 </dd>
                             </div>
-                            <div className="flex gap-2">
-                                <dt className="font-medium">Grade received:</dt>
-                                <dd>{review.grade ?? '—'}</dd>
+
+                            {/* 3. Difficulty */}
+                            <div className="flex flex-col">
+                                <dt className="text-xs text-gray-500 uppercase font-semibold">Difficulty</dt>
+                                <dd>{review.difficulty ?? '—'} / 5</dd>
+                            </div>
+
+                            {/* 4. Workload */}
+                            <div className="flex flex-col">
+                                <dt className="text-xs text-gray-500 uppercase font-semibold">Workload</dt>
+                                <dd>{review.workload > 0 ? `${review.workload} / 5` : '—'}</dd>
                             </div>
                         </dl>
+
+                        {/* Secondary Metrics */}
+                        <div className="flex gap-4 text-xs text-gray-500 dark:text-gray-400 border-t border-gray-100 dark:border-gray-800 pt-3 mt-2">
+                            <span>Take Again: <strong>{review.wouldTakeAgain ? 'Yes' : 'No'}</strong></span>
+                            <span>Attendance: <strong>{review.attendanceMandatory ? 'Yes' : 'No'}</strong></span>
+                            <span>Grade: <strong>{review.grade ?? '—'}</strong></span>
+                        </div>
 
                         {review.tags.length ? (
                             <div className="flex flex-wrap gap-2">
                                 {review.tags.map((tag) => (
-                                    <span
-                                        key={tag}
-                                        className="inline-flex items-center rounded-full bg-red-50 px-3 py-1 text-xs font-medium text-red-700 dark:bg-red-900/30 dark:text-red-200"
-                                    >
+                                    <span key={tag} className="inline-flex items-center rounded-full bg-red-50 px-3 py-1 text-xs font-medium text-red-700 dark:bg-red-900/30 dark:text-red-200">
                                         {tag}
                                     </span>
                                 ))}
@@ -198,19 +189,11 @@ export default function ReviewList({ reviews: initialReviews }: { reviews: Revie
                         <p className="text-gray-700 dark:text-gray-200 whitespace-pre-wrap">{review.content}</p>
 
                         <div className="flex items-center gap-4 pt-2 border-t border-gray-100 dark:border-gray-800">
-                            <button 
-                                onClick={() => handleVote(review.id, 'LIKE')}
-                                className={`flex items-center gap-1.5 text-sm font-medium transition-colors ${review.userVote === 'LIKE' ? 'text-green-600 dark:text-green-400' : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'}`}
-                                disabled={isBlurred}
-                            >
+                            <button onClick={() => handleVote(review.id, 'LIKE')} className={`flex items-center gap-1.5 text-sm font-medium transition-colors ${review.userVote === 'LIKE' ? 'text-green-600 dark:text-green-400' : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'}`} disabled={isBlurred}>
                                 <ThumbsUp className={`w-4 h-4 ${review.userVote === 'LIKE' ? 'fill-current' : ''}`} />
                                 <span>{review.likes}</span>
                             </button>
-                            <button 
-                                onClick={() => handleVote(review.id, 'DISLIKE')}
-                                className={`flex items-center gap-1.5 text-sm font-medium transition-colors ${review.userVote === 'DISLIKE' ? 'text-red-600 dark:text-red-400' : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'}`}
-                                disabled={isBlurred}
-                            >
+                            <button onClick={() => handleVote(review.id, 'DISLIKE')} className={`flex items-center gap-1.5 text-sm font-medium transition-colors ${review.userVote === 'DISLIKE' ? 'text-red-600 dark:text-red-400' : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'}`} disabled={isBlurred}>
                                 <ThumbsDown className={`w-4 h-4 ${review.userVote === 'DISLIKE' ? 'fill-current' : ''}`} />
                                 <span>{review.dislikes}</span>
                             </button>
@@ -225,22 +208,16 @@ export default function ReviewList({ reviews: initialReviews }: { reviews: Revie
                         <div className="w-12 h-12 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
                             <Lock className="w-6 h-6 text-red-600 dark:text-red-400" />
                         </div>
-                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                            Join to see full reviews
-                        </h3>
+                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Join to see full reviews</h3>
                         <p className="text-gray-600 dark:text-gray-300 mb-6">
                             Sign up with your <span className="font-bold text-gray-900 dark:text-white">@uwlax.edu</span> email to read all reviews, ratings, and grade data.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-3 justify-center">
                             <Link href="/sign-up" className="w-full sm:w-auto">
-                                <Button className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold">
-                                    Sign up for free
-                                </Button>
+                                <Button className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold">Sign up for free</Button>
                             </Link>
                             <Link href="/sign-in" className="w-full sm:w-auto">
-                                <Button variant="outline" className="w-full">
-                                    Log in
-                                </Button>
+                                <Button variant="outline" className="w-full">Log in</Button>
                             </Link>
                         </div>
                     </div>
