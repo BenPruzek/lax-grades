@@ -44,13 +44,17 @@ function serializeReview(review: ReviewWithRelations): ReviewType {
         isOnlineCourse: review.isOnlineCourse,
         difficulty: review.difficulty ?? null,
         
-        // --- ADDED NEW METRICS HERE ---
-        // Note: You might get a red squiggly line here if you haven't updated 'types.ts' yet.
-        // We will fix that in the next step.
+        // --- ADDED NEW METRICS ---
         clarity: review.clarity,
         workload: review.workload,
         support: review.support,
-        // ------------------------------
+        // -------------------------
+
+        // --- FIXED: ADDED MISSING FIELDS TO MATCH TYPE ---
+        likes: review.likes,
+        dislikes: review.dislikes,
+        score: review.score,
+        // -------------------------------------------------
 
         wouldTakeAgain: review.wouldTakeAgain ?? null,
         attendanceMandatory: review.attendanceMandatory ?? null,
@@ -125,7 +129,6 @@ export async function fetchDepartmentReviews(departmentId: number) {
     }
 }
 
-// --- UPDATED CREATE FUNCTION ---
 export async function createReview({
     classId,
     instructorId,
@@ -511,7 +514,6 @@ export async function fetchDepartmentInstructors(departmentName: string) {
     }
 }
 
-// --- NEW: Efficient Aggregation for Instructors ---
 export async function getInstructorAggregates(instructorId: number) {
     try {
         const aggregates = await prisma.review.aggregate({
@@ -576,7 +578,6 @@ export async function fetchDepartmentGrades(departmentId: number) {
     }
 }
 
-// --- NEW FUNCTION GOES HERE (OUTSIDE THE ONE ABOVE) ---
 export async function getDepartmentAggregates(departmentId: number) {
     try {
         const aggregates = await prisma.review.aggregate({
