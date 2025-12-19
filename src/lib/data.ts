@@ -44,17 +44,18 @@ function serializeReview(review: ReviewWithRelations): ReviewType {
         isOnlineCourse: review.isOnlineCourse,
         difficulty: review.difficulty ?? null,
         
-        // --- ADDED NEW METRICS ---
+        // --- NEW METRICS ---
         clarity: review.clarity,
         workload: review.workload,
         support: review.support,
-        // -------------------------
+        // -------------------
 
-        // --- FIXED: ADDED MISSING FIELDS TO MATCH TYPE ---
-        likes: review.likes,
-        dislikes: review.dislikes,
-        score: review.score,
-        // -------------------------------------------------
+        // --- FIXED: Added Defaults & userVote ---
+        likes: review.likes ?? 0,       // Default to 0
+        dislikes: review.dislikes ?? 0, // Default to 0
+        score: review.score ?? 0,       // Default to 0
+        userVote: null,                 // <--- THIS WAS MISSING
+        // ----------------------------------------
 
         wouldTakeAgain: review.wouldTakeAgain ?? null,
         attendanceMandatory: review.attendanceMandatory ?? null,
