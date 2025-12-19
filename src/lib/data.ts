@@ -43,6 +43,20 @@ function serializeReview(review: ReviewWithRelations): ReviewType {
         courseCode: review.courseCode,
         isOnlineCourse: review.isOnlineCourse,
         difficulty: review.difficulty ?? null,
+        
+        // --- NEW METRICS ---
+        clarity: review.clarity,
+        workload: review.workload,
+        support: review.support,
+        // -------------------
+
+        // --- FIXED: Added Defaults & userVote ---
+        likes: review.likes ?? 0,       // Default to 0
+        dislikes: review.dislikes ?? 0, // Default to 0
+        score: review.score ?? 0,       // Default to 0
+        userVote: null,                 // <--- This is critical for the server
+        // ----------------------------------------
+
         wouldTakeAgain: review.wouldTakeAgain ?? null,
         attendanceMandatory: review.attendanceMandatory ?? null,
         grade: review.grade ?? null,
@@ -127,6 +141,11 @@ export async function createReview({
     courseCode,
     isOnlineCourse,
     difficulty,
+    // New Arguments
+    clarity,
+    workload,
+    support,
+    // -------------
     wouldTakeAgain,
     attendanceMandatory,
     grade,
@@ -142,6 +161,11 @@ export async function createReview({
     courseCode: string;
     isOnlineCourse: boolean;
     difficulty?: number | null;
+    // New Types
+    clarity: number;
+    workload: number;
+    support: number;
+    // ---------
     wouldTakeAgain?: boolean | null;
     attendanceMandatory?: boolean | null;
     grade?: string | null;
@@ -160,6 +184,12 @@ export async function createReview({
                 courseCode,
                 isOnlineCourse,
                 difficulty: difficulty ?? null,
+                
+                // Saving new metrics to Database
+                clarity,
+                workload,
+                support,
+                
                 wouldTakeAgain: wouldTakeAgain ?? null,
                 attendanceMandatory: attendanceMandatory ?? null,
                 grade: grade ?? null,
@@ -485,6 +515,37 @@ export async function fetchDepartmentInstructors(departmentName: string) {
     }
 }
 
+export async function getInstructorAggregates(instructorId: number) {
+    try {
+        const aggregates = await prisma.review.aggregate({
+            where: { 
+                instructorId,
+                clarity: { gt: 0 }, // Only count new reviews
+            },
+            _avg: {
+                clarity: true,
+                support: true,
+                workload: true,
+                difficulty: true
+            },
+            _count: {
+                _all: true
+            }
+        });
+
+        return {
+            avgClarity: aggregates._avg.clarity || 0,
+            avgSupport: aggregates._avg.support || 0,
+            avgWorkload: aggregates._avg.workload || 0,
+            avgDifficulty: aggregates._avg.difficulty || 0,
+            count: aggregates._count._all
+        };
+    } catch (error) {
+        console.error('Failed to fetch instructor aggregates:', error);
+        return { avgClarity: 0, avgSupport: 0, avgWorkload: 0, avgDifficulty: 0, count: 0 };
+    }
+}
+
 export async function fetchDepartmentGrades(departmentId: number) {
     try {
         const departmentGrades = await prisma.distribution.findMany({
@@ -515,5 +576,36 @@ export async function fetchDepartmentGrades(departmentId: number) {
     } catch (error) {
         console.error('Failed to fetch department grades:', error);
         throw new Error('Failed to fetch department grades');
+    }
+}
+
+export async function getDepartmentAggregates(departmentId: number) {
+    try {
+        const aggregates = await prisma.review.aggregate({
+            where: { 
+                departmentId,
+                clarity: { gt: 0 },
+            },
+            _avg: {
+                clarity: true,
+                support: true,
+                workload: true,
+                difficulty: true
+            },
+            _count: {
+                _all: true
+            }
+        });
+
+        return {
+            avgClarity: aggregates._avg.clarity || 0,
+            avgSupport: aggregates._avg.support || 0,
+            avgWorkload: aggregates._avg.workload || 0,
+            avgDifficulty: aggregates._avg.difficulty || 0,
+            count: aggregates._count._all
+        };
+    } catch (error) {
+        console.error('Failed to fetch department aggregates:', error);
+        return { avgClarity: 0, avgSupport: 0, avgWorkload: 0, avgDifficulty: 0, count: 0 };
     }
 }

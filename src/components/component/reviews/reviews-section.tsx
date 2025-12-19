@@ -12,6 +12,8 @@ interface ReviewsSectionProps {
     departmentId: number;
     classCode: string;
     initialReviews?: Review[];
+    // 1. Add the new prop definition here
+    availableInstructors?: { id: number; name: string }[];
 }
 
 export default function ReviewsSection({
@@ -20,6 +22,8 @@ export default function ReviewsSection({
     departmentId,
     classCode,
     initialReviews = [],
+    // 2. Destructure it here (default to empty list)
+    availableInstructors = [],
 }: ReviewsSectionProps) {
     const { data: session } = useSession();
     const [reviews, setReviews] = useState<Review[]>(initialReviews);
@@ -73,6 +77,8 @@ export default function ReviewsSection({
                     departmentId={departmentId}
                     classCode={classCode}
                     onSuccess={handleReviewSubmitted}
+                    // 3. Pass the list down to the form
+                    availableInstructors={availableInstructors}
                 />
             )}
 

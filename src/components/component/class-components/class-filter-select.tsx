@@ -7,8 +7,20 @@ import ClassBarChart from "./class-bar-chart";
 import Link from "next/link";
 import ClassDataCards from "./class-data-cards";
 import { GradePercentages } from "@/lib/types";
+// 1. IMPORT THE NEW COMPONENT
+import { AnimatedScore } from "../../ui/animated-score"; 
 
-export default function ClassFilterSelect({ classData, distributions }: { classData: any; distributions: any[] }) {
+export default function ClassFilterSelect({ 
+    classData, 
+    distributions,
+    qualityScore,
+    intensityScore 
+}: { 
+    classData: any; 
+    distributions: any[];
+    qualityScore: string;
+    intensityScore: string;
+}) {
     const router = useRouter();
     const [selectedInstructor, setSelectedInstructor] = useState<number | null>(null);
     const [selectedSemester, setSelectedSemester] = useState<string | null>(null);
@@ -109,6 +121,41 @@ export default function ClassFilterSelect({ classData, distributions }: { classD
                         </SelectContent>
                     </Select>
                 </div>
+
+                {/* --- SCORE CARDS (Now with Animation) --- */}
+                <div className="mt-8 space-y-4 border-t border-gray-200 dark:border-zinc-800 pt-6">
+                    {/* Quality Card */}
+                    <div className="p-4 bg-[#f6f6ef] dark:bg-zinc-900 border border-transparent rounded-lg">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Quality</h3>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Clarity & Support</p>
+                            </div>
+                            <div className="text-right">
+                                {/* 2. USE THE ANIMATED COMPONENT */}
+                                <AnimatedScore value={qualityScore} />
+                                <span className="text-xs text-gray-400 ml-1">/5</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Intensity Card */}
+                    <div className="p-4 bg-[#f6f6ef] dark:bg-zinc-900 border border-transparent rounded-lg">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Intensity</h3>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Difficulty & Workload</p>
+                            </div>
+                            <div className="text-right">
+                                {/* 2. USE THE ANIMATED COMPONENT */}
+                                <AnimatedScore value={intensityScore} />
+                                <span className="text-xs text-gray-400 ml-1">/5</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {/* -------------------------------------- */}
+
             </div>
             <div className="mt-6 lg:mt-0 lg:col-span-3">
                 <div className="col-span-2">

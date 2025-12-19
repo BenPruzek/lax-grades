@@ -5,6 +5,7 @@ import type { NextAuthOptions } from 'next-auth';
 import type { JWT } from 'next-auth/jwt';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
+
 type Credentials = {
     email: string;
     password: string;
@@ -64,11 +65,23 @@ export const authOptions: NextAuthOptions = {
     providers,
     callbacks: {
         async signIn({ user, account }) {
-            if (account?.provider === 'google') {
-                if (!user.email) {
-                    return false;
-                }
+            // --- 1. GATEKEEPER LOGIC START ---
+            if (!user.email) return false;
 
+            const isUWL = user.email.endsWith('@uwlax.edu');
+            
+            // Admin Whitelist (You and Henry)
+            const allowedAdmins = ['henryczup@gmail.com', 'benjamin.pruzek@gmail.com'];
+            const isAdmin = allowedAdmins.includes(user.email);
+
+            if (!isUWL && !isAdmin) {
+                // If they are not a student and not an admin, block them.
+                // This redirects them back to the sign-in page with an error.
+                return '/sign-in?error=AccessDenied'; 
+            }
+            // --- GATEKEEPER LOGIC END ---
+
+            if (account?.provider === 'google') {
                 const existingUser = await prisma.user.findUnique({
                     where: { email: user.email },
                 });
@@ -80,6 +93,7 @@ export const authOptions: NextAuthOptions = {
                         data: {
                             email: user.email,
                             name: user.name,
+                            // Use a dummy password for OAuth users
                             password: await hash(process.env.OAUTH_DEFAULT_PASSWORD ?? 'oauth-user', 10),
                         },
                     });

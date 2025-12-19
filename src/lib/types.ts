@@ -64,6 +64,13 @@ export interface Review {
     courseCode: string;
     isOnlineCourse: boolean;
     difficulty?: number | null;
+    
+    // --- ADD THESE 3 LINES ---
+    clarity: number;
+    workload: number;
+    support: number;
+    // -------------------------
+
     wouldTakeAgain?: boolean | null;
     attendanceMandatory?: boolean | null;
     grade?: string | null;

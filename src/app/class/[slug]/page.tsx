@@ -24,8 +24,51 @@ export default async function ClassPage({ params, searchParams }: {
     classData.department.id,
   );
 
-  // Fetch reviews for this class
+  // 1. Fetch reviews
   const reviews = await fetchClassReviews(classData.id);
+
+  // 2. Calculate the Big Numbers
+  // FIX: Convert both IDs to String to ensure "101" matches 101
+  const activeReviews = instructor
+    ? reviews.filter((r) => String(r.instructor.id) === String(instructor))
+    : reviews;
+
+  // FIX: Robust Filtering to ignore "Zombie" (Old) Reviews
+  // We check if values exist AND are greater than 0
+  const validQualityReviews = activeReviews.filter((r) => (r.clarity || 0) > 0 && (r.support || 0) > 0);
+  const validIntensityReviews = activeReviews.filter((r) => (r.workload || 0) > 0 && (r.difficulty || 0) > 0);
+
+  // Calculate Averages
+  const avgClarity = validQualityReviews.reduce((sum, r) => sum + (r.clarity || 0), 0) / (validQualityReviews.length || 1);
+  const avgSupport = validQualityReviews.reduce((sum, r) => sum + (r.support || 0), 0) / (validQualityReviews.length || 1);
+  
+  const avgWorkload = validIntensityReviews.reduce((sum, r) => sum + (r.workload || 0), 0) / (validIntensityReviews.length || 1);
+  const avgDifficulty = validIntensityReviews.reduce((sum, r) => sum + (r.difficulty || 0), 0) / (validIntensityReviews.length || 1);
+
+  // Create Big Numbers
+  // If no valid reviews, explicit "N/A"
+  const qualityScore = validQualityReviews.length > 0 ? ((avgClarity + avgSupport) / 2).toFixed(1) : "N/A";
+  const intensityScore = validIntensityReviews.length > 0 ? ((avgWorkload + avgDifficulty) / 2).toFixed(1) : "N/A";
+
+  // Debugging Log (Check your VS Code Terminal to see this!)
+  console.log(`--- DEBUG SCORES for ${instructor ? "Instructor " + instructor : "All"} ---`);
+  console.log(`Total Reviews: ${activeReviews.length}`);
+  console.log(`Valid Quality Reviews: ${validQualityReviews.length}`);
+  console.log(`Quality Score: ${qualityScore}`);
+
+  // 3. Logic for the Review Section
+  const allInstructors = distributions
+    .map((d) => d.instructor)
+    .filter((i): i is NonNullable<typeof i> => i !== null && i !== undefined);
+
+  const uniqueInstructors = Array.from(
+    new Map(allInstructors.map((item) => [item.id, item])).values()
+  );
+
+  const availableInstructors = uniqueInstructors.map((i) => ({
+    id: i.id,
+    name: i.name,
+  })).sort((a, b) => a.name.localeCompare(b.name));
 
   const instructorId = distributions.find((distribution) => distribution.instructor)?.instructor?.id ?? 0;
 
@@ -42,11 +85,16 @@ export default async function ClassPage({ params, searchParams }: {
             {classData.code.slice(classData.code.search(/\d/))}
           </p>
         </div>
+        
         <div className="lg:grid lg:grid-cols-4 gap-16 mt-4">
-          <ClassFilterSelect classData={classData} distributions={distributions} />
+          <ClassFilterSelect 
+             classData={classData} 
+             distributions={distributions} 
+             qualityScore={qualityScore}
+             intensityScore={intensityScore}
+          />
         </div>
         
-        {/* Reviews Section */}
         <div className="mt-12">
           <ReviewsSection
             classId={classData.id}
@@ -54,6 +102,7 @@ export default async function ClassPage({ params, searchParams }: {
             departmentId={classData.department.id}
             classCode={classData.code}
             initialReviews={reviews}
+            availableInstructors={availableInstructors}
           />
         </div>
       </div>
