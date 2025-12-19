@@ -13,12 +13,9 @@ export default function ReviewList({ reviews: initialReviews }: { reviews: Revie
     const [reviews, setReviews] = useState(initialReviews);
 
     const handleDelete = async (reviewId: number) => {
-        // --- THIS IS THE POPUP CODE ---
-        // It triggers a browser popup asking "Are you sure?"
         if (!confirm("Are you sure you want to delete this review? This cannot be undone.")) {
             return;
         }
-        // ------------------------------
 
         setReviews(prev => prev.filter(r => r.id !== reviewId));
 
@@ -117,15 +114,11 @@ export default function ReviewList({ reviews: initialReviews }: { reviews: Revie
                     >
                         <header className="flex flex-wrap items-start justify-between gap-3">
                             <div>
-                                {/* --- UPDATED: REMOVED DEFAULT TITLE --- */}
-                                {/* Only renders the title if one exists. Otherwise, it shows nothing. */}
                                 {review.title && (
                                     <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                                         {review.title}
                                     </h3>
                                 )}
-                                {/* --------------------------------------- */}
-                                
                                 <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
                                     {review.courseCode} • {review.instructor.name} • {review.isOnlineCourse ? 'Online' : 'In-person'}
                                 </p>
@@ -155,7 +148,8 @@ export default function ReviewList({ reviews: initialReviews }: { reviews: Revie
 
                             <div className="flex flex-col">
                                 <dt className="text-xs text-gray-500 uppercase font-semibold">Intensity</dt>
-                                <dd className={`font-bold ${intensityScore !== "N/A" && Number(intensityScore) >= 4 ? "text-red-600 dark:text-red-400" : ""}`}>
+                                {/* UPDATED: REMOVED RED COLOR LOGIC */}
+                                <dd className="font-bold text-gray-900 dark:text-gray-100">
                                     {intensityScore} / 5
                                 </dd>
                             </div>
