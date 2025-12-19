@@ -54,7 +54,7 @@ function serializeReview(review: ReviewWithRelations): ReviewType {
         likes: review.likes ?? 0,       // Default to 0
         dislikes: review.dislikes ?? 0, // Default to 0
         score: review.score ?? 0,       // Default to 0
-        userVote: null,                 // <--- THIS WAS MISSING
+        userVote: null,                 // <--- This is critical for the server
         // ----------------------------------------
 
         wouldTakeAgain: review.wouldTakeAgain ?? null,
