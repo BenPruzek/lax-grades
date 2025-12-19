@@ -13,9 +13,12 @@ export default function ReviewList({ reviews: initialReviews }: { reviews: Revie
     const [reviews, setReviews] = useState(initialReviews);
 
     const handleDelete = async (reviewId: number) => {
+        // --- THIS IS THE POPUP CODE ---
+        // It triggers a browser popup asking "Are you sure?"
         if (!confirm("Are you sure you want to delete this review? This cannot be undone.")) {
             return;
         }
+        // ------------------------------
 
         setReviews(prev => prev.filter(r => r.id !== reviewId));
 
@@ -100,13 +103,11 @@ export default function ReviewList({ reviews: initialReviews }: { reviews: Revie
                 const isBlurred = !isAuthenticated && index > 0;
                 const isOwner = session?.user?.id && parseInt(session.user.id) === review.user.id;
                 
-                // --- NEW CALCULATION LOGIC ---
                 // Calculate Intensity: (Difficulty + Workload) / 2
                 const diff = review.difficulty || 0;
                 const workload = review.workload || 0;
                 const hasIntensityData = diff > 0 || workload > 0;
                 const intensityScore = hasIntensityData ? ((diff + workload) / 2).toFixed(1) : "N/A";
-                // -----------------------------
 
                 return (
                     <article 
@@ -116,9 +117,15 @@ export default function ReviewList({ reviews: initialReviews }: { reviews: Revie
                     >
                         <header className="flex flex-wrap items-start justify-between gap-3">
                             <div>
-                                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                                    {review.title ?? `Review by ${review.user.name ?? review.user.email}`}
-                                </h3>
+                                {/* --- UPDATED: REMOVED DEFAULT TITLE --- */}
+                                {/* Only renders the title if one exists. Otherwise, it shows nothing. */}
+                                {review.title && (
+                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                                        {review.title}
+                                    </h3>
+                                )}
+                                {/* --------------------------------------- */}
+                                
                                 <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
                                     {review.courseCode} • {review.instructor.name} • {review.isOnlineCourse ? 'Online' : 'In-person'}
                                 </p>
@@ -140,15 +147,12 @@ export default function ReviewList({ reviews: initialReviews }: { reviews: Revie
                             </div>
                         </header>
 
-                        {/* UPDATED METRICS GRID */}
                         <dl className="grid gap-4 text-sm text-gray-700 dark:text-gray-300 sm:grid-cols-2 md:grid-cols-4">
-                            {/* 1. Overall Quality (Stars) */}
                             <div className="flex flex-col">
                                 <dt className="text-xs text-gray-500 uppercase font-semibold">Quality</dt>
                                 <dd className="font-bold text-emerald-600 dark:text-emerald-400">{review.rating}/5 Stars</dd>
                             </div>
 
-                            {/* 2. Intensity Score (Calculated) */}
                             <div className="flex flex-col">
                                 <dt className="text-xs text-gray-500 uppercase font-semibold">Intensity</dt>
                                 <dd className={`font-bold ${intensityScore !== "N/A" && Number(intensityScore) >= 4 ? "text-red-600 dark:text-red-400" : ""}`}>
@@ -156,20 +160,17 @@ export default function ReviewList({ reviews: initialReviews }: { reviews: Revie
                                 </dd>
                             </div>
 
-                            {/* 3. Difficulty */}
                             <div className="flex flex-col">
                                 <dt className="text-xs text-gray-500 uppercase font-semibold">Difficulty</dt>
                                 <dd>{review.difficulty ?? '—'} / 5</dd>
                             </div>
 
-                            {/* 4. Workload */}
                             <div className="flex flex-col">
                                 <dt className="text-xs text-gray-500 uppercase font-semibold">Workload</dt>
                                 <dd>{review.workload > 0 ? `${review.workload} / 5` : '—'}</dd>
                             </div>
                         </dl>
 
-                        {/* Secondary Metrics */}
                         <div className="flex gap-4 text-xs text-gray-500 dark:text-gray-400 border-t border-gray-100 dark:border-gray-800 pt-3 mt-2">
                             <span>Take Again: <strong>{review.wouldTakeAgain ? 'Yes' : 'No'}</strong></span>
                             <span>Attendance: <strong>{review.attendanceMandatory ? 'Yes' : 'No'}</strong></span>
